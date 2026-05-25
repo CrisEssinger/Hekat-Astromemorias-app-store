@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Hekat Astromemorias</string>
+    <string name="title_activity_main">Hekat Astromemorias</string>
+    <string name="package_name">com.ciadoceu.hekat</string>
+    <string name="custom_url_scheme">com.ciadoceu.hekat</string>
+</resources>
