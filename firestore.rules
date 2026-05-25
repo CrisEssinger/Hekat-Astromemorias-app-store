@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Bloqueio total por padrão
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Funções auxiliares de segurança
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Regras para a coleção de usuários
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      
+      function isValidUser(data) {
+        return data.uid == request.auth.uid
+          && data.email == request.auth.token.email
+          && (!data.keys().contains('displayName') || data.displayName == null || (data.displayName is string && data.displayName.size() <= 200))
+          && (!data.keys().contains('photoURL') || data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 1000))
+          && (!data.keys().contains('name') || data.name == null || (data.name is string && data.name.size() <= 200));
+      }
+
+      allow create: if isOwner(userId) 
+        && isValidUser(request.resource.data)
+        && request.resource.data.keys().hasAll(['uid', 'email', 'createdAt'])
+        && request.resource.data.createdAt == request.time;
+      
+      allow update: if isOwner(userId)
+        && isValidUser(request.resource.data)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'displayName', 'photoURL', 'lastActive', 'hasSeenGuide', 'isPremium', 'uid', 'email', 'createdAt', 'updatedAt'])
+        && (request.resource.data.get('lastActive', request.time) == request.time || request.resource.data.lastActive == resource.data.lastActive)
+        && (request.resource.data.get('updatedAt', request.time) == request.time || request.resource.data.updatedAt == resource.data.updatedAt);
+    }
+
+    // Regras para os registros emocionais
+    match /users/{userId}/logs/{logId} {
+      allow read: if isOwner(userId);
+      
+      function isValidLog(data) {
+        return data.userId == request.auth.uid
+          && (data.emotionId is string && data.emotionId.size() <= 100 || !data.keys().contains('emotionId'))
+          && (data.intensity is number && data.intensity >= 1 && data.intensity <= 5 || !data.keys().contains('intensity'))
+          && (data.lunarDay is number && data.lunarDay >= 1 && data.lunarDay <= 31 || !data.keys().contains('lunarDay'))
+          && (data.note is string && data.note.size() <= 3000 || !data.keys().contains('note'))
+          && (data.cycleId is number || !data.keys().contains('cycleId'));
+      }
+
+      allow create: if isOwner(userId)
+        && isValidId(logId)
+        && isValidLog(request.resource.data)
+        && request.resource.data.keys().hasAll(['emotionId', 'intensity', 'date', 'userId', 'lunarDay'])
+        && request.resource.data.date == request.time;
+      
+      allow update: if isOwner(userId)
+        && isValidLog(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['note', 'date', 'intensity', 'emotionId', 'cycleId', 'userId', 'lunarDay']);
+
+      allow delete: if isOwner(userId);
+    }
+
+    // Regras para feedbacks globais
+    match /feedback/{feedbackId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 3000
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasAll(['userId', 'message', 'createdAt'])
+        && request.resource.data.keys().size() == 3;
+    }
+  }
+}

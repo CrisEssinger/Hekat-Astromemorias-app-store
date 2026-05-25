@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "User": {
+      "title": "Usuário",
+      "description": "Perfil do usuário e configurações de sincronia lunar.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "ID único do usuário no Firebase Auth." },
+        "displayName": { "type": "string", "description": "Nome de exibição." },
+        "email": { "type": "string", "description": "Endereço de e-mail." },
+        "photoURL": { "type": "string", "description": "URL da foto de perfil." },
+        "name": { "type": "string", "description": "Nome ou apelido personalizado definido pelo usuário." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Data de criação do perfil." },
+        "lastActive": { "type": "string", "format": "date-time", "description": "Última atividade no app." }
+      },
+      "required": ["uid", "email"]
+    },
+    "Log": {
+      "title": "Registro de Humor",
+      "description": "Entrada de humor e intensidade sincronizada com o dia lunar.",
+      "type": "object",
+      "properties": {
+        "emotionId": { "type": "string", "description": "ID da emoção selecionada." },
+        "intensity": { "type": "number", "description": "Intensidade de 1 a 5." },
+        "note": { "type": "string", "description": "Anotação do evento de impacto." },
+        "date": { "type": "string", "format": "date-time", "description": "Data e hora do registro." },
+        "lunarDay": { "type": "number", "description": "Dia da mandala lunar no momento do registro." },
+        "userId": { "type": "string", "description": "Referências ao dono do registro." }
+      },
+      "required": ["emotionId", "intensity", "date", "userId", "lunarDay"]
+    },
+    "Feedback": {
+      "title": "Feedback e Sugestões",
+      "description": "Espaço para colher sugestões e esclarecimentos dos usuários.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID do autor do feedback." },
+        "message": { "type": "string", "description": "Conteúdo da sugestão ou dúvida." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Data do envio." }
+      },
+      "required": ["userId", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Informações privadas do perfil do usuário."
+    },
+    "/users/{userId}/logs/{logId}": {
+      "schema": "Log",
+      "description": "Histórico de registros emocionais do usuário."
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "Sugestões enviadas pelos usuários."
+    }
+  }
+}

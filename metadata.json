@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Hekat Astromemorias",
+  "description": "Uma bússola de lucidez que sincroniza sua paisagem emocional aos ritmos celestes através da Mandala Lunar e do registro de sentimentos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

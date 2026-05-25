@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#BF8A10" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="https://ciadoceu.com.br/wp-content/uploads/2026/05/logo_hekat.png.png" />
+    <link rel="apple-touch-icon" href="https://ciadoceu.com.br/wp-content/uploads/2026/05/logo_hekat.png.png" />
+    <title>Hekat Astromemorias</title>
+  </head>
+  <body>
+    <!-- DEBUG MARKER DO NOT REMOVE -->
+    <div style="position:fixed;bottom:0;right:0;font-size:10px;color:rgba(0,0,0,0.1);z-index:99999;">Hekat-v2026-05-19</div>
+    <div id="root"></div>
+    <div id="mount-fallback" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;font-family:sans-serif;color:#64748b;display:none;">
+      <p>Sincronizando Portal Hekat...</p>
+      <p style="font-size:12px;opacity:0.7;">Se demorar demais, verifique sua conexão ou tente recarregar.</p>
+    </div>
+    <script>
+      setTimeout(function() {
+        var root = document.getElementById('root');
+        if (root && root.innerHTML === "") {
+          document.getElementById('mount-fallback').style.display = 'block';
+        }
+      }, 5000);
+    </script>
+    <script>
+      window.onerror = function(msg, url, line, col, error) {
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100%';
+        div.style.padding = '20px';
+        div.style.background = '#FEF2F2';
+        div.style.color = '#991B1B';
+        div.style.zIndex = '99999';
+        div.style.fontFamily = 'sans-serif';
+        div.innerHTML = '<h3 style="margin-top:0">Erro no Portal</h3><p style="font-size:14px">' + msg + '</p><p style="font-size:12px">Linha: ' + line + '</p>';
+        document.body.appendChild(div);
+      };
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
