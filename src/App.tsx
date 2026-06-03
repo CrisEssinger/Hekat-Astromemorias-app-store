@@ -321,11 +321,12 @@ interface WindowProps {
   isNight: boolean;
   toggleWindow: (id: string, action: 'open' | 'close' | 'minimize' | 'focus') => void;
   updateWindowPos: (id: string, x: number, y: number) => void;
+  isMobile: boolean;
 }
 
-const Window: FC<WindowProps> = ({ win, children, width = "450px", desktopRef, topZ, isNight, toggleWindow, updateWindowPos }) => {
+const Window: FC<WindowProps> = ({ win, children, width = "450px", desktopRef, topZ, isNight, toggleWindow, updateWindowPos, isMobile }) => {
   const controls = useDragControls();
-  const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
+  const isMobileDevice = isMobile;
 
   const initialX = isMobileDevice ? 0 : win.pos.x;
   const initialY = isMobileDevice ? 0 : win.pos.y + 15;
@@ -358,7 +359,7 @@ const Window: FC<WindowProps> = ({ win, children, width = "450px", desktopRef, t
           style={{ 
             zIndex: win.zIndex, 
             width: isMobileDevice ? "100%" : `min(${width}, 95vw)`,
-            height: isMobileDevice ? "calc(100dvh - 56px)" : "auto",
+            height: isMobileDevice ? "calc(100dvh - 56px - 64px)" : "auto",
             left: 0,
             top: isMobileDevice ? "56px" : 0,
             position: 'absolute'
@@ -643,6 +644,16 @@ export default function App() {
   const desktopRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(new Date());
   const [mountError, setMountError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Ticker para atualizar sincronia a cada minuto
   useEffect(() => {
@@ -1496,7 +1507,7 @@ export default function App() {
   };
 
   const toggleWindow = (id: string, action: 'open' | 'close' | 'minimize' | 'focus') => {
-    const isMobile = window.innerWidth < 768; // Standard tablet/mobile breakpoint
+    const isMobileDevice = window.innerWidth < 768; // Standard tablet/mobile breakpoint
     
     setWindows(prev => {
       const currentWin = prev.find(w => w.id === id);
@@ -1505,7 +1516,7 @@ export default function App() {
       const newTopZ = topZ + 1;
       setTopZ(newTopZ);
 
-      return prev.map(win => {
+      const mapped = prev.map(win => {
         if (win.id === id) {
           let pos = win.pos;
           if ((action === 'open' || action === 'focus') && (!win.isOpen || win.isMinimized)) {
@@ -1524,6 +1535,15 @@ export default function App() {
         }
         return win;
       });
+
+      if (isMobileDevice && (action === 'close' || action === 'minimize')) {
+        const anyOpen = mapped.some(w => w.isOpen && !w.isMinimized);
+        if (!anyOpen) {
+          return mapped.map(w => w.id === 'mandala' ? { ...w, isOpen: true, isMinimized: false, zIndex: newTopZ, pos: getWindowCenter('mandala') } : w);
+        }
+      }
+
+      return mapped;
     });
   };
 
@@ -1873,55 +1893,59 @@ export default function App() {
           </span>
         </div>
 
-        {/* Center: Window Switcher (Dock integrated) */}
-        <div className="flex-1 flex justify-center px-0.5 min-w-0">
-          <div className="flex items-center gap-0 bg-white/10 p-0.5 rounded-2xl border border-white/5 max-w-full overflow-x-auto no-scrollbar pointer-events-auto mx-auto shadow-inner touch-pan-x">
-             {windows.map(win => (
-              <button
-                key={win.id}
-                onClick={() => {
-                  const isMobile = window.innerWidth < 768;
-                  if (isMobile) {
-                    toggleWindow(win.id, 'focus');
-                  } else {
-                    toggleWindow(win.id, win.isOpen && !win.isMinimized ? 'minimize' : 'focus');
-                  }
-                }}
-                className={`group relative p-2 px-2.5 sm:p-2 sm:px-3 rounded-xl transition-all hover:bg-white/10 opacity-70 hover:opacity-100 flex-shrink-0 cursor-pointer active:scale-90`}
-              >
-                <LucideIcon name={win.icon} size={18} className={`${win.isOpen && !win.isMinimized ? 'text-indigo-300 opacity-100' : 'text-slate-400'}`} />
-                {win.isOpen && (
-                  <div className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-0.5 sm:h-1 sm:w-1 rounded-full ${win.isMinimized ? 'bg-slate-500 opacity-40' : 'bg-indigo-300'}`} />
-                )}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 px-2 py-1 bg-indigo-950/95 text-white text-[9px] font-black uppercase tracking-widest rounded-md opacity-0 hidden sm:group-hover:block transition-opacity pointer-events-none whitespace-nowrap shadow-2xl border border-white/10 z-[3000]">
-                  {win.title}
-                </div>
-              </button>
-            ))}
-            <div className="h-4 w-[1px] bg-white/10 mx-0.5 sm:mx-1.5 flex-shrink-0" />
-            <button 
-              onClick={() => setIsResetOpen(true)}
-              className="p-2 px-2.5 sm:p-2 sm:px-3 text-indigo-300 hover:text-indigo-200 transition-all hover:bg-indigo-500/10 rounded-xl flex-shrink-0 cursor-pointer active:scale-90"
-            >
-              <RotateCcw size={18} />
-            </button>
+        {/* Center: Branding or Window Switcher based on responsive layout */}
+        {isMobile ? (
+          <div className="flex-1 flex justify-center">
+            <span className="font-serif italic text-base text-[#BF8A10] font-black uppercase tracking-[0.3em] select-none leading-none pt-0.5">
+              Hekat
+            </span>
           </div>
-        </div>
+        ) : (
+          /* Center: Window Switcher (Dock integrated) */
+          <div className="flex-1 flex justify-center px-0.5 min-w-0">
+            <div className="flex items-center gap-0 bg-white/10 p-0.5 rounded-2xl border border-white/5 max-w-full overflow-x-auto no-scrollbar pointer-events-auto mx-auto shadow-inner touch-pan-x">
+               {windows.map(win => (
+                <button
+                  key={win.id}
+                  onClick={() => {
+                    toggleWindow(win.id, win.isOpen && !win.isMinimized ? 'minimize' : 'focus');
+                  }}
+                  className={`group relative p-2 px-2.5 sm:p-2 sm:px-3 rounded-xl transition-all hover:bg-white/10 opacity-70 hover:opacity-100 flex-shrink-0 cursor-pointer active:scale-90`}
+                >
+                  <LucideIcon name={win.icon} size={18} className={`${win.isOpen && !win.isMinimized ? 'text-indigo-300 opacity-100' : 'text-slate-400'}`} />
+                  {win.isOpen && (
+                    <div className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-0.5 sm:h-1 sm:w-1 rounded-full ${win.isMinimized ? 'bg-slate-500 opacity-40' : 'bg-indigo-300'}`} />
+                  )}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 px-2 py-1 bg-indigo-950/95 text-white text-[9px] font-black uppercase tracking-widest rounded-md opacity-0 hidden sm:group-hover:block transition-opacity pointer-events-none whitespace-nowrap shadow-2xl border border-white/10 z-[3000]">
+                    {win.title}
+                  </div>
+                </button>
+              ))}
+              <div className="h-4 w-[1px] bg-white/10 mx-0.5 sm:mx-1.5 flex-shrink-0" />
+              <button 
+                onClick={() => setIsResetOpen(true)}
+                className="p-2 px-2.5 sm:p-2 sm:px-3 text-indigo-300 hover:text-indigo-200 transition-all hover:bg-indigo-500/10 rounded-xl flex-shrink-0 cursor-pointer active:scale-90"
+              >
+                <RotateCcw size={18} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Right: Astro Info & Auth */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex items-center gap-1 sm:gap-3 px-1.5 sm:px-3 py-1 bg-black/10 rounded-full border border-white/5 backdrop-blur-sm">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-3 px-1 sm:px-3 py-1 bg-black/10 rounded-full border border-white/5 backdrop-blur-sm">
              <div className="flex items-center gap-0.5 sm:gap-1.5 group cursor-default">
-                <Sun size={12} className="text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.5)] sm:w-[14px] sm:h-[14px]" />
-                <span className="text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-tighter group-hover:text-amber-400 transition-colors">
-                  <span className="hidden sm:inline">Sol </span>{sunDegree}° <span className="text-xs sm:text-sm">{sunSign.symbol}</span>
+                <Sun size={11} className="text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.5)] shrink-0" />
+                <span className="text-[7.5px] sm:text-[10px] font-black text-slate-300 uppercase tracking-tighter group-hover:text-amber-400 transition-colors">
+                  {sunDegree}° <span className="text-[9px] sm:text-xs leading-none">{sunSign.symbol}</span>
                 </span>
              </div>
              <div className="w-[1px] h-3 bg-white/10" />
              <div className="flex items-center gap-0.5 sm:gap-1.5 group cursor-default">
-                <span className="text-xs sm:text-sm text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.5)] leading-none">{todayPhase.icon}</span>
-                <span className="text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-tighter group-hover:text-indigo-300 transition-colors">
-                  <span className="hidden sm:inline">Lua </span>{moonDegree}° <span className="text-xs sm:text-sm">{todaySign.symbol}</span>
+                <span className="text-xs text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.5)] leading-none shrink-0">{todayPhase.icon}</span>
+                <span className="text-[7.5px] sm:text-[10px] font-black text-slate-300 uppercase tracking-tighter group-hover:text-indigo-300 transition-colors">
+                  {moonDegree}° <span className="text-[9px] sm:text-xs leading-none">{todaySign.symbol}</span>
                 </span>
              </div>
           </div>
@@ -1935,10 +1959,10 @@ export default function App() {
               {currentUser ? (
                 <button 
                   onClick={logout}
-                  className="flex items-center gap-1.5 bg-indigo-500/10 hover:bg-rose-500/20 text-indigo-300 hover:text-rose-300 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-white/5 transition-all group"
+                  className="flex items-center gap-1 bg-indigo-500/10 hover:bg-rose-500/20 text-indigo-300 hover:text-rose-300 p-1.5 sm:px-3 sm:py-2 rounded-xl border border-white/5 transition-all group shrink-0"
                   title="Sair do Portal"
                 >
-                  <LogOut size={16} className="group-hover:rotate-12 transition-transform" />
+                  <LogOut size={13} className="group-hover:rotate-12 transition-transform" />
                   <span className="text-[11px] sm:text-[10px] font-black uppercase tracking-widest hidden lg:inline">Sair</span>
                 </button>
               ) : (
@@ -2665,6 +2689,7 @@ export default function App() {
                 toggleWindow={toggleWindow} 
                 updateWindowPos={updateWindowPos}
                 width={win.id === 'history' ? "600px" : win.id === 'mandala' ? "420px" : "500px"}
+                isMobile={isMobile}
               >
                 {Component}
               </Window>
@@ -2672,6 +2697,39 @@ export default function App() {
           })}
         </div>
       </div>
+
+      {/* Mobile Bottom Tab Bar */}
+      {isMobile && (
+        <nav className={`fixed bottom-0 left-0 right-0 h-16 flex items-center justify-around z-[1500] border-t pointer-events-auto transition-colors duration-1000 ${
+          isNight ? 'glass bg-slate-950/80 border-white/5 shadow-[0_-8px_24px_rgba(0,0,0,0.6)]' : 'glass bg-white/85 border-indigo-100 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]'
+        }`}>
+          {windows.filter(win => win.id !== 'guide').map(win => {
+            const isActive = win.isOpen && !win.isMinimized;
+            return (
+              <button
+                key={win.id}
+                onClick={() => {
+                  toggleWindow(win.id, isActive ? 'minimize' : 'focus');
+                }}
+                className="flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all active:scale-90"
+              >
+                <div className={`p-1.5 rounded-xl transition-all ${
+                  isActive 
+                    ? 'bg-indigo-600/20 text-indigo-300 scale-110' 
+                    : 'text-slate-400 hover:text-indigo-300'
+                }`}>
+                  <LucideIcon name={win.icon} size={20} />
+                </div>
+                <span className={`text-[8px] font-black uppercase tracking-wider mt-0.5 ${
+                  isActive ? 'text-indigo-300' : 'text-slate-500'
+                }`}>
+                  {win.title === 'Mandala Lunar' ? 'Mandala' : win.title === 'Astromemorias' ? 'Diário' : win.title === 'Oráculo Diário' ? 'Oráculo' : win.title === 'Relatórios' ? 'Relatórios' : 'Histórico'}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {/* Reset Modal */}
       <AnimatePresence>
