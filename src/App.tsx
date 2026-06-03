@@ -1064,6 +1064,7 @@ export default function App() {
 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [showDomainHelp, setShowDomainHelp] = useState(false);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -1078,12 +1079,16 @@ export default function App() {
         setLoginError("O portal foi bloqueado pelo seu navegador. Por favor, permita popups ou abra este portal em uma nova aba para maior clareza.");
       } else if (err.code === 'auth/cancelled-popup-request') {
         setLoginError("O ritual de acesso foi interrompido.");
-      } else if (err.code === 'auth/unauthorized-domain') {
+      } else if (err.code === 'auth/unauthorized-domain' || (err.message && err.message.toLowerCase().includes('unauthorized-domain'))) {
         setLoginError("Este domínio ('" + window.location.hostname + "') não está autorizado no console do Firebase.");
+        setShowDomainHelp(true);
       } else {
         setLoginError("Não foi possível abrir o portal. Erro: " + (err.message || "Conexão instável"));
+        // Se parecer um erro de configuração de origem/OAuth do Firebase, sugere ajuda
+        if (err.message && (err.message.includes('auth') || err.message.includes('permission') || err.message.includes('API'))) {
+          setShowDomainHelp(true);
+        }
       }
-      setTimeout(() => setLoginError(null), 12000);
     }
   };
 
@@ -1836,11 +1841,62 @@ export default function App() {
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="px-6 py-3 bg-rose-50 border border-rose-100 rounded-2xl"
+                    className="px-6 py-4 bg-rose-950/40 border border-rose-500/30 rounded-2xl text-left"
                   >
-                     <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                     <p className="text-rose-400 text-[10px] font-black uppercase tracking-wider leading-relaxed">
                        {loginError}
                      </p>
+                     <button
+                       onClick={() => setShowDomainHelp(prev => !prev)}
+                       className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-300 hover:text-indigo-200 underline cursor-pointer block"
+                     >
+                       {showDomainHelp ? "Ocultar Guia de Ajuda" : "Como autorizar no Firebase?"}
+                     </button>
+                  </motion.div>
+                )}
+
+                {showDomainHelp && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="p-5 bg-slate-900/90 border border-white/10 rounded-2xl text-left space-y-3 shadow-2xl backdrop-blur-md"
+                  >
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#BF8A10]">
+                        Guia de Autorização Hekat
+                      </span>
+                      <button 
+                        onClick={() => setShowDomainHelp(false)}
+                        className="text-slate-400 hover:text-white text-[10px] font-bold cursor-pointer"
+                      >
+                        [Fechar]
+                      </button>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      Para efetuar o login com o Google no celular ou em domínios de visualização, você precisa adicionar as URLs de origem como <strong>Domínios Autorizados</strong> no console do Firebase:
+                    </p>
+                    <ol className="list-decimal list-inside text-slate-300 text-[11px] space-y-2 leading-relaxed">
+                      <li>
+                        Acesse o <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-300 hover:underline">Console do Firebase</a>.
+                      </li>
+                      <li>
+                        Selecione seu projeto e vá em <strong>Authentication</strong> &rarr; aba <strong>Settings</strong> &rarr; menu lateral <strong>Authorized domains</strong>.
+                      </li>
+                      <li>
+                        Clique em <strong>Add domain</strong> e adicione estes domínios necessários:
+                        <div className="mt-2 p-2 bg-black/40 rounded-xl border border-white/5 font-mono text-[9px] text-emerald-400 space-y-1 select-all">
+                          <p>localhost</p>
+                          <p>ais-dev-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
+                          <p>ais-pre-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
+                        </div>
+                      </li>
+                      <li>
+                        Se estiver usando um aplicativo nativo compilado (ex: Capacitor), o método de login por Popup do navegador não funcionará diretamente; utilize um navegador padrão como Safari ou Google Chrome para acessar o Portal, ou configure um Plugin Autenticador nativo do Google.
+                      </li>
+                    </ol>
+                    <div className="pt-2 text-[9.5px] font-bold text-amber-500/70 border-t border-white/5">
+                      💡 No celular, se o popup for bloqueado, permita-o nas opções do Safari/Chrome ou use o link de acesso em uma aba limpa do navegador.
+                    </div>
                   </motion.div>
                 )}
 
@@ -1863,10 +1919,16 @@ export default function App() {
                 )}
               </div>
 
-              <div className="mt-12 opacity-30">
-                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <div className="mt-8 flex flex-col items-center gap-1.5">
+                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 opacity-40">
                     <ShieldCheck size={12} /> Acesso Seguro via Google
                  </p>
+                 <button 
+                   onClick={() => setShowDomainHelp(prev => !prev)}
+                   className="text-[9.5px] font-black uppercase tracking-widest text-[#BF8A10] opacity-80 hover:opacity-100 transition-opacity cursor-pointer underline"
+                 >
+                   Ajuda com o login / Tutorial de Domínios
+                 </button>
               </div>
            </motion.div>
         </div>
