@@ -266,6 +266,7 @@ Siga rigorosamente as diretrizes e regras a seguir:
       res.json({
         success: true,
         julianDay: jd,
+        serverTime: new Date().toISOString(),
         sun: {
           longitude: sunLon,
           signIndex: sunSignIndex,

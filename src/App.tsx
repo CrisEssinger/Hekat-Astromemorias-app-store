@@ -454,9 +454,16 @@ const getLunarData = (date: Date = new Date()) => {
   const moonPhaseAngle = (moonAge / LUNAR_MONTH) * 2 * Math.PI;
   const illumination = isNaN(moonPhaseAngle) ? 0 : (1 - Math.cos(moonPhaseAngle)) / 2;
   
-  // Mapeamento proporcional de 29.53 dias para 28 segmentos da mandala
-  const mandalaDayFloat = (moonAge / LUNAR_MONTH) * 28;
-  const mandalaDay = isNaN(mandalaDayFloat) ? 1 : Math.min(28, Math.max(1, Math.floor(mandalaDayFloat) + 1));
+  const safeDiffInDays = isNaN(diffInDays) ? 0 : diffInDays;
+  const cycleStartDate = new Date(referenceDate.getTime() + Math.floor(safeDiffInDays / LUNAR_MONTH) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
+  const cycleEndDate = new Date(referenceDate.getTime() + (Math.floor(safeDiffInDays / LUNAR_MONTH) + 1) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
+
+  // Alinhamento de calendário local para calcular o dia correto do ciclo lunar
+  const startDayLocal = new Date(cycleStartDate.getUTCFullYear(), cycleStartDate.getUTCMonth(), cycleStartDate.getUTCDate(), 12, 0, 0);
+  const nowDayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+  const localDiffDays = Math.round((nowDayLocal.getTime() - startDayLocal.getTime()) / (1000 * 60 * 60 * 24));
+  // O dia 19 é o dia de hoje (18 dias de diferença de calendário local desde o dia 16 de maio)
+  const mandalaDay = isNaN(localDiffDays) ? 1 : Math.min(28, Math.max(1, localDiffDays + 1));
   
   const getSunSignFloat = (dateVal: Date) => {
     const timestamp = (dateVal && !isNaN(dateVal.getTime())) ? dateVal.getTime() : now.getTime();
@@ -481,10 +488,12 @@ const getLunarData = (date: Date = new Date()) => {
   const sunSignFloat = getSunSignFloat(now);
   const cycleId = isNaN(diffInDays) ? 1 : Math.floor(diffInDays / LUNAR_MONTH) + 2;
   
-  const safeDiffInDays = isNaN(diffInDays) ? 0 : diffInDays;
-  const cycleStartDate = new Date(referenceDate.getTime() + Math.floor(safeDiffInDays / LUNAR_MONTH) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
-  const cycleEndDate = new Date(referenceDate.getTime() + (Math.floor(safeDiffInDays / LUNAR_MONTH) + 1) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
-  const formatDate = (d: Date) => d && !isNaN(d.getTime()) ? d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }) : "01/01";
+  const formatDate = (d: Date) => {
+    if (!d || isNaN(d.getTime())) return "01/01";
+    const dayStr = String(d.getUTCDate()).padStart(2, '0');
+    const monthStr = String(d.getUTCMonth() + 1).padStart(2, '0');
+    return `${dayStr}/${monthStr}`;
+  };
   
   return {
     day: mandalaDay,
@@ -511,8 +520,8 @@ const getLunarData = (date: Date = new Date()) => {
     cycleName: getZodiacSignSafely(Math.floor(getSunSignFloat(cycleStartDate)) % 12).name,
     getDateForDay: (day: number) => {
       const safeDay = isNaN(day) ? 1 : day;
-      const ageForDay = ((safeDay - 1) / 28) * LUNAR_MONTH;
-      return new Date(cycleStartDate.getTime() + ageForDay * 24 * 60 * 60 * 1000);
+      const d = new Date(cycleStartDate.getTime() + (safeDay - 1) * 24 * 60 * 60 * 1000);
+      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0);
     }
   };
 };
@@ -646,6 +655,10 @@ const getClientFallbackReport = (
 export default function App() {
   console.log("Hekat App mounting...");
   const desktopRef = useRef<HTMLDivElement>(null);
+  
+  // Sincronização e Calibração de Relógio com o Servidor (UTC/2026)
+  const serverOffsetRef = useRef<number>(0);
+  const clientClockSyncDoneRef = useRef<boolean>(false);
   const [now, setNow] = useState(new Date());
   const [mountError, setMountError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -659,10 +672,10 @@ export default function App() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Ticker para atualizar sincronia a cada minuto
+  // Ticker para atualizar sincronia a cada minuto usando o offset do servidor
   useEffect(() => {
     const ticker = setInterval(() => {
-      setNow(new Date());
+      setNow(new Date(Date.now() + serverOffsetRef.current));
     }, 60000); // 1 minuto
     return () => clearInterval(ticker);
   }, []);
@@ -679,6 +692,7 @@ export default function App() {
     moon: { longitude: number; signIndex: number; signName: string; degrees: number };
     phaseAngle: number;
     illumination: number;
+    serverTime?: string;
   } | null>(null);
 
   const [realCycleData, setRealCycleData] = useState<{
@@ -703,6 +717,19 @@ export default function App() {
         const response = await axios.post("/api/astronomy/calculate", { date: now.toISOString() });
         if (response.data?.success && active) {
           setRealAstronomyData(response.data);
+          
+          // Sincronizar o relógio do cliente se houver desvio ou o ano estiver errado
+          if (response.data.serverTime && !clientClockSyncDoneRef.current) {
+            const serverDateVal = new Date(response.data.serverTime);
+            const offset = serverDateVal.getTime() - Date.now();
+            serverOffsetRef.current = offset;
+            clientClockSyncDoneRef.current = true;
+            
+            if (Math.abs(offset) > 5000) {
+              console.log(`Hekat: Ajustando relógio de acordo com o servidor. Desvio: ${offset}ms`);
+              setNow(new Date(Date.now() + offset));
+            }
+          }
         }
       } catch (err) {
         console.warn("Could not fetch real-time Swiss Ephemeris data. Using high-precision math anchors.", err);
@@ -1000,6 +1027,14 @@ export default function App() {
   const isNight = true;
 
   const [selectedDay, setSelectedDay] = useState(lunarData.day);
+
+  // Sincronizar o dia selecionado com o dia real do ciclo quando este atualizar
+  useEffect(() => {
+    if (lunarData.day) {
+      setSelectedDay(lunarData.day);
+    }
+  }, [lunarData.day]);
+
   const [currentEmotion, setCurrentEmotion] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(1);
   const [note, setNote] = useState("");
