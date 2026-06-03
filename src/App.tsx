@@ -72,7 +72,9 @@ import {
   Bird,
   Pause,
   Shuffle,
-  Radio
+  Radio,
+  Trophy,
+  PartyPopper
 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'motion/react';
 import { 
@@ -218,7 +220,9 @@ const ICON_MAP: Record<string, any> = {
   Bird,
   Pause,
   Shuffle,
-  Radio
+  Radio,
+  Trophy,
+  PartyPopper
 };
 
 const LucideIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
@@ -1064,7 +1068,6 @@ export default function App() {
 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [showDomainHelp, setShowDomainHelp] = useState(false);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -1081,13 +1084,8 @@ export default function App() {
         setLoginError("O ritual de acesso foi interrompido.");
       } else if (err.code === 'auth/unauthorized-domain' || (err.message && err.message.toLowerCase().includes('unauthorized-domain'))) {
         setLoginError("Este domínio ('" + window.location.hostname + "') não está autorizado no console do Firebase.");
-        setShowDomainHelp(true);
       } else {
         setLoginError("Não foi possível abrir o portal. Erro: " + (err.message || "Conexão instável"));
-        // Se parecer um erro de configuração de origem/OAuth do Firebase, sugere ajuda
-        if (err.message && (err.message.includes('auth') || err.message.includes('permission') || err.message.includes('API'))) {
-          setShowDomainHelp(true);
-        }
       }
     }
   };
@@ -1846,86 +1844,6 @@ export default function App() {
                      <p className="text-rose-400 text-[10px] font-black uppercase tracking-wider leading-relaxed">
                        {loginError}
                      </p>
-                     <button
-                       onClick={() => setShowDomainHelp(prev => !prev)}
-                       className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-300 hover:text-indigo-200 underline cursor-pointer block"
-                     >
-                       {showDomainHelp ? "Ocultar Guia de Ajuda" : "Como autorizar no Firebase?"}
-                     </button>
-                  </motion.div>
-                )}
-
-                {showDomainHelp && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="p-5 bg-slate-900/90 border border-white/10 rounded-2xl text-left space-y-3 shadow-2xl backdrop-blur-md"
-                  >
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#BF8A10]">
-                        Guia de Autorização Hekat
-                      </span>
-                      <button 
-                        onClick={() => setShowDomainHelp(false)}
-                        className="text-slate-400 hover:text-white text-[10px] font-bold cursor-pointer"
-                      >
-                        [Fechar]
-                      </button>
-                    </div>
-                    <p className="text-slate-300 text-[11px] leading-relaxed">
-                      Para efetuar o login com o Google em domínios de visualização ou no celular, é preciso autorizar as URLs em dois locais fundamentais:
-                    </p>
-                    <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <p className="text-amber-400 text-[10px] font-black uppercase tracking-wider">Etapa 1: Console do Firebase</p>
-                        <ol className="list-decimal list-inside text-slate-300 text-[11px] space-y-1 leading-relaxed">
-                          <li>
-                            Acesse o <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-300 hover:underline">Console do Firebase</a>.
-                          </li>
-                          <li>
-                            Vá em <strong>Authentication</strong> &rarr; aba <strong>Settings</strong> &rarr; <strong>Authorized domains</strong>.
-                          </li>
-                          <li>
-                            Clique em <strong>Add domain</strong> e insira estes domínios:
-                            <div className="mt-1 p-2 bg-black/40 rounded-xl border border-white/5 font-mono text-[9px] text-emerald-400 space-y-1 select-all">
-                              <p>ais-dev-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
-                              <p>ais-pre-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
-                            </div>
-                          </li>
-                        </ol>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <p className="text-amber-400 text-[10px] font-black uppercase tracking-wider">Etapa 2: Google Cloud Console (MUITO IMPORTANTE)</p>
-                        <ol className="list-decimal list-inside text-slate-300 text-[11px] space-y-1 leading-relaxed">
-                          <li>
-                            Abra o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-300 hover:underline">Google Cloud Console</a> com a mesma conta.
-                          </li>
-                          <li>
-                            Selecione o projeto do seu Firebase no topo da página.
-                          </li>
-                          <li>
-                            No menu esquerdo, vá em <strong>APIs e Serviços</strong> &rarr; <strong>Credenciais</strong>.
-                          </li>
-                          <li>
-                            Em <strong>IDs de cliente OAuth 2.0</strong>, clique diretamente no <strong>nome azul</strong> (ex: <code>Web client (auto-created by Google Service)</code>) para abrir as configurações (não há ícone de lápis na tabela principal).
-                          </li>
-                          <li>
-                            Role até <strong>Origens JavaScript autorizadas</strong> e adicione as duas URLs completas:
-                            <div className="mt-1 p-2 bg-black/40 rounded-xl border border-white/5 font-mono text-[9px] text-indigo-300 space-y-1 select-all">
-                              <p>https://ais-dev-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
-                              <p>https://ais-pre-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
-                            </div>
-                          </li>
-                          <li>
-                            Verifique se as URIs de redirecionamento autorizadas incluem o link do seu handler Firebase (como <code>https://SEU-PROJETO.firebaseapp.com/__/auth/handler</code>) e salve as alterações. <em>Nota: Esta propagação pelo Google pode demorar alguns minutos.</em>
-                          </li>
-                        </ol>
-                      </div>
-                    </div>
-                    <div className="pt-2 text-[9.5px] font-bold text-amber-500/70 border-t border-white/5">
-                      💡 No celular, se o popup for bloqueado pelo navegador, mude a chave de bloqueio de popups nas configurações do Safari ou Chrome para permitir que se comuniquem.
-                    </div>
                   </motion.div>
                 )}
 
@@ -1949,15 +1867,9 @@ export default function App() {
               </div>
 
               <div className="mt-8 flex flex-col items-center gap-1.5">
-                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 opacity-40">
+                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 opacity-50">
                     <ShieldCheck size={12} /> Acesso Seguro via Google
                  </p>
-                 <button 
-                   onClick={() => setShowDomainHelp(prev => !prev)}
-                   className="text-[9.5px] font-black uppercase tracking-widest text-[#BF8A10] opacity-80 hover:opacity-100 transition-opacity cursor-pointer underline"
-                 >
-                   Ajuda com o login / Tutorial de Domínios
-                 </button>
               </div>
            </motion.div>
         </div>
