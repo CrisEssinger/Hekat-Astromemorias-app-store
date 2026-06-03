@@ -1908,7 +1908,7 @@ export default function App() {
                             No menu esquerdo, vá em <strong>APIs e Serviços</strong> &rarr; <strong>Credenciais</strong>.
                           </li>
                           <li>
-                            Em <strong>IDs de cliente OAuth 2.0</strong>, clique para editar o <strong>Web client (auto-created by Google Service)</strong>.
+                            Em <strong>IDs de cliente OAuth 2.0</strong>, clique diretamente no <strong>nome azul</strong> (ex: <code>Web client (auto-created by Google Service)</code>) para abrir as configurações (não há ícone de lápis na tabela principal).
                           </li>
                           <li>
                             Role até <strong>Origens JavaScript autorizadas</strong> e adicione as duas URLs completas:
