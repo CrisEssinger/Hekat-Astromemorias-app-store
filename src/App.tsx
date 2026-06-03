@@ -1873,29 +1873,58 @@ export default function App() {
                       </button>
                     </div>
                     <p className="text-slate-300 text-[11px] leading-relaxed">
-                      Para efetuar o login com o Google no celular ou em domínios de visualização, você precisa adicionar as URLs de origem como <strong>Domínios Autorizados</strong> no console do Firebase:
+                      Para efetuar o login com o Google em domínios de visualização ou no celular, é preciso autorizar as URLs em dois locais fundamentais:
                     </p>
-                    <ol className="list-decimal list-inside text-slate-300 text-[11px] space-y-2 leading-relaxed">
-                      <li>
-                        Acesse o <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-300 hover:underline">Console do Firebase</a>.
-                      </li>
-                      <li>
-                        Selecione seu projeto e vá em <strong>Authentication</strong> &rarr; aba <strong>Settings</strong> &rarr; menu lateral <strong>Authorized domains</strong>.
-                      </li>
-                      <li>
-                        Clique em <strong>Add domain</strong> e adicione estes domínios necessários:
-                        <div className="mt-2 p-2 bg-black/40 rounded-xl border border-white/5 font-mono text-[9px] text-emerald-400 space-y-1 select-all">
-                          <p>localhost</p>
-                          <p>ais-dev-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
-                          <p>ais-pre-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
-                        </div>
-                      </li>
-                      <li>
-                        Se estiver usando um aplicativo nativo compilado (ex: Capacitor), o método de login por Popup do navegador não funcionará diretamente; utilize um navegador padrão como Safari ou Google Chrome para acessar o Portal, ou configure um Plugin Autenticador nativo do Google.
-                      </li>
-                    </ol>
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <p className="text-amber-400 text-[10px] font-black uppercase tracking-wider">Etapa 1: Console do Firebase</p>
+                        <ol className="list-decimal list-inside text-slate-300 text-[11px] space-y-1 leading-relaxed">
+                          <li>
+                            Acesse o <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-300 hover:underline">Console do Firebase</a>.
+                          </li>
+                          <li>
+                            Vá em <strong>Authentication</strong> &rarr; aba <strong>Settings</strong> &rarr; <strong>Authorized domains</strong>.
+                          </li>
+                          <li>
+                            Clique em <strong>Add domain</strong> e insira estes domínios:
+                            <div className="mt-1 p-2 bg-black/40 rounded-xl border border-white/5 font-mono text-[9px] text-emerald-400 space-y-1 select-all">
+                              <p>ais-dev-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
+                              <p>ais-pre-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
+                            </div>
+                          </li>
+                        </ol>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <p className="text-amber-400 text-[10px] font-black uppercase tracking-wider">Etapa 2: Google Cloud Console (MUITO IMPORTANTE)</p>
+                        <ol className="list-decimal list-inside text-slate-300 text-[11px] space-y-1 leading-relaxed">
+                          <li>
+                            Abra o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-300 hover:underline">Google Cloud Console</a> com a mesma conta.
+                          </li>
+                          <li>
+                            Selecione o projeto do seu Firebase no topo da página.
+                          </li>
+                          <li>
+                            No menu esquerdo, vá em <strong>APIs e Serviços</strong> &rarr; <strong>Credenciais</strong>.
+                          </li>
+                          <li>
+                            Em <strong>IDs de cliente OAuth 2.0</strong>, clique para editar o <strong>Web client (auto-created by Google Service)</strong>.
+                          </li>
+                          <li>
+                            Role até <strong>Origens JavaScript autorizadas</strong> e adicione as duas URLs completas:
+                            <div className="mt-1 p-2 bg-black/40 rounded-xl border border-white/5 font-mono text-[9px] text-indigo-300 space-y-1 select-all">
+                              <p>https://ais-dev-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
+                              <p>https://ais-pre-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app</p>
+                            </div>
+                          </li>
+                          <li>
+                            Verifique se as URIs de redirecionamento autorizadas incluem o link do seu handler Firebase (como <code>https://SEU-PROJETO.firebaseapp.com/__/auth/handler</code>) e salve as alterações. <em>Nota: Esta propagação pelo Google pode demorar alguns minutos.</em>
+                          </li>
+                        </ol>
+                      </div>
+                    </div>
                     <div className="pt-2 text-[9.5px] font-bold text-amber-500/70 border-t border-white/5">
-                      💡 No celular, se o popup for bloqueado, permita-o nas opções do Safari/Chrome ou use o link de acesso em uma aba limpa do navegador.
+                      💡 No celular, se o popup for bloqueado pelo navegador, mude a chave de bloqueio de popups nas configurações do Safari ou Chrome para permitir que se comuniquem.
                     </div>
                   </motion.div>
                 )}
