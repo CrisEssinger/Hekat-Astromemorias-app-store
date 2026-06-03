@@ -157,4 +157,67 @@ export const PHILOSOPHICAL_QUOTES = [
   "Observação serena. Mantenha a clareza interior para discernir quando agir e quando apenas observar o fluxo." // Peixes
 ];
 
+export const ZODIAC_PHRASES: Record<number, string[]> = {
+  0: [ // Áries
+    "Inicie com coragem pura. O impulso de criar novos caminhos nasce da ousadia de dar o primeiro passo sem garantias, apenas com a certeza do seu centro selvagem.",
+    "Direcione sua força com precisão. A energia de ação exige foco absoluto e discernimento para que o impulso inicial se transforme em realização real.",
+    "Consolide a conquista de forma sábia. A verdadeira coragem se manifesta na maturidade de finalizar os combates e assentar a força que abriu os horizontes."
+  ],
+  1: [ // Touro
+    "Ancore sua presença na terra firme. O valor do seu tempo está na calma para deixar o solo fértil da alma sentir o silêncio.",
+    "Construa com paciência e persistência. Valorize as atitudes simples que sustentam a ordem material e o equilíbrio interno a longo prazo.",
+    "Usufrua da estabilidade conquistada. A abundância floresce quando você sabe acolher o valor das suas realizações cotidianas."
+  ],
+  2: [ // Gêmeos
+    "Abra as janelas da sua mente para o novo. Sintonize a curiosidade madura que convida a enxergar múltiplos caminhos ao seu redor.",
+    "Comunique-se com clareza e flexibilidade. O trabalho real está em traduzir ideias em pontes sinceras de conexão com o outro.",
+    "Sintetize a diversidade de ideias experimentadas. O verdadeiro conhecimento surge quando o excesso se desfaz em sabedoria interior."
+  ],
+  3: [ // Câncer
+    "Acolha suas marés mais profundas. O convite é retornar ao seu centro interior, honrando a sensibilidade que dá sentido à existência.",
+    "Nutra suas bases e proteja suas raízes. Fortalecer seus laços íntimos exige afeto paciente e presença autêntica com o que é essencial.",
+    "Desapegue com suavidade do que já passou. A verdadeira segurança vem de saber que o centro que protege e acolhe caminha com você."
+  ],
+  4: [ // Leão
+    "Permita que sua luz interna se revele sem timidez. O mundo precisa da sua expressão autêntica e da generosidade natural do seu coração.",
+    "Expresse sua força pessoal com nobreza e ética. A verdadeira autoridade se manifesta quando você lidera pelo exemplo e eleva quem está ao seu redor.",
+    "Aquiete o ego e irradie em silêncio absoluto. O seu valor dispensa holofotes quando a sua caminhada está sintonizada com a verdade."
+  ],
+  5: [ // Virgem
+    "Simplifique e organize seus processos. O discernimento começa na atitude humilde de observar onde a utilidade e o bom senso se fazem necessários.",
+    "Aperfeiçoe suas ações com amor aos detalhes. Dedicar-se ao presente com paciência constante transforma a rotina cotidiana em arte viva.",
+    "Entregue os resultados sem cobranças excessivas. Compreender que a ordem natural cuida do todo traz o repouso que clareia a mente."
+  ],
+  6: [ // Libra
+    "Busque a harmonia em suas interações. O convite deste início de jornada é encontrar a beleza no compartilhar e no equilíbrio sutil de dar e receber.",
+    "Pese suas escolhas com justiça e equilíbrio. O trabalho real reside em agir com diplomacia ética, mesmo diante de pontos de vista opostos.",
+    "Ancore o equilíbrio em seu próprio coração. A verdadeira união com as pessoas nasce do perfeito alinhamento das suas próprias forças internas."
+  ],
+  7: [ // Escorpião
+    "Mergulhe com coragem em suas transformações. Acolha a força que queima as ilusões para revelar a verdade indestrutível sob as aparências.",
+    "Recicle as energias acumuladas e libere velhos pesos. O trabalho de desapego exige sinceridade profunda com o que precisa ir embora.",
+    "Sustente o poder silencioso que emerge do renascimento. A sabedoria definitiva vem de confiar na renovação constante da sua própria alma."
+  ],
+  8: [ // Sagitário
+    "Trace horizontes amplos de possibilidades e confie. A alma e a mente expandem quando buscamos um sentido mais elevado para nossa caminhada.",
+    "Caminhe em direção aos seus valores com os pés no chão. Transforme suas grandes ideologias em passos honestos e atitudes práticas de vida.",
+    "Acolha os ensinamentos adquiridos no percurso. A verdadeira sabedoria não está no destino final, mas na generosidade de compartilhar o saber."
+  ],
+  9: [ // Capricórnio
+    "Assuma a responsabilidade pelo seu próprio destino. O topo da montanha convida à maturidade e ao autoexame realista para estruturar o amanhã.",
+    "Persistar com resiliência diante de cada desafio. A solidez de caráter exige consistência ética e respeito ao tempo natural de maturação.",
+    "Ajuda a sustentar o que é perene e seguro. O legado de uma vida reside nas fundações integras que servem de apoio para todos."
+  ],
+  10: [ // Aquário
+    "Liberte o pensamento de padrões que já limitam sua verdade. O convite é cultivar a originalidade e olhar além das aparências com olhos de futuro.",
+    "Inove com espírito cooperativo. O grande trabalho está em alinhar a sua liberdade à construção de um ambiente de colaboração sincera.",
+    "Acolha as diferenças com elegância e maturidade. A verdadeira inovação se consolida na liberdade compartilhada e na tolerância lúcida."
+  ],
+  11: [ // Peixes
+    "Silencie os ruídos externos e conecte-se com o invisível. A sensibilidade do seu ser convida à união interna com o mistério suave da vida.",
+    "Exerça a compaixão lúcida através de pequenas ações. O trabalho real está em ser um canal de paz e acolhimento em meio às durezas do dia.",
+    "Entregue-se ao fluxo com fé e gratidão genuínas. O fechamento deste ciclo pede para desfazer as amarras do controle e repousar em paz."
+  ]
+};
+
 export const CATEGORIES = ['Elevadas & Positivas', 'Calma & Reflexão', 'Tensão & Desafios', 'Baixa Energia & Melancolia'];

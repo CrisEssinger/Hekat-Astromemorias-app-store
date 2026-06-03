@@ -7,6 +7,7 @@ import path from "path";
 import axios from "axios";
 import admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
+import { julday, calc_ut, constants } from "sweph";
 
 // Initialize Gemini AI securely on the server
 let aiClient: GoogleGenAI | null = null;
@@ -37,10 +38,10 @@ function generateFallbackOracle(sunSignName?: string, moonSignName?: string, phi
   const aspectSuffix = aspectDesc ? ` Como postura de vida, a atitude essencial neste momento pede para ${aspectDesc.charAt(0).toLowerCase() + aspectDesc.slice(1)}` : '';
 
   const messages = [
-    `${nameIntro}há um convite profundo ao estado de presença plena agora. A orientação é sintonizar-se com a força viva de iniciar novos ciclos, dando o primeiro passo com coragem pura, como uma semente de luz que rompe a terra em silêncio absoluto.${aspectSuffix}`,
-    `${nameIntro}aqui, na quietude de hoje, a tônica de eixos como ${tônica} convida você a silenciar os ruídos do mundo de fora. A orientação é ancorar seu centro na permanência pacífica do agora: sustente sua presença de forma firme e estável diante de qualquer impermanência.${aspectSuffix}`,
-    `${nameIntro}acolha os momentos de transição da mente com a flexibilidade da água que sabe contornar cada pedra sem perder o rumo. A orientação é fluir nas mudanças da jornada, adaptando seu coração com suavidade e leveza.${aspectSuffix}`,
-    `Que bom ter você aqui${userName ? `, ${userName}` : ''}. Sintonizando a tônica de ${tônica}, a orientação é acolher as coisas exatamente como elas se manifestam. A verdadeira estabilidade vem de ser como a montanha: firme, desperta e totalmente em paz.${aspectSuffix}`
+    `${nameIntro}há um convite transcendente ao recolhimento e à introspecção: o cosmos pulsa em sintonia com os novos começos. A tônica pede para sintonizar a força pura da sua intenção — dando o primeiro passo com postura resoluta e coragem intocável.${aspectSuffix}`,
+    `${nameIntro}na quietude do agora, a tônica de sua essência convida você a silenciar os ecos do exterior. A orientação definitiva é ancorar seu centro na permanência pacífica do presente: sustente sua integridade diante de qualquer impermanência da jornada.${aspectSuffix}`,
+    `${nameIntro}acolha as transições da mente e do coração com a flexibilidade das águas tranquilas: a sabedoria reside em fluir com suavidade, adaptando seus passos diante dos obstáculos e mantendo inteira sua bússola de vida.${aspectSuffix}`,
+    `Que bom ter você aqui${userName ? `, ${userName}` : ''}. Neste clima de clareza essencial: a postura mais fecunda é receber as circunstâncias exatamente como se revelam, pois a estabilidade verdadeira nasce da aceitação desperta e lúcida.${aspectSuffix}`
   ];
 
   const hashString = `${sun}-${moon}-${tônica}`;
@@ -107,27 +108,39 @@ async function startServer() {
         return res.json({ text: generateFallbackOracle(sunSignName, moonSignName, philosophicalPhrase, userName, aspectDesc) });
       }
 
-      const systemInstruction = `Você é o Oráculo Hekat (Hekat Astromemorias).
-        TOM: Simples, acolhedor e próximo, mas com profundidade real. Sua voz deve ser calorosa, trazendo uma pausa clara para sintonizar a mente e o coração. Evite termos rebuscados ou herméticos (como "ética do silêncio", "sobriedade estratégica", "precipitação", "dignidade"), mas passe longe de conselhos excessivamente simplistas ou infantis ("tente respirar fundo", "faça um chá", "tire o dia para descansar").
-        REFERÊNCIA FILOSÓFICA & POSTURA: Utilize ensinamentos do Zen Budismo (presença, atenção plena ao aqui e agora, aceitação da impermanência, desapego das expectativas e clareza de quietude essencial) como base inspiradora para as orientações e atitudes de vida sugeridas.
-        CONHECIMENTO ASTROLÓGICO: Mantenha a profunda sintonia do zodíaco e a sabedoria da simbologia de cada signo (Sol e Lua). Integre na orientação a essência profunda dos ritmos do zodíaco, mas de forma sutil, sem NUNCA citar as nomenclaturas técnicas:
-          - Noção de INICIAÇÃO (abrir caminhos, agir com prontidão e coragem, dar o primeiro passo, plantar novas intenções).
-          - Noção de SUSTENTAÇÃO (conservar a estabilidade, resistir pacientemente, focar na permanência do centro equilibrado).
-          - Noção de FLUIDEZ (maleabilidade, adaptação às transições e flutuações, flexibilidade, facilidade em contornar obstáculos).
-        SIMBOLOGIA DO ASPECTO ATIVO DO DIA:
-        - Insira de forma obrigatória, sutil, inteligente e natural na orientação de postura a seguinte simbologia para o aspecto de hoje, mas sem NUNCA citar o nome técnico do aspecto ("${aspectName || ''}"): "${aspectDesc || ''}".
-        CONTEÚDO ESSENCIAL:
-        Toda resposta deve obrigatoriamente trazer:
-        1. Uma breve REFLEXÃO sincera e lúcida sobre o clima celeste ou emocional atual, ajudando a compreender as energias presentes.
-        2. Uma ORIENTAÇÃO clara e firme de postura de vida, baseada na sabedoria Zen e na sintonia zodiacal (junto da simbologia acima), para guiar os passos no dia a dia. Nunca sugira tarefas domésticas ou rotinas cotidianas.
-        REGRAS:
-        - Una profundidade, simplicidade, clareza mental e acolhimento em uma verdade profunda de vida.
-        - NUNCA declare literalmente as posições de Sol e Lua (como "com o Sol em Touro e a Lua em Áries", "seu Sol em..." ou "posição do sol e lua..."). Sintonize a energia implícita dos astros e signos na reflexão e orientação de forma sutil, sem citar onde eles se localizam no céu ou o nome de nenhum aspecto astrológico.
-        - Entre direto com o texto, de forma direta e sem rodeios. NUNCA coloque cabeçalhos, títulos ou introduções descritivas como marcas de listas ou parágrafos nomeados.
-        ${userName ? `- Chame a pessoa usuária pelo nome "${userName}" de forma calma e natural no decorrer do texto.` : ''}
-        - Nunca use termos astrológicos técnicos (como casas, graus, ou cardinal, fixo, mutável, sextil, conjunção, quadratura, trígono, oposição).
-        - Máximo de 4 linhas.
-        - Português do Brasil.`;
+      const systemInstruction = `Você é o Oráculo Hekat (Hekat Astromemorias). Sua voz une de modo absoluto sobriedade estratégica, acolhimento lúcido e sabedoria empática. Suas orientações funcionam como uma bússola pragmática para a postura, ética e clareza mental do usuário diante de desafios reais da alma.
+
+Siga rigorosamente as diretrizes e regras a seguir:
+
+1. TOM DE VOZ E ESTILO (EQUILÍBRIO ALQUÍMICO):
+   - Evite comandos severos ou dogmáticos e passe longe de moralismos ou condescendência beata.
+   - Seja direto, acolhedor e próximo. Transmita uma pausa clara de autoconexão sincera.
+   - Use pontuação estratégica como travessões (—) e dois-pontos (:) para criar pausas naturais, cadência profunda e enfatizar percepções elevadas.
+   - Substitua termos comuns por palavras que evoquem expansão, consciência e transcendência.
+
+2. PRATICIDADE DE VIDA:
+   - Ofereça conselhos focados exclusivamente em postura existencial, ética interior e clareza mental para os grandes movimentos da jornada.
+   - NUNCA sugira tarefas domésticas, rotinas triviais ou atividades cotidianas decorativas. Podem soar infantis e quebrar o mistério sutil.
+
+3. CONHECIMENTO ASTROLÓGICO E QUALIDADE DOS ASPECTOS (MISTÉRIO SUTIL):
+   - Considere a energia e os arquétipos astrológicos das posições do Sol e da Lua providos, mas NUNCA cite nomes técnicos (como casas, elementos, graus, aspectos, conjunção, quadratura, trígono, oposição, etc.).
+   - Aplique as seguintes noções dos signos:
+     * Para signos mutáveis (como Gêmeos, Peixes, Virgem, Sagitário): tônica de FLUIDEZ, maleabilidade de transição e flexibilidade mental.
+     * Para signos fixos (como Touro, Leão, Escorpião, Aquário): tônica de SUSTENTAÇÃO, permanência íntima e estabilidade do centro.
+     * Para signos cardinais (como Áries, Câncer, Libra, Capricórnio): tônica de INICIAÇÃO, coragem de começar, força de novos rumos.
+   - Incorpore organicamente as qualidades do aspecto astrológico ativo ("${aspectName || ''}": "${aspectDesc || ''}"):
+     * Conjunção: impulso, autenticidade, fusão em síntese das simbologias dos signos.
+     * Oposição: dúvida, equilíbrio das polaridades opostas, complementaridade.
+     * Quadratura: tensão emocional, conflitos, espera paciente, emoção que turva a razão.
+     * Trígono: soluções, harmonia, fluidez, clareza e criatividade natural.
+     * Sextil: abertura para aprender e aplicar o que foi assimilado em experiências.
+
+4. DIRETRIZES DE ENTREGA & CONCISSÃO EXTREMA:
+   - Toda resposta deve trazer: 1) uma brevidade de reflexão sobre o clima celeste ou emocional atual, e 2) uma orientação firme de postura de vida e ética interna.
+   - ${userName ? `Chame o usuário pelo nome "${userName}" de forma calorosa, calma e natural no decorrer da mensagem para gerar intimidade.` : 'Adote um tom íntimo e próximo.'}
+   - Máximo absoluto de 4 linhas. Seja extremamente conciso.
+   - Idioma: Português do Brasil.
+   - Escreva o texto de forma contínua, direta e sem cabeçalhos, marcadores ou numerações de parágrafos.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
@@ -214,6 +227,134 @@ async function startServer() {
       // Quietly use the elegant fallback to handle offline/quota limits gracefully without polluting logs
       const fallbackText = generateFallbackReports(period, logData, userName);
       res.json({ text: fallbackText });
+    }
+  });
+
+  // API: Get Real-time High-Performance Astrological Positions via Swiss Ephemeris (WASM-addon)
+  app.post("/api/astronomy/calculate", (req, res) => {
+    let { date } = req.body;
+    try {
+      const d = date ? new Date(date) : new Date();
+      if (isNaN(d.getTime())) {
+        return res.status(400).json({ error: "Invalid date" });
+      }
+
+      const year = d.getUTCFullYear();
+      const month = d.getUTCMonth() + 1;
+      const day = d.getUTCDate();
+      const hour = d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600;
+
+      const jd = julday(year, month, day, hour, constants.SE_GREG_CAL);
+
+      const sunCalc = calc_ut(jd, constants.SE_SUN, constants.SEFLG_SWIEPH);
+      const sunLon = sunCalc.data[0];
+
+      const moonCalc = calc_ut(jd, constants.SE_MOON, constants.SEFLG_SWIEPH);
+      const moonLon = moonCalc.data[0];
+
+      const phaseAngle = (moonLon - sunLon + 360) % 360;
+      const illumination = ((1 - Math.cos((phaseAngle * Math.PI) / 180)) / 2) * 100;
+
+      const ZODIAC_SIGNS_NAMES = [
+        "Áries", "Touro", "Gêmeos", "Câncer", "Leão", "Virgem",
+        "Libra", "Escorpião", "Sagitário", "Capricórnio", "Aquário", "Peixes"
+      ];
+
+      const sunSignIndex = Math.floor(sunLon / 30) % 12;
+      const moonSignIndex = Math.floor(moonLon / 30) % 12;
+
+      res.json({
+        success: true,
+        julianDay: jd,
+        sun: {
+          longitude: sunLon,
+          signIndex: sunSignIndex,
+          signName: ZODIAC_SIGNS_NAMES[sunSignIndex],
+          degrees: sunLon % 30
+        },
+        moon: {
+          longitude: moonLon,
+          signIndex: moonSignIndex,
+          signName: ZODIAC_SIGNS_NAMES[moonSignIndex],
+          degrees: moonLon % 30
+        },
+        phaseAngle,
+        illumination
+      });
+    } catch (e: any) {
+      console.error("Error in astronomy calculation:", e);
+      res.status(500).json({ error: e.message || "Calculation failed" });
+    }
+  });
+
+  app.post("/api/astronomy/cycle", (req, res) => {
+    let { startDate } = req.body;
+    try {
+      const dStart = startDate ? new Date(startDate) : new Date(Date.UTC(2026, 4, 16, 0, 0, 0)); // Fallback a Lua Nova de 16 de Maio de 2026
+      if (isNaN(dStart.getTime())) {
+        return res.status(400).json({ error: "Invalid start date" });
+      }
+
+      const LUNAR_MONTH = 29.53059;
+      const ZODIAC_SIGNS_NAMES = [
+        "Áries", "Touro", "Gêmeos", "Câncer", "Leão", "Virgem",
+        "Libra", "Escorpião", "Sagitário", "Capricórnio", "Aquário", "Peixes"
+      ];
+
+      const daysData = [];
+      for (let dayIndex = 1; dayIndex <= 28; dayIndex++) {
+        const ageForDay = ((dayIndex - 1) / 28) * LUNAR_MONTH;
+        const targetDate = new Date(dStart.getTime() + ageForDay * 24 * 60 * 60 * 1000);
+
+        const year = targetDate.getUTCFullYear();
+        const month = targetDate.getUTCMonth() + 1;
+        const day = targetDate.getUTCDate();
+        const hour = targetDate.getUTCHours() + targetDate.getUTCMinutes() / 60 + targetDate.getUTCSeconds() / 3600;
+
+        const jd = julday(year, month, day, hour, constants.SE_GREG_CAL);
+
+        const sunCalc = calc_ut(jd, constants.SE_SUN, constants.SEFLG_SWIEPH);
+        const sunLon = sunCalc.data[0];
+
+        const moonCalc = calc_ut(jd, constants.SE_MOON, constants.SEFLG_SWIEPH);
+        const moonLon = moonCalc.data[0];
+
+        const phaseAngle = (moonLon - sunLon + 360) % 360;
+        const illumination = ((1 - Math.cos((phaseAngle * Math.PI) / 180)) / 2) * 100;
+
+        const sunSignIndex = Math.floor(sunLon / 30) % 12;
+        const moonSignIndex = Math.floor(moonLon / 30) % 12;
+
+        daysData.push({
+          lunarDay: dayIndex,
+          dateString: targetDate.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit" }),
+          isoDate: targetDate.toISOString(),
+          sun: {
+            longitude: sunLon,
+            signIndex: sunSignIndex,
+            signName: ZODIAC_SIGNS_NAMES[sunSignIndex],
+            degrees: sunLon % 30
+          },
+          moon: {
+            longitude: moonLon,
+            signIndex: moonSignIndex,
+            signName: ZODIAC_SIGNS_NAMES[moonSignIndex],
+            degrees: moonLon % 30
+          },
+          phaseAngle,
+          illumination
+        });
+      }
+
+      res.json({
+        success: true,
+        startDate: dStart.toISOString(),
+        cycleName: ZODIAC_SIGNS_NAMES[daysData[0].sun.signIndex],
+        days: daysData
+      });
+    } catch (e: any) {
+      console.error("Error in cycle calculation:", e);
+      res.status(500).json({ error: e.message || "Cycle calculation failed" });
     }
   });
 

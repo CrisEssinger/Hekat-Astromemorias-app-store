@@ -85,7 +85,7 @@ import {
   Area
 } from 'recharts';
 import axios from 'axios';
-import { EMOTIONS, ZODIAC_SIGNS, LUNAR_PHASES, CATEGORIES, PHILOSOPHICAL_QUOTES } from './constants';
+import { EMOTIONS, ZODIAC_SIGNS, LUNAR_PHASES, CATEGORIES, PHILOSOPHICAL_QUOTES, ZODIAC_PHRASES } from './constants';
 import { auth, db, signInWithGoogle, logout, subscribeToAuthChanges } from './firebase';
 import { 
   collection, 
@@ -431,11 +431,11 @@ const getLunarData = (date: Date = new Date()) => {
   // e evitar falhas de interpretação de fuso/String em navegadores Mobile antigos ou Safari.
   const referenceDate = new Date(Date.UTC(2026, 4, 16, 0, 0, 0)); // 16 de Maio de 2026
   
-  // Ponto de Referência Zodiacal (Lua): Calibrada com precisão para a Lua a 11 graus de Virgem em 24 de Maio de 2026 às 03:26:31 UTC
-  const zodiacAnchorDate = new Date(Date.UTC(2026, 3, 21, 10, 24, 0));
+  // Ponto de Referência Zodiacal (Lua): Calibrada com precisão para a Lua a 17 graus de Sagitário em 31 de Maio de 2026 às 23:05:05 UTC
+  const zodiacAnchorDate = new Date(Date.UTC(2026, 3, 21, 23, 2, 51));
   
-  // Ponto de Referência Zodiacal (Sol): Equinócio de Primavera (0.0 Áries)
-  const sunAnchorDate = new Date(Date.UTC(2026, 2, 20, 14, 46, 0));
+  // Ponto de Referência Zodiacal (Sol): Calibrada com precisão para o Sol a 10 graus de Gêmeos em 31 de Maio de 2026 às 23:05:05 UTC
+  const sunAnchorDate = new Date(Date.UTC(2026, 2, 21, 22, 37, 16));
   
   const diffInMs = now.getTime() - referenceDate.getTime();
   const diffInDays = isNaN(diffInMs) ? 0 : diffInMs / (1000 * 60 * 60 * 24);
@@ -601,10 +601,10 @@ const getClientFallbackOracle = (
   const aspectSuffix = aspectDesc ? ` Como postura de vida, a atitude essencial neste momento pede para ${aspectDesc.charAt(0).toLowerCase() + aspectDesc.slice(1)}` : '';
 
   const messages = [
-    `${nameIntro}há um convite profundo ao estado de presença plena agora. A orientação é sintonizar-se com a força viva de iniciar novos ciclos, dando o primeiro passo com coragem pura, como uma semente de luz que rompe a terra em silêncio absoluto.${aspectSuffix}`,
-    `${nameIntro}aqui, na quietude de hoje, a tônica de eixos como ${tonica} convida você a silenciar os ruídos do mundo de fora. A orientação é ancorar seu centro na permanência pacífica do agora: sustente sua presença de forma firme e estável diante de qualquer impermanência.${aspectSuffix}`,
-    `${nameIntro}acolha os momentos de transição da mente com a flexibilidade da água que sabe contornar cada pedra sem perder o rumo. A orientação é fluir nas mudanças da jornada, adaptando seu coração com suavidade e leveza.${aspectSuffix}`,
-    `Que bom ter você aqui${userName ? `, ${userName}` : ''}. Sintonizando a tônica de ${tonica}, a orientação é acolher as coisas exatamente como elas se manifestam. A verdadeira estabilidade vem de ser como a montanha: firme, desperta e totalmente em paz.${aspectSuffix}`
+    `${nameIntro}há um convite transcendente ao recolhimento e à introspecção: o cosmos pulsa em sintonia com os novos começos. A tônica pede para sintonizar a força pura da sua intenção — dando o primeiro passo com postura resoluta e coragem intocável.${aspectSuffix}`,
+    `${nameIntro}na quietude do agora, a tônica de sua essência convida você a silenciar os ecos do exterior. A orientação definitiva é ancorar seu centro na permanência pacífica do presente: sustente sua integridade diante de qualquer impermanência da jornada.${aspectSuffix}`,
+    `${nameIntro}acolha as transições da mente e do coração com a flexibilidade das águas tranquilas: a sabedoria reside em fluir com suavidade, adaptando seus passos diante dos obstáculos e mantendo inteira sua bússola de vida.${aspectSuffix}`,
+    `Que bom ter você aqui${userName ? `, ${userName}` : ''}. Neste clima de clareza essencial: a postura mais fecunda é receber as circunstâncias exatamente como se revelam, pois a estabilidade verdadeira nasce da aceitação desperta e lúcida.${aspectSuffix}`
   ];
 
   const hashString = `${sun}-${moon}-${tonica}`;
@@ -652,11 +652,93 @@ export default function App() {
     return () => clearInterval(ticker);
   }, []);
 
-  const lunarData = useMemo(() => getLunarData(now), [now]);
+  const baseLunarData = useMemo(() => getLunarData(now), [now]);
   const todayCalendarDate = useMemo(() => now.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }), [now]);
   
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
   const [viewingCycleId, setViewingCycleId] = useState<number | null>(null);
+
+  // States for real Swiss Ephemeris data from server
+  const [realAstronomyData, setRealAstronomyData] = useState<{
+    sun: { longitude: number; signIndex: number; signName: string; degrees: number };
+    moon: { longitude: number; signIndex: number; signName: string; degrees: number };
+    phaseAngle: number;
+    illumination: number;
+  } | null>(null);
+
+  const [realCycleData, setRealCycleData] = useState<{
+    startDate: string;
+    cycleName: string;
+    days: {
+      lunarDay: number;
+      dateString: string;
+      isoDate: string;
+      sun: { longitude: number; signIndex: number; signName: string; degrees: number };
+      moon: { longitude: number; signIndex: number; signName: string; degrees: number };
+      phaseAngle: number;
+      illumination: number;
+    }[];
+  } | null>(null);
+
+  // Fetch real-time high-performance astronomy calculations
+  useEffect(() => {
+    let active = true;
+    const fetchRealData = async () => {
+      try {
+        const response = await axios.post("/api/astronomy/calculate", { date: now.toISOString() });
+        if (response.data?.success && active) {
+          setRealAstronomyData(response.data);
+        }
+      } catch (err) {
+        console.warn("Could not fetch real-time Swiss Ephemeris data. Using high-precision math anchors.", err);
+      }
+    };
+    fetchRealData();
+    return () => { active = false; };
+  }, [now]);
+
+  // Fetch real-time 28-day cycle data
+  useEffect(() => {
+    let active = true;
+    const fetchCycleData = async () => {
+      try {
+        const refStart = baseLunarData.getDateForDay(1); // Date of Lunar Day 1
+        const response = await axios.post("/api/astronomy/cycle", { startDate: refStart.toISOString() });
+        if (response.data?.success && active) {
+          setRealCycleData(response.data);
+        }
+      } catch (err) {
+        console.warn("Could not fetch real-time cycle data. Using high-precision math anchors.", err);
+      }
+    };
+    fetchCycleData();
+    return () => { active = false; };
+  }, [baseLunarData.cycleId]);
+
+  const lunarData = useMemo(() => {
+    const base = { ...baseLunarData };
+    
+    if (realAstronomyData) {
+      base.moonSignFloat = realAstronomyData.moon.signIndex + (realAstronomyData.moon.degrees / 30);
+      base.sunSignFloat = realAstronomyData.sun.signIndex + (realAstronomyData.sun.degrees / 30);
+      base.sunSignIndex = realAstronomyData.sun.signIndex;
+      base.illumination = realAstronomyData.illumination;
+    }
+    
+    if (realCycleData) {
+      base.cycleName = realCycleData.cycleName;
+      base.getSignForDay = (day: number) => {
+        const dData = realCycleData.days[day - 1];
+        return dData ? dData.moon.signIndex : baseLunarData.getSignForDay(day);
+      };
+      base.getMoonSignFloatForDay = (day: number) => {
+        const dData = realCycleData.days[day - 1];
+        return dData ? dData.moon.signIndex + (dData.moon.degrees / 30) : baseLunarData.getMoonSignFloatForDay(day);
+      };
+    }
+    
+    return base;
+  }, [baseLunarData, realAstronomyData, realCycleData]);
 
   const logs = useMemo(() => {
     const mandalaMap: Record<number, LogEntry> = {};
@@ -1179,11 +1261,11 @@ export default function App() {
       // Calculate aspect locally to ensure we have the correct aspect mapping to pass to the API
       const diff = Math.abs(sunIdx - moonIdx);
       const dist = diff > 6 ? 12 - diff : diff;
-      let aspect = { name: 'Conjunção', desc: 'Não se precipitar, intensidade cuja força precisa se concentrar.' };
+      let aspect = { name: 'Conjunção', desc: 'impulso, autenticidade, fusão em síntese das simbologias dos signos envolvidos.' };
       if (dist === 1 || dist === 2) aspect = { name: 'Sextil', desc: 'Estar aberto para aprender e aplicar o que já foi assimilado em experiências.' };
-      else if (dist === 3) aspect = { name: 'Quadratura', desc: 'Maturidade para lidar com pressões emocionais sabendo suportar o tempo de desenvolvimento das situações.' };
-      else if (dist === 4) aspect = { name: 'Trígono', desc: 'Consciência e deixar fluir pelas oportunidades que se apresentam.' };
-      else if (dist === 5 || dist === 6) aspect = { name: 'Oposição', desc: 'Aprender a ver em confrontos a complementaridade sabendo equilibrar-se entre os dois polos.' };
+      else if (dist === 3) aspect = { name: 'Quadratura', desc: 'tensão emocional, conflitos, espera, paciência, emoção turva a razão.' };
+      else if (dist === 4) aspect = { name: 'Trígono', desc: 'soluções, harmonia, fluidez, clareza, criatividade.' };
+      else if (dist === 5 || dist === 6) aspect = { name: 'Oposição', desc: 'dúvida, equilíbrio das polaridades, complementariedade.' };
 
       try {
         console.log("Invocando Oráculo Gemini...");
@@ -1643,11 +1725,11 @@ export default function App() {
     const diff = Math.abs(sunIdx - moonIdx);
     const dist = diff > 6 ? 12 - diff : diff;
     
-    let aspect = { name: 'Conjunção', type: 'potent', icon: 'Sparkles', desc: 'Não se precipitar, intensidade cuja força precisa se concentrar.' };
+    let aspect = { name: 'Conjunção', type: 'potent', icon: 'Sparkles', desc: 'impulso, autenticidade, fusão em síntese das simbologias dos signos envolvidos.' };
     if (dist === 1 || dist === 2) aspect = { name: 'Sextil', type: 'fluency', icon: 'Compass', desc: 'Estar aberto para aprender e aplicar o que já foi assimilado em experiências.' };
-    else if (dist === 3) aspect = { name: 'Quadratura', type: 'tension', icon: 'Zap', desc: 'Maturidade para lidar com pressões emocionais sabendo suportar o tempo de desenvolvimento das situações.' };
-    else if (dist === 4) aspect = { name: 'Trígono', type: 'fluency', icon: 'Star', desc: 'Consciência e deixar fluir pelas oportunidades que se apresentam.' };
-    else if (dist === 5 || dist === 6) aspect = { name: 'Oposição', type: 'tension', icon: 'RefreshCw', desc: 'Aprender a ver em confrontos a complementaridade sabendo equilibrar-se entre os dois polos.' };
+    else if (dist === 3) aspect = { name: 'Quadratura', type: 'tension', icon: 'Zap', desc: 'tensão emocional, conflitos, espera, paciência, emoção turva a razão.' };
+    else if (dist === 4) aspect = { name: 'Trígono', type: 'fluency', icon: 'Star', desc: 'soluções, harmonia, fluidez, clareza, criatividade.' };
+    else if (dist === 5 || dist === 6) aspect = { name: 'Oposição', type: 'tension', icon: 'RefreshCw', desc: 'dúvida, equilíbrio das polaridades, complementariedade.' };
 
     return { sun, moon, moonDegreeForDay, aspect };
   }, [selectedDay, lunarData.sunSignIndex]);
@@ -1910,12 +1992,12 @@ export default function App() {
                    <div className="bg-indigo-900/5 p-3.5 sm:p-3 rounded-2xl border border-indigo-900/10 backdrop-blur-sm relative group transition-all hover:bg-indigo-900/[0.07] min-h-fit">
                       <Quote className="absolute top-2 left-2 text-indigo-200/40" size={12} />
                        <p id="phrase-quote" className="text-sm sm:text-[12px] text-indigo-300 leading-relaxed font-semibold text-center px-4 italic whitespace-normal break-words overflow-visible">
-                         {PHILOSOPHICAL_QUOTES[selectedMoonSignIndex] || PHILOSOPHICAL_QUOTES[0]}
+                         {ZODIAC_PHRASES[selectedMoonSignIndex]?.[Math.min(2, Math.max(0, Math.floor(oracleData.moonDegreeForDay / 10)))] || PHILOSOPHICAL_QUOTES[selectedMoonSignIndex] || PHILOSOPHICAL_QUOTES[0]}
                        </p>
                        <div className="mt-2 flex justify-center items-center gap-2">
                          <div className="h-[0.5px] w-3 bg-indigo-200/30" />
-                         <span className="text-[9px] sm:text-[7.5px] font-black uppercase tracking-[0.35em] text-indigo-300/60">
-                           {selectedDay === lunarData.day ? 'Tônica do Agora' : `Influência do Dia ${selectedDay}`}: {getZodiacSignSafely(selectedMoonSignIndex).name}
+                         <span className="text-[9px] sm:text-[7.5px] font-black uppercase tracking-[0.35em] text-indigo-300/60 text-center">
+                           {selectedDay === lunarData.day ? 'Tônica do Agora' : `Influência do Dia ${selectedDay}`}: {getZodiacSignSafely(selectedMoonSignIndex).name} • {oracleData.moonDegreeForDay}°
                          </span>
                          <div className="h-[0.5px] w-3 bg-indigo-200/30" />
                        </div>
