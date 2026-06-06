@@ -29,19 +29,65 @@
     </script>
     <script>
       window.onerror = function(msg, url, line, col, error) {
+        // Ignorar erros benignos de desenvolvimento (WebSocket e Vite HMR)
+        var msgStr = String(msg || "");
+        var urlStr = String(url || "");
+        if (msgStr.indexOf('WebSocket') !== -1 || msgStr.indexOf('websocket') !== -1 || urlStr.indexOf('vite') !== -1) {
+          return;
+        }
+
         var div = document.createElement('div');
         div.style.position = 'fixed';
         div.style.top = '0';
         div.style.left = '0';
         div.style.width = '100%';
+        div.style.height = '100%';
         div.style.padding = '20px';
-        div.style.background = '#FEF2F2';
-        div.style.color = '#991B1B';
+        div.style.background = '#1E1B4B';
+        div.style.color = '#FEE2E2';
         div.style.zIndex = '99999';
-        div.style.fontFamily = 'sans-serif';
-        div.innerHTML = '<h3 style="margin-top:0">Erro no Portal</h3><p style="font-size:14px">' + msg + '</p><p style="font-size:12px">Linha: ' + line + '</p>';
+        div.style.overflow = 'auto';
+        div.style.fontFamily = 'monospace';
+        
+        var stack = error && error.stack ? error.stack : '';
+        div.innerHTML = '<h3 style="margin-top:0;color:#FCA5A5">Erro Crítico no Portal Hekat</h3>' +
+                        '<p style="font-size:14.5px;font-weight:bold;margin:10px 0">Mensagem: ' + msg + '</p>' +
+                        '<p style="font-size:12px;margin:5px 0">Arquivo: ' + url + '</p>' +
+                        '<p style="font-size:12px;margin:5px 0">Definição: Linha ' + line + ', Coluna ' + col + '</p>' +
+                        (stack ? '<pre style="font-size:11px;background:#0F172A;padding:12px;border-radius:8px;overflow-x:auto;color:#E2E8F0;border:1px solid #334155;margin-top:15px;line-height:1.5">' + stack + '</pre>' : '<p style="font-size:12px;color:#FDA4AF">Nenhum rastreamento de pilha (stack) disponível.</p>');
         document.body.appendChild(div);
       };
+
+      window.addEventListener('unhandledrejection', function(event) {
+        var reason = event.reason;
+        var msg = reason instanceof Error ? reason.message : String(reason);
+        var stack = reason instanceof Error && reason.stack ? reason.stack : '';
+        
+        // Ignorar erros benignos de desenvolvimento (WebSocket e Vite HMR)
+        var msgStr = String(msg || "");
+        var stackStr = String(stack || "");
+        if (msgStr.indexOf('WebSocket') !== -1 || msgStr.indexOf('websocket') !== -1 || stackStr.indexOf('vite') !== -1) {
+          return;
+        }
+
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100%';
+        div.style.height = '100%';
+        div.style.padding = '20px';
+        div.style.background = '#1D1D2C';
+        div.style.color = '#FDE047';
+        div.style.zIndex = '99999';
+        div.style.overflow = 'auto';
+        div.style.fontFamily = 'monospace';
+        
+        div.innerHTML = '<h3 style="margin-top:0;color:#FDE047">Promessa Não Tratada no Portal Hekat</h3>' +
+                        '<p style="font-size:14.5px;font-weight:bold;margin:10px 0">Mensagem: ' + msg + '</p>' +
+                        (stack ? '<pre style="font-size:11px;background:#0B0B14;padding:12px;border-radius:8px;overflow-x:auto;color:#E2E8F0;border:1px solid #44403C;margin-top:15px;line-height:1.5">' + stack + '</pre>' : '<p style="font-size:12px;color:#FEF08A">Nenhum rastreamento de pilha (stack) disponível para esta rejeição.</p>');
+        document.body.appendChild(div);
+      });
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

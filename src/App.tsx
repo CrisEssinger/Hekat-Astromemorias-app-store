@@ -812,7 +812,7 @@ export default function App() {
   // Migração de Dados (Ajuste de Numeração de Ciclos)
   const migrationInProgress = useRef(false);
   useEffect(() => {
-    if (!currentUser || allLogs.length === 0 || migrationInProgress.current) return;
+    if (!db || !currentUser || allLogs.length === 0 || migrationInProgress.current) return;
     
     // Referência astronômica universal (16 de Maio de 2026 UTC)
     const refDateMs = Date.UTC(2026, 4, 16, 0, 0, 0);
@@ -1068,6 +1068,10 @@ export default function App() {
 
   const handleSaveName = async () => {
     if (!nameInput.trim() || !currentUser) return;
+    if (!db) {
+      console.error("Firestore is not initialized.");
+      return;
+    }
     setIsSavingName(true);
     try {
       const userRef = doc(db, 'users', currentUser.uid);
@@ -1127,6 +1131,10 @@ export default function App() {
 
   const handleSendFeedback = async () => {
     if (!feedback.trim() || !currentUser) return;
+    if (!db) {
+      console.error("Firestore is not initialized.");
+      return;
+    }
     setIsSendingFeedback(true);
     try {
       const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
@@ -1163,6 +1171,13 @@ export default function App() {
         unsubscribeSnapshot = null;
       }
       if (user) {
+        if (!db) {
+          console.warn("Hekat: Firestore is not initialized.");
+          setUserData({ isPremium: false });
+          setIsLoggingIn(false);
+          setIsAuthLoading(false);
+          return;
+        }
         const userRef = doc(db, 'users', user.uid);
         unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
           const data = docSnap.exists() ? (docSnap.data() as any) : null;
@@ -1232,7 +1247,7 @@ export default function App() {
 
       // No celular, não abrimos outras janelas automaticamente, mantendo só a mandala lunar
       if (isMobile) {
-        if (isFirstEver) {
+        if (isFirstEver && db) {
           const userRef = doc(db, 'users', currentUser.uid);
           setDoc(userRef, { hasSeenGuide: true, uid: currentUser.uid, email: currentUser.email, updatedAt: serverTimestamp() }, { merge: true }).catch(e => console.error("Erro ao persistir guia:", e));
         }
@@ -1242,8 +1257,10 @@ export default function App() {
       const timer = setTimeout(() => {
         if (isFirstEver) {
           toggleWindow('guide', 'open');
-          const userRef = doc(db, 'users', currentUser.uid);
-          setDoc(userRef, { hasSeenGuide: true, uid: currentUser.uid, email: currentUser.email, updatedAt: serverTimestamp() }, { merge: true }).catch(e => console.error("Erro ao persistir guia:", e));
+          if (db) {
+            const userRef = doc(db, 'users', currentUser.uid);
+            setDoc(userRef, { hasSeenGuide: true, uid: currentUser.uid, email: currentUser.email, updatedAt: serverTimestamp() }, { merge: true }).catch(e => console.error("Erro ao persistir guia:", e));
+          }
         } else {
           toggleWindow('journal', 'open');
         }
@@ -1255,6 +1272,10 @@ export default function App() {
   // Sync Logs with Firebase
   useEffect(() => {
     if (!currentUser) { setAllLogs([]); return; }
+    if (!db) {
+      console.warn("Hekat: Firestore is not initialized. Operating in local-only mode.");
+      return;
+    }
     const logsRef = collection(db, 'users', currentUser.uid, 'logs');
     const q = query(logsRef, orderBy("date", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -1502,22 +1523,26 @@ export default function App() {
     setAllLogs(prev => [...prev.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === selectedDay)), newEntry]);
     
     if (currentUser) {
-      // Id único baseado em ciclo e dia para permitir histórico
-      const logId = `cycle_${activeCycleId}_day_${selectedDay}`;
-      const logRef = doc(db, 'users', currentUser.uid, 'logs', logId);
-      
-      try {
-        await setDoc(logRef, {
-          emotionId: currentEmotion,
-          intensity,
-          note,
-          lunarDay: selectedDay,
-          cycleId: activeCycleId,
-          userId: currentUser.uid,
-          date: serverTimestamp()
-        });
-      } catch (error) {
-        console.error("Erro ao salvar no Firebase:", error);
+      if (!db) {
+        console.warn("Hekat: Firestore is not initialized. Operating in local-only mode.");
+      } else {
+        // Id único baseado em ciclo e dia para permitir histórico
+        const logId = `cycle_${activeCycleId}_day_${selectedDay}`;
+        const logRef = doc(db, 'users', currentUser.uid, 'logs', logId);
+        
+        try {
+          await setDoc(logRef, {
+            emotionId: currentEmotion,
+            intensity,
+            note,
+            lunarDay: selectedDay,
+            cycleId: activeCycleId,
+            userId: currentUser.uid,
+            date: serverTimestamp()
+          });
+        } catch (error) {
+          console.error("Erro ao salvar no Firebase:", error);
+        }
       }
     }
 
