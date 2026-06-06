@@ -1,6 +1,11 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/assets/(.*)", "destination": "/dist/assets/$1" },
+    { "source": "/icon.svg", "destination": "/dist/icon.svg" },
+    { "source": "/logo_hekat.png", "destination": "/dist/logo_hekat.png" },
+    { "source": "/manifest.json", "destination": "/dist/manifest.json" },
+    { "source": "/sw.js", "destination": "/dist/sw.js" },
+    { "source": "/(.*)", "destination": "/dist/index.html" }
   ]
 }
