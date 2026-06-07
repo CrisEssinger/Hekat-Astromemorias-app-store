@@ -2173,7 +2173,7 @@ export default function App() {
                        <div className="mt-2 flex justify-center items-center gap-2">
                          <div className="h-[0.5px] w-3 bg-indigo-200/30" />
                          <span className="text-[9px] sm:text-[7.5px] font-black uppercase tracking-[0.35em] text-indigo-300/60 text-center">
-                           {selectedDay === lunarData.day ? 'Tônica do Agora' : `Influência do Dia ${selectedDay}`}: {getZodiacSignSafely(selectedMoonSignIndex).name} • {oracleData.moonDegreeForDay}°
+                           {`${selectedDay === lunarData.day ? 'Tônica do Agora' : `Influência do Dia ${selectedDay}`}: ${getZodiacSignSafely(selectedMoonSignIndex).name} • ${oracleData.moonDegreeForDay}°`}
                          </span>
                          <div className="h-[0.5px] w-3 bg-indigo-200/30" />
                        </div>
@@ -2185,7 +2185,7 @@ export default function App() {
                    <div className="flex justify-between items-center bg-indigo-950/20 p-3 rounded-2xl border border-white/5 transition-colors duration-1000 gap-4 sm:gap-6">
                       <div className="flex-1 mr-4 sm:mr-5 min-w-0">
                         <span className="text-[11px] sm:text-[10px] font-black text-indigo-300 uppercase tracking-widest block">{lunarData.getDateForDay(selectedDay).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-                        <h3 className="text-[11px] sm:text-[12.5px] font-black text-[#4169E1] uppercase tracking-tighter whitespace-nowrap">Fase {phase.name} • Dia {selectedDay} do Ciclo Lunar</h3>
+                        <h3 className="text-[11px] sm:text-[12.5px] font-black text-[#4169E1] uppercase tracking-tighter whitespace-nowrap">{`Fase ${phase.name} • Dia ${selectedDay} do Ciclo Lunar`}</h3>
                         <p className="text-[11px] sm:text-[10px] leading-relaxed text-indigo-300/70 font-medium mt-1 italic text-left whitespace-normal break-words overflow-visible">
                            {phase.tasks}
                         </p>
@@ -2210,11 +2210,13 @@ export default function App() {
                     <ChevronLeft size={12} />
                   </button>
                   <div className="px-2.5 text-center min-w-[85px]">
-                    <span className="text-[10px] font-black text-white uppercase block tracking-wider">Ciclo {(viewingCycleId || lunarData.cycleId)}</span>
+                    <span className="text-[10px] font-black text-white uppercase block tracking-wider">
+                      {`Ciclo ${viewingCycleId || lunarData.cycleId}`}
+                    </span>
                     {(viewingCycleId || lunarData.cycleId) === lunarData.cycleId ? (
-                      <span className="text-[8px] font-black text-emerald-400 uppercase tracking-tighter animate-pulse">Ciclo Atual</span>
+                      <span key="ciclo-atual-indicator" className="text-[8px] font-black text-emerald-400 uppercase tracking-tighter animate-pulse">Ciclo Atual</span>
                     ) : (
-                      <span className="text-[8px] font-black text-amber-400/80 uppercase tracking-tighter">Memória Gravada</span>
+                      <span key="memoria-gravada-indicator" className="text-[8px] font-black text-amber-400/80 uppercase tracking-tighter">Memória Gravada</span>
                     )}
                   </div>
                   <button 
@@ -2339,11 +2341,13 @@ export default function App() {
                       <ChevronLeft size={18} />
                     </button>
                     <div className="text-left min-w-[120px]">
-                      <span className="text-[10px] font-black text-white uppercase block tracking-widest">Ciclo {(viewingCycleId || lunarData.cycleId)}</span>
+                      <span className="text-[10px] font-black text-white uppercase block tracking-widest">
+                        {`Ciclo ${viewingCycleId || lunarData.cycleId}`}
+                      </span>
                       {(viewingCycleId || lunarData.cycleId) === lunarData.cycleId ? (
-                        <span className="text-[7px] font-black text-emerald-400 uppercase tracking-tighter">Dados em Tempo Real</span>
+                        <span key="real-time-indicator" className="text-[7px] font-black text-emerald-400 uppercase tracking-tighter">Dados em Tempo Real</span>
                       ) : (
-                        <span className="text-[7px] font-black text-amber-400/80 uppercase tracking-tighter">Memória Consultada</span>
+                        <span key="consulted-memory-indicator" className="text-[7px] font-black text-amber-400/80 uppercase tracking-tighter">Memória Consultada</span>
                       )}
                     </div>
                     <button 
@@ -2410,7 +2414,9 @@ export default function App() {
                             }`}
                         >
                           <div className="flex items-center justify-between w-full px-1">
-                            <span className="text-[8px] font-black text-white/40 uppercase">Ciclo {cycleId}</span>
+                            <span className="text-[8px] font-black text-white/40 uppercase">
+                              {`Ciclo ${cycleId}`}
+                            </span>
                             {hasData && viewingCycleId === cycleId && <Activity size={8} className="text-emerald-400" />}
                           </div>
                           <div className="pointer-events-none transform scale-[0.6] sm:scale-[0.55] origin-top h-[60px] flex items-center justify-center">
@@ -2447,8 +2453,8 @@ export default function App() {
                             </div>
                             <div className="flex-1 overflow-hidden">
                               <div className="flex justify-between items-start">
-                                <h4 className="text-[11px] font-black uppercase text-[#4169E1] tracking-tighter">DIA {log.lunarDay} • {emotion?.name}</h4>
-                                <span className="text-[8px] font-black text-indigo-300/60 uppercase">Ciclo {log.cycleId}</span>
+                                <h4 className="text-[11px] font-black uppercase text-[#4169E1] tracking-tighter">{`DIA ${log.lunarDay} • ${emotion?.name || ''}`}</h4>
+                                <span className="text-[8px] font-black text-indigo-300/60 uppercase">{`Ciclo ${log.cycleId}`}</span>
                               </div>
                               <div className="flex gap-1 mt-1">
                                 {Array.from({ length: 5 }).map((_, i) => (
