@@ -31,27 +31,118 @@ function getAI() {
 
 // Elegantly styled fallback generator matching Hekat's strict brand guidelines and voice (simple, profound, Zen and astrological wisdom without technical jargon or positional declarations)
 function generateFallbackOracle(sunSignName?: string, moonSignName?: string, philosophicalPhrase?: string, userName?: string, aspectDesc?: string): string {
-  const sun = sunSignName || 'Sol';
-  const moon = moonSignName || 'Lua';
-  const tônica = philosophicalPhrase ? `"${philosophicalPhrase}"` : 'da quietude e do autocuidado';
+  const sun = sunSignName || 'Touro';
+  const moon = moonSignName || 'Peixes';
   const nameIntro = userName ? `${userName}, ` : '';
-  const aspectSuffix = aspectDesc ? ` Como postura de vida, a atitude essencial neste momento pede para ${aspectDesc.charAt(0).toLowerCase() + aspectDesc.slice(1)}` : '';
+  
+  // Detectar Elementos
+  const getElement = (sign: string): 'FOGO' | 'TERRA' | 'AR' | 'ÁGUA' => {
+    const s = sign.toLowerCase();
+    if (['áries', 'leão', 'sagitário', 'aries', 'leao', 'sagitario'].includes(s)) return 'FOGO';
+    if (['touro', 'virgem', 'capricórnio', 'capricornio'].includes(s)) return 'TERRA';
+    if (['gêmeos', 'gemeos', 'libra', 'aquário', 'aquario'].includes(s)) return 'AR';
+    return 'ÁGUA'; // Câncer, Escorpião, Peixes
+  };
 
-  const messages = [
-    `${nameIntro}há um convite transcendente ao recolhimento e à introspecção: o cosmos pulsa em sintonia com os novos começos. A tônica pede para sintonizar a força pura da sua intenção — dando o primeiro passo com postura resoluta e coragem intocável.${aspectSuffix}`,
-    `${nameIntro}na quietude do agora, a tônica de sua essência convida você a silenciar os ecos do exterior. A orientação definitiva é ancorar seu centro na permanência pacífica do presente: sustente sua integridade diante de qualquer impermanência da jornada.${aspectSuffix}`,
-    `${nameIntro}acolha as transições da mente e do coração com a flexibilidade das águas tranquilas: a sabedoria reside em fluir com suavidade, adaptando seus passos diante dos obstáculos e mantendo inteira sua bússola de vida.${aspectSuffix}`,
-    `Que bom ter você aqui${userName ? `, ${userName}` : ''}. Neste clima de clareza essencial: a postura mais fecunda é receber as circunstâncias exatamente como se revelam, pois a estabilidade verdadeira nasce da aceitação desperta e lúcida.${aspectSuffix}`
-  ];
+  const sunElement = getElement(sun);
+  const moonElement = getElement(moon);
 
-  const hashString = `${sun}-${moon}-${tônica}`;
-  let hash = 0;
-  for (let i = 0; i < hashString.length; i++) {
-    hash = (hash << 5) - hash + hashString.charCodeAt(i);
-    hash |= 0; 
+  // Palavras-chave obrigatórias a incorporar sutilmente
+  // FOGO: faísca, irradiação, vontade, despertar, chama.
+  // TERRA: alicerce, tangível, maturação, substância, colheita.
+  // AR: fluxo, sopro, síntese, aprendizado, percepção, palavras.
+  // ÁGUA: maré, reflexo, emoção, sentimentos, intuição, mergulho, fluir.
+
+  // Direções/Mensagens base por combinação de Elemento do Sol e Elemento da Lua
+  const elementTexts: Record<string, { main: string, poética: string }> = {
+    'FOGO_FOGO': {
+      main: `há um convite transcendente ao movimento: a chama interior pulsa em sintonia com a sua vontade mais espontânea. O despertar de um novo impulso exige expressar a sua força pura com coragem resoluta e intocável.`,
+      poética: `No silêncio fecundo do ser, brilha uma faísca sagrada que incendeia os horizontes; permita que a irradiação da sua vontade desperte de maneira autêntica e dissipe as sombras.`
+    },
+    'FOGO_TERRA': {
+      main: `sintonize a força ativa do seu propósito com a sabedoria da paciência. Canalize a vontade ardente no despertar de novas formas, ancorando cada passo para dar sustento tangível aos seus sonhos.`,
+      poética: `Toda chama necessita de um alicerce firme para perdurar; que a sua inteligência respeite o tempo de maturação necessário para que a colheita dos frutos seja abundante.`
+    },
+    'FOGO_AR': {
+      main: `permita que a luz do seu espírito inspire novas conexões e percepções de mundo. Sintonize a vontade criativa com o sopro das ideias, expandindo caminhos de forma ágil e curiosa.`,
+      poética: `A faísca do entusiasmo se propaga no fluxo sutil da mente; use as palavras certas para dar vida às suas visões e sintonizar novos horizontes de aprendizado.`
+    },
+    'FOGO_ÁGUA': {
+      main: `o momento exige sintonizar a força criadora com o mistério das suas intuições mais profundas. Equilibre o calor da vontade com a calmaria do sentir, agindo com sabedoria lúcida.`,
+      poética: `O reflexo do fogo nas águas tranquilas da alma revela que todo mergulho interno antecede uma grande revelação; sinta a irradiação da chama no compasso das suas emoções.`
+    },
+    'TERRA_FOGO': {
+      main: `o alinhamento celeste convida a dar estrutura e forma tangível às suas paixões mais genuínas. Sustente o seu alicerce com perseverança, permitindo que a vontade aja com nobreza e realismo.`,
+      poética: `O solo firme acolhe a faísca e a converte em fogueira permanente; cultive a maturação dos seus dons com o calor do entusiasmo e a certeza da colheita.`
+    },
+    'TERRA_TERRA': {
+      main: `recolha as suas energias e sustente a estabilidade profunda do seu centro diante de impermanências. Busque segurança na substância real das coisas, agindo com realismo, calma e prudência.`,
+      poética: `Como uma raiz antiga e profunda que assegura o sustento da árvore, respeite a maturação oculta; a colheita do que é valioso exige silenciar os ruídos e honrar seu alicerce.`
+    },
+    'TERRA_AR': {
+      main: `o alinhamento pede para trazer clareza mental e ordem prática aos seus pensamentos. Edifique os seus planos respeitando os fatos, buscando ideias que ofereçam estabilidade e síntese realizadora.`,
+      poética: `O sopro da inteligência passeia sobre o solo firme; que a clareza de percepção trace caminhos seguros para que o fluxo das palavras ganhe corpo e estrutura tangível.`
+    },
+    'TERRA_ÁGUA': {
+      main: `nutra o seu alicerce interno integrando a sensibilidade à persistência lúcida. Acolha com paciência as suas águas internas, compreendendo que toda construção sincera exige afeto e sensibilidade.`,
+      poética: `A terra fértil acolhe a maré dos sentimentos e molda a substância do porvir; mergulhe em seu reflexo interno e permita que a paciência traga ordem e beleza ao que amadurece.`
+    },
+    'AR_FOGO': {
+      main: `o vento cósmico estimula a expandir sua perspectiva e clarear rumos por meio de novas ideias. Sintonize o fluxo do pensamento com o despertar da sua vontade, agindo com leveza e lucidez.`,
+      poética: `O sopro que transporta a centelha espalha a luz do despertar; use suas palavras como faíscas que clareiam a visão e conduzem seu aprendizado rumo à integridade.`
+    },
+    'AR_TERRA': {
+      main: `busque a síntese entre a flexibilidade mental e a estabilidade prática de vida. Acolha o seu fluxo de pensamentos e filtre o essencial, ancorando as ideias em atitudes concretas e lúcidas.`,
+      poética: `O sopro das palavras encontra realismo e sustentação no alicerce da presença; permita que a percepção do momento traga uma maturação fecunda a seus pensamentos.`
+    },
+    'AR_AR': {
+      main: `acolha o convite de purificar os pensamentos e sintonizar uma clareza mental revigorante. Mantenha a leveza nas trocas e busque novos caminhos, agindo com curiosidade refinada e isenção.`,
+      poética: `No fluxo infinito da mente, cada percepção é um aprendizado sutil; que o sopro do intelecto pacifique as dúvidas e ilumine a verdadeira síntese das coisas.`
+    },
+    'AR_ÁGUA': {
+      main: `permita que a intuição fecunda se uma à clareza das ideias, harmonizando pensamentos e sentimentos. Acolha o movimento com suavidade, navegando de forma curiosa por suas paisagens sutis.`,
+      poética: `O sopro do vento flerta com o reflexo das águas profundas; sintonize a percepção do invisível e permita-se mergulhar no fluxo compassivo da sua própria sensibilidade.`
+    },
+    'ÁGUA_FOGO': {
+      main: `o oceano do seu inconsciente convida a acolher com empatia as suas vivências íntimas. Equilibre as suas marés emocionais com o despertar de uma nova vontade inspiradora e resoluta.`,
+      poética: `No oceano da sensibilidade, repousa uma chama que incita a coragem; mergulhe no reflexo das suas emoções para resgatar a faísca viva do seu propósito verdadeiro.`
+    },
+    'ÁGUA_TERRA': {
+      main: `a tônica cósmica convida você a acolher os seus sentimentos mais profundos e dar-lhes segurança. Ancore suas emoções na permanência do ser, agindo com acolhimento lúcido e paciência fecunda.`,
+      poética: `A maré pacifica suas correntezas quando encontra um alicerce estável; permita que a maturação interna flua em direção a uma colheita cheia de doçura e substância real.`
+    },
+    'ÁGUA_AR': {
+      main: `o alinhamento do agora estimula você a se comunicar com empatia, unindo mente e coração. Reflita sobre as suas memórias com a fluidez do sopro sábio, renovando perspectivas íntimas.`,
+      poética: `Cada emoção encontra clareza sob o brilho da percepção analítica; sintonize o fluxo das palavras sinceras com as correntezas profundas da sua própria intuição.`
+    },
+    'ÁGUA_ÁGUA': {
+      main: `acolha as marés profundas da alma com empatia ilimitada, permitindo o mergulho interno. Sintonize-se com a sua intuição silenciosa e sustente a serenidade perante as correntezas da jornada.`,
+      poética: `No espelho límpido do espírito, o reflexo revela seu mistério sutil; deite as dúvidas e apenas flua em comunhão com o oceano do seu próprio sentir.`
+    }
+  };
+
+  const key = `${sunElement}_${moonElement}`;
+  const selectedText = elementTexts[key] || elementTexts['TERRA_TERRA'];
+
+  let aspectSuffix = '';
+  if (aspectDesc) {
+    const descLower = aspectDesc.toLowerCase();
+    if (descLower.includes('conjunção') || descLower.includes('conjuncao') || descLower.includes('impulso') || descLower.includes('autenticidade')) {
+      aspectSuffix = ` Sintonize este impulso de autêntica fusão em si, onde a clareza se sintetiza com nobreza.`;
+    } else if (descLower.includes('oposição') || descLower.includes('oposicao') || descLower.includes('polaridades') || descLower.includes('equilíbrio') || descLower.includes('equilibrio')) {
+      aspectSuffix = ` Diante de polaridades opostas, busque o equilíbrio reflexivo e integre forças complementares.`;
+    } else if (descLower.includes('quadratura') || descLower.includes('tensaõ') || descLower.includes('tensão') || descLower.includes('conflito') || descLower.includes('turva')) {
+      aspectSuffix = ` Com paciência, abrigue as tensões e conflitos do agora; lembre-se de que a emoção acumulada nunca deve turvar a razão.`;
+    } else if (descLower.includes('trígono') || descLower.includes('trigono') || descLower.includes('soluções') || descLower.includes('criatividade')) {
+      aspectSuffix = ` Siga pelo rumo das soluções fluidas que a harmonia e a criatividade natural desenham no seu caminhar.`;
+    } else {
+      aspectSuffix = ` Como postura de vida, a atitude essencial neste momento pede para ${aspectDesc.charAt(0).toLowerCase() + aspectDesc.slice(1)}`;
+    }
   }
-  const index = Math.abs(hash) % messages.length;
-  return messages[index];
+
+  const finalMain = `${nameIntro}${selectedText.main}${aspectSuffix}`;
+
+  return finalMain;
 }
 
 function generateFallbackReports(period: string, logData?: string, userName?: string): string {
@@ -113,34 +204,52 @@ async function startServer() {
 Siga rigorosamente as diretrizes e regras a seguir:
 
 1. TOM DE VOZ E ESTILO (EQUILÍBRIO ALQUÍMICO):
-   - Evite comandos severos ou dogmáticos e passe longe de moralismos ou condescendência beata.
-   - Seja direto, acolhedor e próximo. Transmita uma pausa clara de autoconexão sincera.
-   - Use pontuação estratégica como travessões (—) e dois-pontos (:) para criar pausas naturais, cadência profunda e enfatizar percepções elevadas.
+   - Evite comandos severos ou dogmáticos; evite moralismos ou condescendência beata.
+   - O tom deve ser direto, acolhedor e próximo, transmitindo uma pausa para introspecção profunda.
+   - Use pontuação estratégica — travessões (—) e dois-pontos (:) — para criar pausas e enfatizar frases de efeito, citações ou percepções sublimes.
    - Substitua termos comuns por palavras que evoquem expansão, consciência e transcendência.
 
 2. PRATICIDADE DE VIDA:
-   - Ofereça conselhos focados exclusivamente em postura existencial, ética interior e clareza mental para os grandes movimentos da jornada.
-   - NUNCA sugira tarefas domésticas, rotinas triviais ou atividades cotidianas decorativas. Podem soar infantis e quebrar o mistério sutil.
+   - Ofereça conselhos funcionais e direcionados a postura de vida, ética e clareza mental para os grandes movimentos da alma e desafios reais.
+   - NUNCA sugira rotinas domésticas, tarefas cotidianas ou triviais do dia a dia.
 
-3. CONHECIMENTO ASTROLÓGICO E QUALIDADE DOS ASPECTOS (MISTÉRIO SUTIL):
-   - Considere a energia e os arquétipos astrológicos das posições do Sol e da Lua providos, mas NUNCA cite nomes técnicos (como casas, elementos, graus, aspectos, conjunção, quadratura, trígono, oposição, etc.).
-   - Aplique as seguintes noções dos signos:
-     * Para signos mutáveis (como Gêmeos, Peixes, Virgem, Sagitário): tônica de FLUIDEZ, maleabilidade de transição e flexibilidade mental.
-     * Para signos fixos (como Touro, Leão, Escorpião, Aquário): tônica de SUSTENTAÇÃO, permanência íntima e estabilidade do centro.
-     * Para signos cardinais (como Áries, Câncer, Libra, Capricórnio): tônica de INICIAÇÃO, coragem de começar, força de novos rumos.
-   - Incorpore organicamente as qualidades do aspecto astrológico ativo ("${aspectName || ''}": "${aspectDesc || ''}"):
-     * Conjunção: impulso, autenticidade, fusão em síntese das simbologias dos signos.
-     * Oposição: dúvida, equilíbrio das polaridades opostas, complementaridade.
-     * Quadratura: tensão emocional, conflitos, espera paciente, emoção que turva a razão.
-     * Trígono: soluções, harmonia, fluidez, clareza e criatividade natural.
-     * Sextil: abertura para aprender e aplicar o que foi assimilado em experiências.
+3. DINÂMICA DOS ELEMENTOS (Símbolos Astrológicos do Sol e da Lua):
+   - Identifique os elementos correspondentes aos signos do Sol e da Lua informados e module a tônica da mensagem combinando suas essências de acordo com as diretrizes específicas abaixo (NUNCA mencione os nomes dos elementos "Fogo", "Terra", "Ar" ou "Água" em si, apenas use sua simbologia e diretrizes descritas):
+     * FOGO (Áries, Leão, Sagitário): Inspire a agir. 
+       - Tônica: Vitalidade, Impulso e Revelação.
+       - Simbologia: A centelha da criação, o calor que expande e a luz que dissipa a dúvida.
+       - Diretrizes: Use verbos de ação e frases curtas e impactantes. Promova coragem e entusiasmo.
+       - Palavras-chave obrigatórias a incorporar sutilmente: faísca, irradiação, vontade, despertar, chama.
+     * TERRA (Touro, Virgem, Capricórnio): Ensine a construir.
+       - Tônica: Estrutura, Presença e Manifestação.
+       - Simbologia: O solo que sustenta, a raiz que aprofunda e o tempo que matura a forma.
+       - Diretrizes: Linguagem sensorial e objetiva. Transmita segurança, realismo e paciência.
+       - Palavras-chave obrigatórias a incorporar sutilmente: alicerce, tangível, maturação, substância, colheita.
+     * AR (Gêmeos, Libra, Aquário): Estimule a pensar e a conectar.
+       - Tônica: Conexão, Perspectiva e Fluidez Mental.
+       - Simbologia: O sopro que transporta a informação, o espaço entre as coisas e a clareza mental.
+       - Diretrizes: Use metáforas sobre visão, troca, comunicação e movimento. O tom deve ser curioso, leve e analítico.
+       - Palavras-chave obrigatórias a incorporar sutilmente: fluxo, sopro, síntese, aprendizado, percepção, palavras.
+     * ÁGUA (Câncer, Escorpião, Peixes): Convide a sentir.
+       - Tônica: Profundidade, Memória e Dissolução.
+       - Simbologia: O oceano do inconsciente, sentimentos, a correnteza que molda a pedra e o espelho que reflete a alma.
+       - Diretrizes: Linguagem poética, subjetiva e envolvente. O tom deve evocar empatia, intuição e mistério.
+       - Palavras-chave obrigatórias a incorporar sutilmente: maré, reflexo, emoção, sentimentos, intuição, mergulho, fluir.
 
-4. DIRETRIZES DE ENTREGA & CONCISSÃO EXTREMA:
-   - Toda resposta deve trazer: 1) uma brevidade de reflexão sobre o clima celeste ou emocional atual, e 2) uma orientação firme de postura de vida e ética interna.
-   - ${userName ? `Chame o usuário pelo nome "${userName}" de forma calorosa, calma e natural no decorrer da mensagem para gerar intimidade.` : 'Adote um tom íntimo e próximo.'}
-   - Máximo absoluto de 4 linhas. Seja extremamente conciso.
-   - Idioma: Português do Brasil.
-   - Escreva o texto de forma contínua, direta e sem cabeçalhos, marcadores ou numerações de parágrafos.`;
+4. QUALIDADE SUTIL DOS ASPECTOS:
+   - Integre de maneira orgânica e imperceptível (sem nunca citar os nomes técnicos dos aspectos como "Conjunção", "Oposição", "Quadratura", "Trígono" ou "Sextil") o significado espiritual do aspecto astrológico ativo no dia:
+     * Se Conjunção: Traga no texto a energia de impulso, autenticidade e fusão em síntese das qualidades dos signos.
+     * Se Oposição: Traga no texto a dinâmica de dúvida reflexiva, equilíbrio das polaridades opostas e complementariedade.
+     * Se Quadratura: Traga no texto a dinâmica de tensão emocional, conflitos internos, a paciência e a espera (lembre-se: a emoção turva a razão).
+     * Se Trígono: Traga no texto a sensação de soluções fluidas, harmonia, clareza e criatividade natural abundante.
+     * Se Sextil: Traga no texto a atitude de abertura para aprender e aplicar o que foi assimilado com sabedoria prática.
+
+5. DIRETRIZES DE REVISÃO E FORMATO:
+   - Certifique-se de que os conceitos estão perfeitamente alinhados aos arquétipos dos signos (ex.: Gêmeos evoca dualidade, mente e comunicação; Touro evoca persistência, valor e matéria; etc.).
+   - Traga consistência ao texto de forma simples e prática.
+   - ${userName ? `Chame o usuário pelo nome "${userName}" de forma calorosa, calma e natural no decorrer da mensagem para gerar intimidade e confiança.` : 'Adote um tom íntimo, acolhedor e próximo.'}
+   - Máximo absoluto de 4 linhas de texto corrido.
+   - Nunca inclua cabeçalhos, títulos ou prefixos.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",

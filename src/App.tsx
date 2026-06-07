@@ -608,27 +608,118 @@ const getClientFallbackOracle = (
   userName?: string, 
   aspectDesc?: string
 ): string => {
-  const sun = sunSignName || 'Sol';
-  const moon = moonSignName || 'Lua';
-  const tonica = philosophicalPhrase ? `"${philosophicalPhrase}"` : 'da quietude e do autocuidado';
+  const sun = sunSignName || 'Touro';
+  const moon = moonSignName || 'Peixes';
   const nameIntro = userName ? `${userName}, ` : '';
-  const aspectSuffix = aspectDesc ? ` Como postura de vida, a atitude essencial neste momento pede para ${aspectDesc.charAt(0).toLowerCase() + aspectDesc.slice(1)}` : '';
+  
+  // Detectar Elementos
+  const getElement = (sign: string): 'FOGO' | 'TERRA' | 'AR' | 'ÁGUA' => {
+    const s = sign.toLowerCase();
+    if (['áries', 'leão', 'sagitário', 'aries', 'leao', 'sagitario'].includes(s)) return 'FOGO';
+    if (['touro', 'virgem', 'capricórnio', 'capricornio'].includes(s)) return 'TERRA';
+    if (['gêmeos', 'gemeos', 'libra', 'aquário', 'aquario'].includes(s)) return 'AR';
+    return 'ÁGUA'; // Câncer, Escorpião, Peixes
+  };
 
-  const messages = [
-    `${nameIntro}há um convite transcendente ao recolhimento e à introspecção: o cosmos pulsa em sintonia com os novos começos. A tônica pede para sintonizar a força pura da sua intenção — dando o primeiro passo com postura resoluta e coragem intocável.${aspectSuffix}`,
-    `${nameIntro}na quietude do agora, a tônica de sua essência convida você a silenciar os ecos do exterior. A orientação definitiva é ancorar seu centro na permanência pacífica do presente: sustente sua integridade diante de qualquer impermanência da jornada.${aspectSuffix}`,
-    `${nameIntro}acolha as transições da mente e do coração com a flexibilidade das águas tranquilas: a sabedoria reside em fluir com suavidade, adaptando seus passos diante dos obstáculos e mantendo inteira sua bússola de vida.${aspectSuffix}`,
-    `Que bom ter você aqui${userName ? `, ${userName}` : ''}. Neste clima de clareza essencial: a postura mais fecunda é receber as circunstâncias exatamente como se revelam, pois a estabilidade verdadeira nasce da aceitação desperta e lúcida.${aspectSuffix}`
-  ];
+  const sunElement = getElement(sun);
+  const moonElement = getElement(moon);
 
-  const hashString = `${sun}-${moon}-${tonica}`;
-  let hash = 0;
-  for (let i = 0; i < hashString.length; i++) {
-    hash = (hash << 5) - hash + hashString.charCodeAt(i);
-    hash |= 0; 
+  // Palavras-chave obrigatórias a incorporar sutilmente
+  // FOGO: faísca, irradiação, vontade, despertar, chama.
+  // TERRA: alicerce, tangível, maturação, substância, colheita.
+  // AR: fluxo, sopro, síntese, aprendizado, percepção, palavras.
+  // ÁGUA: maré, reflexo, emoção, sentimentos, intuição, mergulho, fluir.
+
+  // Direções/Mensagens base por combinação de Elemento do Sol e Elemento da Lua
+  const elementTexts: Record<string, { main: string, poética: string }> = {
+    'FOGO_FOGO': {
+      main: `há um convite transcendente ao movimento: a chama interior pulsa em sintonia com a sua vontade mais espontânea. O despertar de um novo impulso exige expressar a sua força pura com coragem resoluta e intocável.`,
+      poética: `No silêncio fecundo do ser, brilha uma faísca sagrada que incendeia os horizontes; permita que a irradiação da sua vontade desperte de maneira autêntica e dissipe as sombras.`
+    },
+    'FOGO_TERRA': {
+      main: `sintonize a força ativa do seu propósito com a sabedoria da paciência. Canalize a vontade ardente no despertar de novas formas, ancorando cada passo para dar sustento tangível aos seus sonhos.`,
+      poética: `Toda chama necessita de um alicerce firme para perdurar; que a sua inteligência respeite o tempo de maturação necessário para que a colheita dos frutos seja abundante.`
+    },
+    'FOGO_AR': {
+      main: `permita que a luz do seu espírito inspire novas conexões e percepções de mundo. Sintonize a vontade criativa com o sopro das ideias, expandindo caminhos de forma ágil e curiosa.`,
+      poética: `A faísca do entusiasmo se propaga no fluxo sutil da mente; use as palavras certas para dar vida às suas visões e sintonizar novos horizontes de aprendizado.`
+    },
+    'FOGO_ÁGUA': {
+      main: `o momento exige sintonizar a força criadora com o mistério das suas intuições mais profundas. Equilibre o calor da vontade com a calmaria do sentir, agindo com sabedoria lúcida.`,
+      poética: `O reflexo do fogo nas águas tranquilas da alma revela que todo mergulho interno antecede uma grande revelação; sinta a irradiação da chama no compasso das suas emoções.`
+    },
+    'TERRA_FOGO': {
+      main: `o alinhamento celeste convida a dar estrutura e forma tangível às suas passions mais genuínas. Sustente o seu alicerce com perseverança, permitindo que a vontade aja com nobreza e realismo.`,
+      poética: `O solo firme acolhe a faísca e a converte em fogueira permanente; cultive a maturação dos seus dons com o calor do entusiasmo e a certeza da colheita.`
+    },
+    'TERRA_TERRA': {
+      main: `recolha as suas energias e sustente a estabilidade profunda do seu centro diante de impermanências. Busque segurança na substância real das coisas, agindo com realismo, calma e prudência.`,
+      poética: `Como uma raiz antiga e profunda que assegura o sustento da árvore, respeite a maturação oculta; a colheita do que é valioso exige silenciar os ruídos e honrar seu alicerce.`
+    },
+    'TERRA_AR': {
+      main: `o alinhamento pede para trazer clareza mental e ordem prática aos seus pensamentos. Edifique os seus planos respeitando os fatos, buscando ideias que ofereçam estabilidade e síntese realizadora.`,
+      poética: `O sopro da inteligência passeia sobre o solo firme; que a clareza de percepção trace caminhos seguros para que o fluxo das palavras ganhe corpo e estrutura tangível.`
+    },
+    'TERRA_ÁGUA': {
+      main: `nutra o seu alicerce interno integrando a sensibilidade à persistência lúcida. Acolha com paciência as suas águas internas, compreendendo que toda construção sincera exige afeto e sensibilidade.`,
+      poética: `A terra fértil acolhe a maré dos sentimentos e molda a substância do porvir; mergulhe em seu reflexo interno e permita que a paciência traga ordem e beleza ao que amadurece.`
+    },
+    'AR_FOGO': {
+      main: `o vento cósmico estimula a expandir sua perspectiva e clarear rumos por meio de novas ideias. Sintonize o fluxo do pensamento com o despertar da sua vontade, agindo com leveza e lucidez.`,
+      poética: `O sopro que transporta a centelha espalha a luz do despertar; use suas palavras como faíscas que clareiam a visão e conduzem seu aprendizado rumo à integridade.`
+    },
+    'AR_TERRA': {
+      main: `busque a síntese entre a flexibilidade mental e a estabilidade prática de vida. Acolha o seu fluxo de pensamentos e filtre o essencial, ancorando as ideias em atitudes concretas e lúcidas.`,
+      poética: `O sopro das palavras encontra realismo e sustentação no alicerce da presença; permita que a percepção do momento traga uma maturação fecunda a seus pensamentos.`
+    },
+    'AR_AR': {
+      main: `acolha o convite de purificar os pensamentos e sintonizar uma clareza mental revigorante. Mantenha a leveza nas trocas e busque novos caminhos, agindo com curiosidade refinada e isenção.`,
+      poética: `No fluxo infinito da mente, cada percepção é um aprendizado sutil; que o sopro do intelecto pacifique as dúvidas e ilumine a verdadeira síntese das coisas.`
+    },
+    'AR_ÁGUA': {
+      main: `permita que a intuição fecunda se uma à clareza das ideias, harmonizando pensamentos e sentimentos. Acolha o movimento com suavidade, navegando de forma curiosa por suas paisagens sutis.`,
+      poética: `O sopro do vento flerta com o reflexo das águas profundas; sintonize a percepção do invisível e permita-se mergulhar no fluxo compassivo da sua própria sensibilidade.`
+    },
+    'ÁGUA_FOGO': {
+      main: `o oceano do seu inconsciente convida a acolher com empatia as suas vivências íntimas. Equilibre as suas marés emocionais com o despertar de uma nova vontade inspiradora e resoluta.`,
+      poética: `No oceano da sensibilidade, repousa uma chama que incita a coragem; mergulhe no reflexo das suas emoções para resgatar a faísca viva do seu propósito verdadeiro.`
+    },
+    'ÁGUA_TERRA': {
+      main: `a tônica cósmica convida você a acolher os seus sentimentos mais profundos e dar-lhes segurança. Ancore suas emoções na permanência do ser, agindo com acolhimento lúcido e paciência fecunda.`,
+      poética: `A maré pacifica suas correntezas quando encontra um alicerce estável; permita que a maturação interna flua em direção a uma colheita cheia de doçura e substância real.`
+    },
+    'ÁGUA_AR': {
+      main: `o alinhamento do agora estimula você a se comunicar com empatia, unindo mente e coração. Reflita sobre as suas memórias com a fluidez do sopro sábio, renovando perspectivas íntimas.`,
+      poética: `Cada emoção encontra clareza sob o brilho da percepção analítica; sintonize o fluxo das palavras sinceras com as correntezas profundas da sua própria intuição.`
+    },
+    'ÁGUA_ÁGUA': {
+      main: `acolha as marés profundas da alma com empatia ilimitada, permitindo o mergulho interno. Sintonize-se com a sua intuição silenciosa e sustente a serenidade perante as correntezas da jornada.`,
+      poética: `No espelho límpido do espírito, o reflexo revela seu mistério sutil; deite as dúvidas e apenas flua em comunhão com o oceano do seu próprio sentir.`
+    }
+  };
+
+  const key = `${sunElement}_${moonElement}`;
+  const selectedText = elementTexts[key] || elementTexts['TERRA_TERRA'];
+
+  let aspectSuffix = '';
+  if (aspectDesc) {
+    const descLower = aspectDesc.toLowerCase();
+    if (descLower.includes('conjunção') || descLower.includes('conjuncao') || descLower.includes('impulso') || descLower.includes('autenticidade')) {
+      aspectSuffix = ` Sintonize este impulso de autêntica fusão em si, onde a clareza se sintetiza com nobreza.`;
+    } else if (descLower.includes('oposição') || descLower.includes('oposicao') || descLower.includes('polaridades') || descLower.includes('equilíbrio') || descLower.includes('equilibrio')) {
+      aspectSuffix = ` Diante de polaridades opostas, busque o equilíbrio reflexivo e integre forças complementares.`;
+    } else if (descLower.includes('quadratura') || descLower.includes('tensaõ') || descLower.includes('tensão') || descLower.includes('conflito') || descLower.includes('turva')) {
+      aspectSuffix = ` Com paciência, abrigue as tensões e conflitos do agora; lembre-se de que a emoção acumulada nunca deve turvar a razão.`;
+    } else if (descLower.includes('trígono') || descLower.includes('trigono') || descLower.includes('soluções') || descLower.includes('criatividade')) {
+      aspectSuffix = ` Siga pelo rumo das soluções fluidas que a harmonia e a criatividade natural desenham no seu caminhar.`;
+    } else {
+      aspectSuffix = ` Como postura de vida, a atitude essencial neste momento pede para ${aspectDesc.charAt(0).toLowerCase() + aspectDesc.slice(1)}`;
+    }
   }
-  const index = Math.abs(hash) % messages.length;
-  return messages[index];
+
+  const finalMain = `${nameIntro}${selectedText.main}${aspectSuffix}`;
+
+  return finalMain;
 };
 
 const getClientFallbackReport = (
@@ -883,14 +974,12 @@ export default function App() {
   // PagBank State
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // Limpeza automática da mandala no Dia 1 do ciclo (Desativada a destruição, mantida apenas a lógica de UI)
+  // Nova Lunação / Dia 1 do Ciclo: inicia novo ciclo apresentando a Mandala Vazia, preservando o histórico anterior
   useEffect(() => {
-    if (lunarData.day === 1) {
-      // Apenas garantimos que o seletor de visualização aponte para o ciclo atual no dia 1
-      if (viewingCycleId !== null && viewingCycleId !== lunarData.cycleId) {
-         // Se o usuário já mudou de ciclo cronológico, mas o seletor estava no passado, 
-         // não forçamos a mudança para não interromper a navegação, mas se estiver "nulo" ou "preso", sincronizamos.
-      }
+    if (lunarData.day === 1 && lunarData.cycleId) {
+      // Sintonizar a visualização com o ciclo atual para apresentar a mandala vazia para o ciclo que se inicia
+      setViewingCycleId(lunarData.cycleId);
+      console.log(`[Hekat] Novo ciclo lunar detectado (Ciclo ${lunarData.cycleId}). Apresentando Mandala Vazia. Histórico do ciclo anterior totalmente preservado no Firestore.`);
     }
   }, [lunarData.day, lunarData.cycleId]);
 
@@ -2221,8 +2310,8 @@ export default function App() {
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm sm:text-base leading-relaxed text-white font-medium text-center max-w-[90%] sm:max-w-[80%] pb-4">
-                          "{oracleText}"
+                        <p id="oracle-text-container" className="text-sm sm:text-base leading-relaxed text-white font-medium text-justify whitespace-pre-line max-w-[90%] sm:max-w-[80%] pb-4">
+                          {oracleText}
                         </p>
                         <button 
                           onClick={triggerOracleRefresh} 
