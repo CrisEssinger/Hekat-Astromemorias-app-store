@@ -1402,7 +1402,10 @@ export default function App() {
       const moonIdx = selectedDay === lunarData.day 
         ? Math.floor(lunarData.moonSignFloat) % 12 
         : lunarData.getSignForDay(selectedDay);
-      const cacheKey = `sun_${sunIdx}_moon_${moonIdx}`;
+
+      const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
+      const formattedName = rawName ? rawName.trim() : '';
+      const cacheKey = `sun_${sunIdx}_moon_${moonIdx}_name_${formattedName}`;
 
       if (oracleCache.current[cacheKey]) {
         setOracleText(oracleCache.current[cacheKey]);
@@ -1413,9 +1416,6 @@ export default function App() {
       const sun = getZodiacSignSafely(sunIdx);
       const moon = getZodiacSignSafely(moonIdx);
       const phrase = (moonIdx >= 0 && moonIdx < PHILOSOPHICAL_QUOTES.length) ? PHILOSOPHICAL_QUOTES[moonIdx] : PHILOSOPHICAL_QUOTES[0];
-      
-      const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
-      const formattedName = rawName ? rawName.trim() : '';
 
       // Calculate aspect locally to ensure we have the correct aspect mapping to pass to the API
       const diff = Math.abs(sunIdx - moonIdx);
@@ -1469,7 +1469,7 @@ export default function App() {
       isMounted = false;
       clearTimeout(debounceTimer);
     };
-  }, [selectedDay, lunarData.sunSignIndex, Math.floor(lunarData.moonSignFloat) % 12, oracleTrigger]);
+  }, [selectedDay, lunarData.sunSignIndex, Math.floor(lunarData.moonSignFloat) % 12, oracleTrigger, userData?.name, currentUser?.displayName]);
 
   const [topZ, setTopZ] = useState(100);
 
@@ -1910,16 +1910,26 @@ export default function App() {
     <>
       <AnimatePresence>
         {mountError ? (
-          <div className="h-screen w-screen flex items-center justify-center bg-rose-50 p-6 text-center z-[9999]" key="error">
+          <motion.div 
+            key="error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="h-screen w-screen flex items-center justify-center bg-rose-50 p-6 text-center z-[9999]"
+          >
            <div className="max-w-sm">
              <h2 className="text-rose-500 font-black uppercase tracking-widest mb-4">Erro de Inicialização</h2>
              <p className="text-slate-600 text-sm mb-6">{mountError}</p>
              <button onClick={() => window.location.reload()} className="px-6 py-3 bg-rose-500 text-white rounded-xl font-bold">Recarregar</button>
            </div>
-        </div>
+        </motion.div>
       ) : (isAuthLoading || !currentUser || isLoggingIn) ? (
-        <div 
+        <motion.div 
           key="landing"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
           className={`h-screen w-screen flex flex-col items-center justify-center ${isNight ? 'night-bg text-white' : 'day-bg text-slate-900'} overflow-hidden p-6 text-center z-[5000]`}
         >
           {isNight && <StarField />}
@@ -1976,12 +1986,14 @@ export default function App() {
                   className="w-full group relative flex items-center justify-center gap-3 px-8 py-5 bg-[#4169E1] hover:bg-[#3158CF] text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-indigo-600/30 transition-all active:scale-95 disabled:opacity-50 overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                  {isLoggingIn ? (
-                    <RefreshCw className="animate-spin" size={18} />
-                  ) : (
-                    <LogIn size={18} />
-                  )}
-                  {isLoggingIn ? 'Invocando Ritual...' : 'Entrar no Portal'}
+                  <span className="flex items-center justify-center gap-3 relative z-10">
+                    {isLoggingIn ? (
+                      <RefreshCw className="animate-spin" size={18} />
+                    ) : (
+                      <LogIn size={18} />
+                    )}
+                    <span>{isLoggingIn ? 'Invocando Ritual...' : 'Entrar no Portal'}</span>
+                  </span>
                 </button>
 
                 {loginError && (
@@ -2022,7 +2034,7 @@ export default function App() {
               </div>
            </motion.div>
         </div>
-      </div>
+      </motion.div>
     ) : (
         <motion.div 
           key="app"
