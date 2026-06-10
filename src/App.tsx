@@ -2180,7 +2180,7 @@ export default function App() {
                        <div className="mt-2 flex justify-center items-center gap-2">
                          <div className="h-[0.5px] w-3 bg-indigo-200/30" />
                          <span className="text-[9px] sm:text-[7.5px] font-black uppercase tracking-[0.35em] text-indigo-300/60 text-center">
-                           {`${selectedDay === lunarData.day ? 'Tônica do Agora' : `Influência do Dia ${selectedDay}`}: ${getZodiacSignSafely(selectedMoonSignIndex).name} • ${oracleData.moonDegreeForDay}°`}
+                           {selectedDay === lunarData.day ? 'Tônica do Agora' : `Influência do Dia ${selectedDay}`}
                          </span>
                          <div className="h-[0.5px] w-3 bg-indigo-200/30" />
                        </div>
