@@ -432,61 +432,70 @@ const getLunarData = (date: Date = new Date()) => {
   // Garantir que a data recebida seja um objeto válido, se não usar d1 hoje
   const now = (date && !isNaN(date.getTime())) ? date : new Date();
   
-  // Âncoras Astronômicas Reais para 2026 usando Date.UTC para compatibilidade universal 
-  // e evitar falhas de interpretação de fuso/String em navegadores Mobile antigos ou Safari.
-  const referenceDate = new Date(Date.UTC(2026, 4, 16, 0, 0, 0)); // 16 de Maio de 2026
+  // Âncoras Astronômicas Reais para 2026 usando J2000 em vez de estimativas lineares simplex
+  const dVal = (now.getTime() / 86400000) + 2440587.5 - 2451545.0;
   
-  // Ponto de Referência Zodiacal (Lua): Calibrada com precisão para a Lua a 17 graus de Sagitário em 31 de Maio de 2026 às 23:05:05 UTC
-  const zodiacAnchorDate = new Date(Date.UTC(2026, 3, 21, 23, 2, 51));
+  const rev = (angle: number) => {
+    let a = angle % 360;
+    if (a < 0) a += 360;
+    return a;
+  };
   
-  // Ponto de Referência Zodiacal (Sol): Calibrada com precisão para o Sol a 10 graus de Gêmeos em 31 de Maio de 2026 às 23:05:05 UTC
-  const sunAnchorDate = new Date(Date.UTC(2026, 2, 21, 22, 37, 16));
-  
-  const diffInMs = now.getTime() - referenceDate.getTime();
-  const diffInDays = isNaN(diffInMs) ? 0 : diffInMs / (1000 * 60 * 60 * 24);
-  
-  // Idade da Lua (dias desde a última Lua Nova)
-  const LUNAR_MONTH = 29.53059;
-  let moonAge = diffInDays % LUNAR_MONTH;
-  if (moonAge < 0) moonAge += LUNAR_MONTH;
-  if (isNaN(moonAge)) moonAge = 0;
-  
-  const moonPhaseAngle = (moonAge / LUNAR_MONTH) * 2 * Math.PI;
-  const illumination = isNaN(moonPhaseAngle) ? 0 : (1 - Math.cos(moonPhaseAngle)) / 2;
-  
-  const safeDiffInDays = isNaN(diffInDays) ? 0 : diffInDays;
-  const cycleStartDate = new Date(referenceDate.getTime() + Math.floor(safeDiffInDays / LUNAR_MONTH) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
-  const cycleEndDate = new Date(referenceDate.getTime() + (Math.floor(safeDiffInDays / LUNAR_MONTH) + 1) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
+  const rad = (deg: number) => (deg * Math.PI) / 180;
 
-  // Alinhamento de calendário local para calcular o dia correto do ciclo lunar
-  const startDayLocal = new Date(cycleStartDate.getUTCFullYear(), cycleStartDate.getUTCMonth(), cycleStartDate.getUTCDate(), 12, 0, 0);
-  const nowDayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
-  const localDiffDays = Math.round((nowDayLocal.getTime() - startDayLocal.getTime()) / (1000 * 60 * 60 * 24));
-  // O dia 19 é o dia de hoje (18 dias de diferença de calendário local desde o dia 16 de maio)
-  const mandalaDay = isNaN(localDiffDays) ? 1 : Math.min(28, Math.max(1, localDiffDays + 1));
-  
   const getSunSignFloat = (dateVal: Date) => {
-    const timestamp = (dateVal && !isNaN(dateVal.getTime())) ? dateVal.getTime() : now.getTime();
-    const d = (timestamp - sunAnchorDate.getTime()) / (1000 * 60 * 60 * 24);
-    if (isNaN(d)) return 0;
-    let pos = (d * 360 / 365.2422) / 30; // 30 graus por signo
-    pos = pos % 12;
-    if (pos < 0) pos += 12;
-    return isNaN(pos) ? 0 : pos;
+    const dj = (dateVal.getTime() / 86400000) + 2440587.5 - 2451545.0;
+    const L_sun = rev(280.466 + 0.9856474 * dj);
+    const g_sun = rev(357.528 + 0.9856003 * dj);
+    const lambda_sun = rev(L_sun + 1.915 * Math.sin(rad(g_sun)) + 0.020 * Math.sin(rad(2 * g_sun)));
+    return lambda_sun / 30;
   };
   
   const getMoonSignFloat = (dateVal: Date) => {
-    const timestamp = (dateVal && !isNaN(dateVal.getTime())) ? dateVal.getTime() : now.getTime();
-    const d = (timestamp - zodiacAnchorDate.getTime()) / (1000 * 60 * 60 * 24);
-    if (isNaN(d)) return 0;
-    let pos = (d * 360 / 27.32158) / 30; // 30 graus por signo (ciclo tropical lunar)
-    pos = (pos + 3) % 12; // Começou em Câncer (index 3)
-    if (pos < 0) pos += 12;
-    return isNaN(pos) ? 0 : pos;
+    const dj = (dateVal.getTime() / 86400000) + 2440587.5 - 2451545.0;
+    const g_sun = rev(357.528 + 0.9856003 * dj);
+    const L_moon = rev(218.316 + 13.176396 * dj);
+    const M_moon = rev(134.963 + 13.064993 * dj);
+    const F_moon = rev(93.272 + 13.229350 * dj);
+    const D_elong = rev(297.850 + 12.190749 * dj);
+
+    let dl = 0;
+    dl += 6.289 * Math.sin(rad(M_moon));
+    dl += 1.274 * Math.sin(rad(2 * D_elong - M_moon));
+    dl += 0.658 * Math.sin(rad(2 * D_elong));
+    dl -= 0.186 * Math.sin(rad(g_sun));
+    dl -= 0.114 * Math.sin(rad(2 * F_moon));
+    dl += 0.214 * Math.sin(rad(2 * M_moon));
+    dl += 0.127 * Math.sin(rad(2 * D_elong - g_sun));
+    dl += 0.110 * Math.sin(rad(2 * D_elong + M_moon));
+    dl -= 0.057 * Math.sin(rad(2 * D_elong - 2 * M_moon));
+
+    const lambda_moon = rev(L_moon + dl);
+    return lambda_moon / 30;
   };
-  
+
+  // Calculate coordinates for today
   const sunSignFloat = getSunSignFloat(now);
+  const moonSignFloat = getMoonSignFloat(now);
+  const lambda_sun = sunSignFloat * 30;
+  const lambda_moon = moonSignFloat * 30;
+  
+  const phaseAngle = rev(lambda_moon - lambda_sun);
+  const illumination = (1 - Math.cos(rad(phaseAngle))) / 2;
+
+  const referenceDate = new Date(Date.UTC(2026, 4, 16, 0, 0, 0)); // 16 de Maio de 2026
+  const diffInMs = now.getTime() - referenceDate.getTime();
+  const diffInDays = isNaN(diffInMs) ? 0 : diffInMs / (1000 * 60 * 60 * 24);
+  
+  const LUNAR_MONTH = 29.53059;
   const cycleId = isNaN(diffInDays) ? 1 : Math.floor(diffInDays / LUNAR_MONTH) + 2;
+  const cycleStartDate = new Date(referenceDate.getTime() + Math.floor(diffInDays / LUNAR_MONTH) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
+  const cycleEndDate = new Date(referenceDate.getTime() + (Math.floor(diffInDays / LUNAR_MONTH) + 1) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
+
+  const startDayLocal = new Date(cycleStartDate.getUTCFullYear(), cycleStartDate.getUTCMonth(), cycleStartDate.getUTCDate(), 12, 0, 0);
+  const nowDayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+  const localDiffDays = Math.round((nowDayLocal.getTime() - startDayLocal.getTime()) / (1000 * 60 * 60 * 24));
+  const mandalaDay = isNaN(localDiffDays) ? 1 : Math.min(28, Math.max(1, localDiffDays + 1));
   
   const formatDate = (d: Date) => {
     if (!d || isNaN(d.getTime())) return "01/01";
@@ -514,7 +523,7 @@ const getLunarData = (date: Date = new Date()) => {
       const resVal = getMoonSignFloat(dateForDay);
       return isNaN(resVal) ? 0 : resVal;
     },
-    moonSignFloat: getMoonSignFloat(now),
+    moonSignFloat: moonSignFloat,
     sunSignFloat: sunSignFloat,
     sunSignIndex: isNaN(sunSignFloat) ? 0 : Math.floor(sunSignFloat) % 12,
     cycleName: getZodiacSignSafely(Math.floor(getSunSignFloat(cycleStartDate)) % 12).name,
