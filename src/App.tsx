@@ -74,7 +74,8 @@ import {
   Shuffle,
   Radio,
   Trophy,
-  PartyPopper
+  PartyPopper,
+  Target
 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'motion/react';
 import { 
@@ -222,7 +223,8 @@ const ICON_MAP: Record<string, any> = {
   Shuffle,
   Radio,
   Trophy,
-  PartyPopper
+  PartyPopper,
+  Target
 };
 
 const LucideIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {

@@ -37,6 +37,7 @@ export const EMOTIONS = [
   { id: 'empathy', name: 'Empatia', color: '#20B2AA', icon: 'Users', category: 'Calma & Reflexão' }, // LightSeaGreen
   { id: 'balance', name: 'Equilíbrio', color: '#40E0D0', icon: 'Heart', category: 'Calma & Reflexão' }, // Turquoise
   { id: 'espera', name: 'Espera', color: '#00FF7F', icon: 'Pause', category: 'Calma & Reflexão' }, // SpringGreen
+  { id: 'focus_feeling', name: 'Foco', color: '#0EA5E9', icon: 'Target', category: 'Calma & Reflexão' },
   { id: 'nostalgia', name: 'Nostalgia', color: '#8FBC8F', icon: 'Clock', category: 'Calma & Reflexão' }, // DarkSeaGreen
   { id: 'patience', name: 'Paciência', color: '#3CB371', icon: 'Hourglass', category: 'Calma & Reflexão' }, // MediumSeaGreen
   { id: 'peace', name: 'Paz', color: '#AFEEEE', icon: 'Bird', category: 'Calma & Reflexão' }, // PaleTurquoise
