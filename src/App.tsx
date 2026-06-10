@@ -1294,8 +1294,7 @@ export default function App() {
     if (currentUser && !isAuthLoading) {
       const anyOpen = windows.some(w => w.isOpen && !w.isMinimized);
       if (!anyOpen) {
-        const isMobile = window.innerWidth < 768;
-        toggleWindow(isMobile ? 'mandala' : 'journal', 'open');
+        toggleWindow('mandala', 'open');
       }
     }
   }, [currentUser, isAuthLoading]);
@@ -1345,7 +1344,7 @@ export default function App() {
             setDoc(userRef, { hasSeenGuide: true, uid: currentUser.uid, email: currentUser.email, updatedAt: serverTimestamp() }, { merge: true }).catch(e => console.error("Erro ao persistir guia:", e));
           }
         } else {
-          toggleWindow('journal', 'open');
+          toggleWindow('mandala', 'open');
         }
       }, 1000);
       return () => clearTimeout(timer);
