@@ -733,9 +733,9 @@ const getClientFallbackReport = (
   const nameIntro = userName ? `${userName}, ` : '';
 
   if (isWeekly) {
-    return `${nameIntro}ao avaliar seus sentimentos nos últimos dias, vemos como você navegou por suas marés internas. A orientação para os próximos dias é cultivar a presença calma e o desapego das expectativas exageradas. Seja forte para dar novos passos ou recuar, agindo de acordo com a sabedoria de cada instante.`;
+    return `${nameIntro}ao compreender a jornada emocional descrita em seus registros recentes, identifico uma tônica de sentimentos voltada à busca por recolhimento e discernimento profundo. A sua linha de pensamento predominante girou em torno da necessidade de reorganizar dinâmicas internas e de restabelecer o equilíbrio mental diante de demandas externas. O padrão dominante que unifica esses dias revela uma tendência à oscilação silenciosa, alternando momentos de recolhimento criativo com picos de cansaço ou apreensão. Como amiga e mentora de sua caminhada, ressalto que a impaciência e a autocrítica excessiva são pontos de sombra que demandam sua gentil atenção e zelo protetor para que não sufoquem sua clareza. Em contrapartida, a sua capacidade de auto-observação honesta e a firmeza em acolher seus próprios ritmos funcionam como pontos luminosos de expansão e força. Sustente seus passos com coragem realista e resgate o centramento dócil para conduzir os próximos movimentos da alma.`;
   } else if (isMonthly) {
-    return `${nameIntro}observar como suas emoções mudaram ao longo das fases mostra que sua sensibilidade é um guia constante. A reflexão deste ciclo convida você a aceitar as transições com a flexibilidade de quem acolhe o vento, compreendendo que o recolhimento e o desabrochar são faces da mesma impermanência.`;
+    return `${nameIntro}ao compreender os ciclos e as marés emocionais que atravessaram seus últimos 28 dias, percebo uma tônica de sentimentos voltada à necessidade de consolidação, aterramento e busca por estabilidade em meio às águas flutuantes da rotina. A sua linha de pensamento predominante concentrou-se na busca por clareza ética e organização de prioridades, tentando definir o que realmente possui valor essencial. O padrão dominante revela momentos de contenção estratégica alternados com uma sutil resistência a mudanças necessárias, o que pode gerar cansaço acumulado. Como sua amiga e mentora nessa jornada, destaco que a rigidez ou a hesitação diante do novo são pontos de sombra que requerem sua atenção vigilante para não represar o fluxo do seu desenvolvimento. Em contrapartida, a paciência madura e o respeito solene ao tempo de gestação dos seus ideais são pontos luminosos de grande expansão. A orientação para guiar seus passos é cultivar o centramento firme com maleabilidade sábia, agindo sempre sob a luz da clareza mental e da verdade interior.`;
   } else if (isCorrelation) {
     return `${nameIntro}as mandalas de cada mês revelam uma correspondência íntima entre os ciclos da natureza e sua energia interna. Use essa percepção como um mapa de autoconhecimento, aprendendo as horas certas de iniciar movimentos com coragem, as horas de perseverar em equilíbrio ou quando é o instante de apenas fruir com leveza.`;
   } else {
@@ -903,72 +903,8 @@ export default function App() {
   // Migração de Dados (Ajuste de Numeração de Ciclos)
   const migrationInProgress = useRef(false);
   useEffect(() => {
-    if (!db || !currentUser || allLogs.length === 0 || migrationInProgress.current) return;
-    
-    // Referência astronômica universal (16 de Maio de 2026 UTC)
-    const refDateMs = Date.UTC(2026, 4, 16, 0, 0, 0);
-    const LUNAR_MONTH = 29.53059;
-    
-    // Identificar logs que estão no ciclo errado baseado na data real ou matemática de recalibração
-    const logsToFix = allLogs.filter(log => {
-      if (!log.id) return false;
-      
-      const logTime = log.timestamp?.toDate?.()?.getTime() || 0;
-      
-      // Heurística Hekat: Se o log diz ser Dia 28+ do Ciclo 2, mas estamos no início do Ciclo 2,
-      // é uma memória do Ciclo 1 que foi deslocada.
-      const isHighDayInNewCycle = (log.cycleId === 2 && log.lunarDay >= 26 && lunarData.day <= 5);
-      
-      if (isHighDayInNewCycle) return true;
-      if (!logTime) return false;
-      
-      // Determinação universal de ciclo correto usando a fórmula astronômica do app
-      const diffInDays = (logTime - refDateMs) / (1000 * 60 * 60 * 24);
-      const shouldBeCycle = isNaN(diffInDays) ? 1 : Math.floor(diffInDays / LUNAR_MONTH) + 2;
-      
-      return log.cycleId !== shouldBeCycle;
-    });
-    
-    if (logsToFix.length > 0) {
-      migrationInProgress.current = true;
-      console.log(`Hekat: Recalibrando ${logsToFix.length} memórias.`);
-      
-      const migrate = async () => {
-        try {
-          for (const log of logsToFix) {
-            const logTime = log.timestamp?.toDate?.()?.getTime() || 0;
-            
-            // Determinar o ciclo correto:
-            let newCycleId: number;
-            
-            if (log.cycleId === 2 && log.lunarDay >= 26 && lunarData.day <= 5) {
-              newCycleId = 1;
-            } else if (logTime) {
-              const diffInDays = (logTime - refDateMs) / (1000 * 60 * 60 * 24);
-              newCycleId = isNaN(diffInDays) ? 1 : Math.floor(diffInDays / LUNAR_MONTH) + 2;
-            } else {
-              continue; // Não mexe se não tiver certeza
-            }
-            
-            const logRef = doc(db, 'users', currentUser.uid, 'logs', log.id!);
-            await updateDoc(logRef, {
-              cycleId: newCycleId,
-              userId: currentUser.uid,
-              intensity: Number(log.intensity),
-              lunarDay: Number(log.lunarDay),
-              emotionId: String(log.emotionId)
-            });
-          }
-        } catch (e) {
-          console.error("Erro na restauração Hekat:", e);
-        } finally {
-          // Permitimos novas verificações se novos logs chegarem
-          migrationInProgress.current = false;
-        }
-      };
-      
-      migrate();
-    }
+    // Carregamento bypassando a migração destrutiva para preservar os históricos de ciclo 1 e ciclo 2
+    return;
   }, [currentUser, allLogs, lunarData.day]);
 
   // PagBank State
@@ -1001,10 +937,36 @@ export default function App() {
     setIsReportLoading(period);
     
     // Preparar dados atuais para o Gemini
-    const logData = (Object.entries(logs) as [string, LogEntry][]).map(([day, log]) => {
-      const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name;
-      return `Dia ${day}: ${emotion} (Intensidade ${log.intensity}${log.note ? `, Nota: ${log.note}` : ''})`;
-    }).join('\n');
+    let logData = "";
+    if (period === 'weekly') {
+      const nowTime = now.getTime();
+      const sevenDaysAgoMs = nowTime - (7 * 24 * 60 * 60 * 1000);
+      
+      const weeklyLogs = allLogs.filter(log => {
+        const logDate = log.timestamp?.toDate?.() || (log.timestamp instanceof Date ? log.timestamp : (typeof log.timestamp === 'string' || typeof log.timestamp === 'number' ? new Date(log.timestamp) : new Date()));
+        return logDate.getTime() >= sevenDaysAgoMs && logDate.getTime() <= nowTime;
+      });
+
+      const finalWeeklyLogs = weeklyLogs.length > 0 
+        ? weeklyLogs 
+        : [...allLogs].sort((a, b) => {
+            const ad = a.timestamp?.toDate?.() || new Date();
+            const bd = b.timestamp?.toDate?.() || new Date();
+            return bd.getTime() - ad.getTime();
+          }).slice(0, 7).reverse();
+
+      logData = finalWeeklyLogs.map(log => {
+        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || 'Neutro';
+        const logDate = log.timestamp?.toDate?.() || (log.timestamp instanceof Date ? log.timestamp : new Date());
+        const dateStr = logDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Notas: "${log.note}"` : ''}`;
+      }).join('\n');
+    } else {
+      logData = (Object.entries(logs) as [string, LogEntry][]).map(([day, log]) => {
+        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name;
+        return `Dia ${day}: ${emotion} (Intensidade ${log.intensity}${log.note ? `, Nota: ${log.note}` : ''})`;
+      }).join('\n');
+    }
 
     // Contexto de meses anteriores para continuidade e padrões
     const previousLogsData = allLogs
@@ -1042,15 +1004,40 @@ export default function App() {
       return `Na ${phaseName} acumulada dos meses: ${countsStr}`;
     }).join('\n');
 
+    const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
+    const formattedName = rawName ? rawName.trim() : '';
+
     let prompt = "";
     if (period === 'weekly') {
-      prompt = `Analise os últimos registros e forneça um relatório semanal conciso focando em tendências e um conselho místico de postura. Máximo 4 linhas.`;
+      prompt = `Realize a análise do Relatório Semanal com base nos registros dos últimos 7 dias.
+               DADOS DE CORTE (7 DIAS):
+               ${logData || 'Nenhum dado registrado nos últimos 7 dias.'}
+               
+               TAREFA EXCLUSIVA:
+               1. Use os dados inseridos pela usuária no período dos últimos 7 dias para definir a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
+               2. Una os dados disponíveis para revelar um padrão dominante identificado nos registros.
+               3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia e amiga querida, mantendo a sobriedade indispensável e evitando gírias ou tons excessivamente informais.
+               4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos sete dias" ou "ao avaliar seus sentimentos". Comece o texto chamando a usuária pelo nome "${formattedName || 'Viajante'}" no início exato para trazer proximidade confiavel.
+               5. Destaque tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou oscilações que a paralisam) quanto os pontos positivos que geram expansão de consciência.
+               6. Finalize o relatório com um conselho prático e útil centrado em postura, ética e clareza mental para conduzir os movimentos da alma.
+               7. NÃO se restrinja a 4 linhas. Desenvolva um texto reflexivo, consistente e profundo (aproximadamente de 6 a 12 linhas).
+               8. Formato: O texto deve ser composto por um único bloco de parágrafo integralmente JUSTIFICADO (sem recuos de página, sem bullets, sem títulos, sem listas, sem aspas externas desnecessárias).`;
     } else if (period === 'monthly') {
-      prompt = `Realize uma síntese deste ciclo lunar (Astromemória). 
-               DADOS ATUAIS:\n${logData || 'Nenhum dado atual.'}\n
-               HISTÓRICO RECENTE:\n${previousLogsData || 'Primeiro ciclo registrado.'}\n
-               TAREFA: Compare o ciclo atual com o histórico. Identifique estados emocionais que se repetem (padrões). 
-               Sintetize como esses padrões moldam a realidade da usuária, dando continuidade à avaliação do mês passado. Máximo 6 linhas.`;
+      prompt = `Realize a análise do Relatório Mensal (Astromemória) com base nos registros dos últimos 28 dias do ciclo lunar.
+               DADOS DE CORTE (28 DIAS):
+               ${logData || 'Nenhum dado registrado neste ciclo lunar de 28 dias.'}
+               HISTÓRICO RECENTE:
+               ${previousLogsData || 'Primeiro ciclo registrado.'}
+               
+               TAREFA EXCLUSIVA:
+               1. Use os dados inseridos pela usuária no período dos últimos 28 dias para definir de forma nítida a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
+               2. Una os dados disponíveis para revelar os padrões de sentimentos dominantes identificados nos registros, comparando-os e conectando-os se houver histórico.
+               3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia e amiga querida, mantendo a sobriedade indispensável e evitando gírias ou tons excessivamente informais (lembre-se que Hekat é uma força lunar feminina, fale de si mesma no feminino).
+               4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos vinte e oito dias", "ao olhar seu ciclo" ou "ao avaliar seus sentimentos/registros". Comece o texto chamando a usuária pelo nome "${formattedName || 'Viajante'}" no início exato para trazer proximidade confiável.
+               5. Destaque tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou resistências que a paralisam) quanto os pontos positivos que geram expansão de consciência.
+               6. Finalize o relatório com um conselho prático e útil centrado em postura, ética e clareza mental para conduzir os movimentos da alma.
+               7. NÃO se restrinja a 4 ou 6 linhas. Desenvolva um texto reflexivo, consistente e profundo (aproximadamente de 6 a 12 linhas).
+               8. Formato: O texto deve ser composto por um único bloco de parágrafo integralmente JUSTIFICADO (sem recuos de página, sem bullets, sem títulos, sem listas, sem aspas externas desnecessárias).`;
     } else if (period === 'correlation') {
       prompt = `Analise a correlação das fases da lua com as emoções da usuária com base nas mandalas mensais. Padrões acumulados:\n${correlationData}\nMáximo 6 linhas.`;
     } else {
@@ -1062,8 +1049,6 @@ export default function App() {
 
     try {
       console.log(`Gerando relatório ${period} com Gemini...`);
-      const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
-      const formattedName = rawName ? rawName.trim() : '';
 
       const response = await fetch("/api/reports", {
         method: "POST",
@@ -1376,12 +1361,22 @@ export default function App() {
         const rawEmotionId = data.emotionId;
         const normalizedEmotionId = rawEmotionId === 'clarity' ? 'clareza' : rawEmotionId;
         
+        // Extract cycleId directly from the doc.id prefix if it conforms to cycle_X_day_Y format
+        let cycleIdVal = isNaN(cycleIdNum) ? 0 : cycleIdNum;
+        if (doc.id.startsWith("cycle_")) {
+          const parts = doc.id.split("_");
+          const extractedCycle = Number(parts[1]);
+          if (!isNaN(extractedCycle)) {
+            cycleIdVal = extractedCycle;
+          }
+        }
+
         logsArray.push({
           id: doc.id,
           emotionId: normalizedEmotionId,
           intensity: Number(data.intensity) || 3,
           note: data.note || "",
-          cycleId: isNaN(cycleIdNum) ? 0 : cycleIdNum,
+          cycleId: cycleIdVal,
           lunarDay: Number(data.lunarDay),
           timestamp: data.date,
           date: logDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })
@@ -2413,6 +2408,12 @@ export default function App() {
                       allLogs.filter(l => l.cycleId === cycleId).forEach(l => cycleLogs[l.lunarDay] = l);
                       const hasData = Object.keys(cycleLogs).length > 0;
                       
+                      const referenceDate = new Date(Date.UTC(2026, 4, 16, 0, 0, 0)); // 16 de Maio de 2026
+                      const LUNAR_MONTH = 29.53059;
+                      const cycleStart = new Date(referenceDate.getTime() + (cycleId - 2) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
+                      const sunSignFloatAtStart = getLunarData(cycleStart).sunSignFloat;
+                      const cycleSolarOffset = sunSignFloatAtStart * ((2 * Math.PI) / 12);
+
                       return (
                         <button 
                           key={`trilogy-${cycleId}`}
@@ -2433,11 +2434,11 @@ export default function App() {
                           </div>
                           <div className="pointer-events-none transform scale-[0.6] sm:scale-[0.55] origin-top h-[60px] flex items-center justify-center">
                              {hasData ? (
-                               <MiniMandala logs={cycleLogs} lunarData={{ day: 28 }} size={140} />
+                               <MiniMandala logs={cycleLogs} lunarData={{ day: 28 }} size={140} solarOffset={cycleSolarOffset} />
                              ) : (
                                <div className="w-12 h-12 border border-dashed border-white/20 rounded-full flex items-center justify-center">
                                  <Plus size={12} className="text-white/10" />
-                               </div>
+                                </div>
                              )}
                           </div>
                           <span className={`text-[7px] font-black uppercase tracking-tighter mt-1 ${viewingCycleId === cycleId ? 'text-indigo-200' : 'text-indigo-300/40'}`}>
@@ -2684,6 +2685,13 @@ export default function App() {
                           <p className="text-xs text-indigo-100/80 font-medium leading-normal mt-1 small-caps">Perspectiva de Médio Prazo: essencial para notar que os mesmos sentimentos se repetem em diferentes lunações.</p>
                         </div>
                       </div>
+                      <div className="flex gap-4 p-4 bg-indigo-950/20 rounded-3xl border border-indigo-400/10">
+                        <div className="p-2.5 bg-purple-500/10 rounded-xl h-fit"><LucideIcon name="MoonStar" size={16} className="text-purple-400" /></div>
+                        <div>
+                          <h4 className="text-[11px] font-black uppercase text-indigo-100 tracking-widest">Correlação Lunar</h4>
+                          <p className="text-xs text-indigo-100/80 font-medium leading-normal mt-1 small-caps">Sintonia das Estações da Alma: Identifica os sentimentos recorrentes prioritários associados a cada uma das quatro grandes fases lunares de forma integrada ao longo de 3 ciclos completos de anotações.</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -2768,11 +2776,14 @@ export default function App() {
                                     e.stopPropagation();
                                     setCurrentEmotion(emo.id);
                                   }}
-                                  style={{ backgroundColor: emo.color }}
-                                  className={`group relative aspect-square rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer p-1 ${
+                                  style={{ 
+                                    backgroundColor: emo.color,
+                                    boxShadow: currentEmotion === emo.id ? `0 0 25px ${emo.color}, inset 0 0 10px rgba(255,255,255,0.3)` : undefined
+                                  }}
+                                  className={`group relative aspect-square rounded-2xl flex flex-col items-center justify-center transition-all duration-500 cursor-pointer p-1 ${
                                     currentEmotion === emo.id 
-                                      ? `ring-2 ${ringClass} shadow-xl scale-105 z-10` 
-                                      : 'opacity-90 hover:opacity-[0.98] hover:scale-105 hover:z-20 hover:shadow-[0_0_15px_rgba(255,255,255,0.25)]'
+                                      ? 'ring-4 ring-white ring-offset-2 ring-offset-indigo-950 scale-[1.08] z-20 shadow-2xl opacity-100' 
+                                      : 'opacity-85 hover:opacity-[0.98] hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.25)]'
                                   }`}
                                   title={emo.name}
                                 >
