@@ -55,6 +55,7 @@ export const EMOTIONS = [
   { id: 'falsity', name: 'Falsidade', color: '#9400D3', icon: 'ShieldOff', category: 'Tensão & Desafios' }, // DarkViolet
   { id: 'frustration', name: 'Frustração', color: '#BA55D3', icon: 'Frown', category: 'Tensão & Desafios' }, // MediumOrchid
   { id: 'impaciencia', name: 'Impaciência', color: '#E67E22', icon: 'Timer', category: 'Tensão & Desafios' },
+  { id: 'instabilidade', name: 'Instabilidade', color: '#B088F9', icon: 'Activity', category: 'Tensão & Desafios' },
   { id: 'interferencia', name: 'Interferência', color: '#DDA0DD', icon: 'Radio', category: 'Tensão & Desafios' }, // Plum/Ametista Claro
   { id: 'envy', name: 'Inveja', color: '#9370DB', icon: 'Eye', category: 'Tensão & Desafios' }, // MediumPurple
   { id: 'irritabilidade', name: 'Irritabilidade', color: '#C0392B', icon: 'Zap', category: 'Tensão & Desafios' },

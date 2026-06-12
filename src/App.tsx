@@ -1659,6 +1659,26 @@ export default function App() {
     }
   };
 
+  const handleDeleteLog = async (dayToDelete: number) => {
+    const activeCycleId = viewingCycleId || lunarData.cycleId;
+    const logId = `cycle_${activeCycleId}_day_${dayToDelete}`;
+
+    // Atualização otimista do estado local
+    setAllLogs(prev => prev.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === dayToDelete)));
+
+    if (currentUser) {
+      if (db) {
+        const logRef = doc(db, "users", currentUser.uid, "logs", logId);
+        try {
+          await deleteDoc(logRef);
+        } catch (error) {
+          console.error("Erro ao deletar no Firebase:", error);
+          handleFirestoreError(error, OperationType.DELETE, `users/${currentUser.uid}/logs/${logId}`);
+        }
+      }
+    }
+  };
+
   const updateWindowPos = (id: string, x: number, y: number) => {
     setWindows(prev => prev.map(win => win.id === id ? { ...win, pos: { x, y } } : win));
   };
@@ -2312,6 +2332,14 @@ export default function App() {
                       title="Ver Histórico"
                     >
                       <LayoutDashboard size={20} />
+                    </button>
+                    <button
+                      onClick={() => logs[selectedDay] && handleDeleteLog(selectedDay)}
+                      disabled={!logs[selectedDay]}
+                      className="p-4 bg-rose-500/10 hover:bg-rose-500/20 disabled:hover:scale-100 disabled:hover:bg-rose-500/10 text-rose-300 disabled:opacity-20 rounded-3xl shadow-lg transition-all hover:scale-105 active:scale-95 font-black text-xs min-w-[52px] inline-flex items-center justify-center cursor-pointer"
+                      title="Deletar registro do dia selecionado"
+                    >
+                      DEL
                     </button>
                 </div>
               </div>
