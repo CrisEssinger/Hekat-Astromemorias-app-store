@@ -11,6 +11,7 @@ export const EMOTIONS = [
   { id: 'comemoracao', name: 'Comemoração', color: '#EC4899', icon: 'PartyPopper', category: 'Elevadas & Positivas' },
   { id: 'confidence', name: 'Confiança', color: '#FA8072', icon: 'ShieldCheck', category: 'Elevadas & Positivas' }, // Salmon
   { id: 'creativity', name: 'Criatividade', color: '#FF69B4', icon: 'Sparkles', category: 'Elevadas & Positivas' }, // HotPink
+  { id: 'decision', name: 'Decisão', color: '#FF5722', icon: 'Target', category: 'Elevadas & Positivas' },
   { id: 'disciplina', name: 'Disciplina', color: '#D4AF37', icon: 'ShieldCheck', category: 'Elevadas & Positivas' },
   { id: 'enchantment', name: 'Encantamento', color: '#FF1493', icon: 'Sparkles', category: 'Elevadas & Positivas' }, // DeepPink
   { id: 'esforco', name: 'Esforço', color: '#D35400', icon: 'Zap', category: 'Elevadas & Positivas' },
