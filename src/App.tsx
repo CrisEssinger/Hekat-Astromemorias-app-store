@@ -2825,20 +2825,23 @@ export default function App() {
 
                 {/* Tabela do Calendário (Grade 4x7 com cabeçalhos de linhas e colunas) */}
                 <div className="overflow-x-auto no-scrollbar">
-                  <div className="min-w-[440px] space-y-2">
+                  <div className="min-w-[280px] sm:min-w-0 w-full space-y-1.5 sm:space-y-2">
                     {/* Cabeçalho das Colunas */}
-                    <div className="grid grid-cols-8 gap-1.5 text-center">
-                      <div className="text-[9px] font-black uppercase text-indigo-300/40 tracking-wider flex items-center justify-center">Semana</div>
+                    <div className="grid grid-cols-8 gap-1 sm:gap-1.5 text-center">
+                      <div className="text-[8px] sm:text-[9px] font-black uppercase text-indigo-300/40 tracking-wider flex items-center justify-center">
+                        <span className="hidden sm:inline">Semana</span>
+                        <span className="inline sm:hidden">Sem.</span>
+                      </div>
                       {Array.from({ length: 7 }).map((_, i) => (
-                        <div key={i} className="text-[9px] font-black uppercase text-indigo-300/60 tracking-wider py-1 bg-white/5 rounded-lg border border-white/5">
-                          Dia {i + 1}
+                        <div key={i} className="text-[8px] sm:text-[9px] font-black uppercase text-indigo-300/60 tracking-wider py-1 bg-white/5 rounded-lg border border-white/5">
+                          <span className="hidden sm:inline">Dia </span>{i + 1}
                         </div>
                       ))}
                     </div>
 
                     {/* Linhas (Semanas) */}
                     {Array.from({ length: 4 }).map((_, weekIndex) => (
-                      <div key={weekIndex} className="grid grid-cols-8 gap-1.5">
+                      <div key={weekIndex} className="grid grid-cols-8 gap-1 sm:gap-1.5">
                         {/* Indicador de Semana */}
                         {(() => {
                           const startDayNum = weekIndex * 7 + 1;
@@ -2847,9 +2850,9 @@ export default function App() {
                           const endCellDate = lunarData.getDateForDay(endDayNum);
                           const dateRangeStr = `${startCellDate.getDate()}/${startCellDate.getMonth() + 1} a ${endCellDate.getDate()}/${endCellDate.getMonth() + 1}`;
                           return (
-                            <div className="flex flex-col items-center justify-center bg-indigo-950/40 rounded-2xl border border-white/5 text-[9px] font-black uppercase text-indigo-300/60 tracking-widest text-center px-1 py-1">
+                            <div className="flex flex-col items-center justify-center bg-indigo-950/40 rounded-xl sm:rounded-2xl border border-white/5 text-[8px] sm:text-[9px] font-black uppercase text-indigo-300/60 tracking-tight sm:tracking-widest text-center p-0.5 sm:p-1">
                               <span>S{weekIndex + 1}</span>
-                              <span className="text-[6.5px] text-indigo-300/40 font-semibold tracking-tighter leading-none mt-0.5">{dateRangeStr}</span>
+                              <span className="text-[5.5px] sm:text-[6.5px] text-indigo-300/40 font-semibold tracking-tighter leading-none mt-0.5">{dateRangeStr}</span>
                             </div>
                           );
                         })()}
@@ -2867,41 +2870,41 @@ export default function App() {
                             <button
                               key={lunarDayNum}
                               onClick={() => setSelectedDay(lunarDayNum)}
-                              className={`aspect-square p-1 rounded-2xl border flex flex-col justify-between items-center transition-all duration-300 cursor-pointer text-left relative group ${
+                              className={`aspect-square p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border flex flex-col justify-between items-center transition-all duration-300 cursor-pointer text-left relative group ${
                                 isSelected 
                                   ? 'ring-2 ring-indigo-500 bg-indigo-900/40 border-indigo-500' 
                                   : 'bg-indigo-950/20 border-white/5 hover:bg-white/5 hover:border-white/10'
                               }`}
                             >
                               {/* Dia do Mês */}
-                              <span className="absolute top-1 left-1.5 text-[8.5px] font-black text-slate-400">
+                              <span className="absolute top-0.5 left-1 sm:top-1 sm:left-1.5 text-[7.5px] sm:text-[8.5px] font-black text-slate-400">
                                 {cellDayOfMonth}
                               </span>
 
                               {/* Conteúdo do Registro */}
                               {log ? (
-                                <div className="flex flex-col items-center justify-center flex-1 w-full pt-3 pb-1">
+                                <div className="flex flex-col items-center justify-center flex-1 w-full pt-2.5 pb-0.5 sm:pt-3 sm:pb-1">
                                   {/* Círculo do Sentimento */}
                                   <div 
-                                    className="w-6 h-6 rounded-xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-110"
+                                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg sm:rounded-xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-110"
                                     style={{ backgroundColor: emotion?.color || '#cbd5e1' }}
                                     title={emotion?.name || 'Sentimento'}
                                   >
-                                    <LucideIcon name={emotion?.icon || 'Smile'} size={12} />
+                                    <LucideIcon name={emotion?.icon || 'Smile'} size={10} />
                                   </div>
-                                  <span className="text-[7.5px] font-bold tracking-tighter text-slate-300 truncate max-w-full mt-1.5">
+                                  <span className="text-[7.5px] font-bold tracking-tighter text-slate-300 truncate max-w-full mt-1 hidden sm:block">
                                     {emotion?.name}
                                   </span>
                                 </div>
                               ) : (
-                                <div className="flex-1 flex items-center justify-center w-full pt-2">
-                                  <Plus size={11} className="text-slate-500/60 group-hover:text-slate-400 group-hover:scale-125 transition-all" />
+                                <div className="flex-1 flex items-center justify-center w-full pt-1.5 sm:pt-2">
+                                  <Plus size={9} className="text-slate-500/60 group-hover:text-slate-400 group-hover:scale-125 transition-all" />
                                 </div>
                               )}
 
                               {/* Indicador de Nota/Evento */}
                               {log?.note && (
-                                <span className="absolute bottom-1 right-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" title="Tem anotação" />
+                                <span className="absolute bottom-0.5 right-1 sm:bottom-1 sm:right-1.5 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-indigo-400 animate-pulse" title="Tem anotação" />
                               )}
                             </button>
                           );
@@ -2912,7 +2915,7 @@ export default function App() {
                 </div>
 
                 {/* Detalhes do Dia Selecionado */}
-                <div className="bg-indigo-950/30 rounded-[2.5rem] border border-white/5 p-4.5 sm:p-5 space-y-3 relative overflow-hidden transition-all duration-500">
+                <div className="bg-indigo-950/30 rounded-3xl sm:rounded-[2.5rem] border border-white/5 p-4 sm:p-5 space-y-3 relative overflow-hidden transition-all duration-500">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
                   
                   {/* Cabeçalho do Detalhe */}
@@ -2921,9 +2924,9 @@ export default function App() {
                       <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block">
                         Anotações do Dia
                       </span>
-                      <h4 className="text-sm font-black text-[#4169E1] uppercase tracking-tight flex items-center gap-1.5">
+                      <h4 className="text-xs sm:text-sm font-black text-[#4169E1] uppercase tracking-tight flex flex-wrap items-center gap-1 sm:gap-1.5">
                         {lunarData.getDateForDay(selectedDay).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                        <span className="text-[10px] text-slate-400 lowercase font-medium">
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 lowercase font-medium">
                           (Dia {selectedDay} do Ciclo)
                         </span>
                       </h4>
