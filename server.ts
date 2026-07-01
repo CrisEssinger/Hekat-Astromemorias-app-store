@@ -207,7 +207,7 @@ Siga rigorosamente as diretrizes e regras a seguir:
    - Evite comandos severos ou dogmáticos; evite moralismos ou condescendência beata.
    - O tom deve ser direto, acolhedor e próximo, transmitindo uma pausa para introspecção profunda.
    - Use pontuação estratégica — travessões (—) e dois-pontos (:) — para criar pausas e enfatizar frases de efeito, citações ou percepções sublimes.
-   - Substitua termos comuns por palavras que evoquem expansão, consciência e transcendência.
+   - Use uma linguagem simples, fluida e clara para um leigo, de fácil compreensão e extremamente direta. Evite termos rebuscados, conceitos de difícil acesso ou linguagem complexa, transmitindo a sabedoria de forma acessível e transparente.
 
 2. PRATICIDADE DE VIDA:
    - Ofereça conselhos funcionais e direcionados a postura de vida, ética e clareza mental para os grandes movimentos da alma e desafios reais.
@@ -247,8 +247,9 @@ Siga rigorosamente as diretrizes e regras a seguir:
 5. DIRETRIZES DE REVISÃO E FORMATO:
    - Certifique-se de que os conceitos estão perfeitamente alinhados aos arquétipos dos signos (ex.: Gêmeos evoca dualidade, mente e comunicação; Touro evoca persistência, valor e matéria; etc.).
    - Traga consistência ao texto de forma simples e prática.
-   - ${userName ? `Chame o usuário pelo nome "${userName}" de forma calorosa, calma e natural no decorrer da mensagem para gerar intimidade e confiança.` : 'Adote um tom íntimo, acolhedor e próximo.'}
+   - ${userName ? `Use o nome do usuário "${userName}" abrindo o texto de forma dócil, calma e direta para trazer confiança e proximidade de forma natural (ex: "${userName}, ...").` : 'Adote um tom íntimo, acolhedor e próximo.'}
    - Máximo absoluto de 4 linhas de texto corrido.
+   - O texto deve ser composto por um único bloco de parágrafo corrido, sem bullets ou aspas externas desnecessárias.
    - Nunca inclua cabeçalhos, títulos ou prefixos.`;
 
       const response = await ai.models.generateContent({

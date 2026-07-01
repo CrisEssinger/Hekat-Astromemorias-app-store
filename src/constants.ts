@@ -5,15 +5,18 @@ export const EMOTIONS = [
   { id: 'love', name: 'Amor', color: '#FF007F', icon: 'Heart', category: 'Elevadas & Positivas' },
   { id: 'self_love', name: 'Amor Próprio', color: '#FB7185', icon: 'Heart', category: 'Elevadas & Positivas' }, // Rose Pink
   { id: 'energy', name: 'Ânimo', color: '#FF007F', icon: 'Sun', category: 'Elevadas & Positivas' }, // Rose/Magenta
+  { id: 'aperfeicoamento', name: 'Aperfeiçoamento', color: '#F43F5E', icon: 'Sparkles', category: 'Elevadas & Positivas' },
   { id: 'learning', name: 'Aprendizado', color: '#FFEBCD', icon: 'BookOpen', category: 'Elevadas & Positivas' }, // BlanchedAlmond
   { id: 'activity_new', name: 'Atividade', color: '#FF4500', icon: 'Zap', category: 'Elevadas & Positivas' }, // OrangeRed
   { id: 'clareza', name: 'Clareza', color: '#FFE4B5', icon: 'Eye', category: 'Elevadas & Positivas' }, // Moccasin
   { id: 'comemoracao', name: 'Comemoração', color: '#EC4899', icon: 'PartyPopper', category: 'Elevadas & Positivas' },
+  { id: 'compromisso', name: 'Compromisso', color: '#EA580C', icon: 'ShieldCheck', category: 'Elevadas & Positivas' },
   { id: 'confidence', name: 'Confiança', color: '#FA8072', icon: 'ShieldCheck', category: 'Elevadas & Positivas' }, // Salmon
   { id: 'creativity', name: 'Criatividade', color: '#FF69B4', icon: 'Sparkles', category: 'Elevadas & Positivas' }, // HotPink
   { id: 'decision', name: 'Decisão', color: '#FF5722', icon: 'Target', category: 'Elevadas & Positivas' },
   { id: 'disciplina', name: 'Disciplina', color: '#D4AF37', icon: 'ShieldCheck', category: 'Elevadas & Positivas' },
   { id: 'enchantment', name: 'Encantamento', color: '#FF1493', icon: 'Sparkles', category: 'Elevadas & Positivas' }, // DeepPink
+  { id: 'entusiasmo', name: 'Entusiasmo', color: '#F97316', icon: 'Flame', category: 'Elevadas & Positivas' },
   { id: 'esforco', name: 'Esforço', color: '#D35400', icon: 'Zap', category: 'Elevadas & Positivas' },
   { id: 'hope', name: 'Esperança', color: '#FFBE7B', icon: 'Compass', category: 'Elevadas & Positivas' }, // Peach/Amber Light
   { id: 'stimulus', name: 'Estímulo', color: '#FF7F50', icon: 'Zap', category: 'Elevadas & Positivas' }, // Coral variant
@@ -26,6 +29,7 @@ export const EMOTIONS = [
   { id: 'new_vision', name: 'Nova Visão', color: '#FFDAB9', icon: 'Search', category: 'Elevadas & Positivas' }, // PeachPuff
   { id: 'optimism', name: 'Otimismo', color: '#FFFF00', icon: 'Sun', category: 'Elevadas & Positivas' }, // Yellow
   { id: 'achievement', name: 'Realização', color: '#FF7F50', icon: 'Award', category: 'Elevadas & Positivas' }, // Coral
+  { id: 'responsabilidade', name: 'Responsabilidade', color: '#D97706', icon: 'ShieldCheck', category: 'Elevadas & Positivas' },
   { id: 'vitoria', name: 'Vitória', color: '#F59E0B', icon: 'Trophy', category: 'Elevadas & Positivas' },
 
   // Calma & Reflexão - Tons Orgânicos e Celestiais (Verdes, Menta, Turquesa e Azuis Suaves)
@@ -48,6 +52,7 @@ export const EMOTIONS = [
 
   // Tensão & Desafios - Tons Graduados do Lilás ao Roxo e Índigo Profundos
   { id: 'anxiety', name: 'Ansiedade', color: '#9932CC', icon: 'AlertCircle', category: 'Tensão & Desafios' }, // DarkOrchid
+  { id: 'apprehension', name: 'Apreensão', color: '#8B5CF6', icon: 'AlertCircle', category: 'Tensão & Desafios' },
   { id: 'annoyance', name: 'Chateação', color: '#DA70D6', icon: 'Frown', category: 'Tensão & Desafios' }, // Orchid/Lilás Vibrante
   { id: 'jealousy', name: 'Ciúme', color: '#B57EDC', icon: 'Lock', category: 'Tensão & Desafios' }, // Lilás Médio
   { id: 'distrust', name: 'Desconfiança', color: '#4B0082', icon: 'ShieldOff', category: 'Tensão & Desafios' }, // Indigo

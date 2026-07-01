@@ -49,6 +49,8 @@ import {
   Cloud,
   LayoutDashboard,
   CalendarDays,
+  Calendar,
+  CalendarHeart,
   FileBarChart,
   X,
   Plus,
@@ -196,6 +198,8 @@ const ICON_MAP: Record<string, any> = {
   Cloud,
   LayoutDashboard,
   CalendarDays,
+  Calendar,
+  CalendarHeart,
   FileBarChart,
   MessageCircle,
   RefreshCw,
@@ -1133,8 +1137,14 @@ export default function App() {
 
   const triggerOracleRefresh = () => {
     const sunIdx = lunarData.sunSignIndex;
-    const moonIdx = lunarData.getSignForDay(selectedDay);
-    const cacheKey = `sun_${sunIdx}_moon_${moonIdx}`;
+    const moonIdx = selectedDay === lunarData.day 
+      ? Math.floor(lunarData.moonSignFloat) % 12 
+      : lunarData.getSignForDay(selectedDay);
+    
+    const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
+    const formattedName = rawName ? rawName.trim() : '';
+    const cacheKey = `sun_${sunIdx}_moon_${moonIdx}_name_${formattedName}`;
+    
     delete oracleCache.current[cacheKey];
     setOracleTrigger(prev => prev + 1);
   };
@@ -1488,6 +1498,7 @@ export default function App() {
     { id: 'mandala', title: 'Mandala Lunar', icon: 'CalendarDays', isOpen: true, isMinimized: false, zIndex: 105, pos: { x: 0, y: 56 } },
     { id: 'journal', title: 'Astromemorias', icon: 'MessageCircle', isOpen: false, isMinimized: false, zIndex: 104, pos: { x: 0, y: 56 } },
     { id: 'oraculo', title: 'Oráculo Diário', icon: 'Sparkles', isOpen: false, isMinimized: false, zIndex: 103, pos: { x: 0, y: 56 } },
+    { id: 'calendar', title: 'Calendário do Ciclo', icon: 'CalendarHeart', isOpen: false, isMinimized: false, zIndex: 100, pos: { x: 0, y: 56 } },
     { id: 'reports', title: 'Relatórios', icon: 'FileBarChart', isOpen: false, isMinimized: false, zIndex: 101, pos: { x: 0, y: 56 } },
     { id: 'history', title: 'Histórico', icon: 'History', isOpen: false, isMinimized: false, zIndex: 102, pos: { x: 0, y: 56 } },
     { id: 'guide', title: 'Informativo App', icon: 'Info', isOpen: false, isMinimized: false, zIndex: 106, pos: { x: 0, y: 56 } },
@@ -1504,7 +1515,7 @@ export default function App() {
         return { x: 0, y: 56 };
       }
       
-      const ww = id === 'history' ? 600 : id === 'mandala' ? 420 : 500;
+      const ww = id === 'history' || id === 'calendar' ? 600 : id === 'mandala' ? 420 : 500;
       const actualW = Math.min(ww, dw * 0.95);
       const topOffset = 56;
       
@@ -2778,6 +2789,230 @@ export default function App() {
                    <p className="text-[8px] font-medium uppercase text-indigo-300/30 tracking-widest italic">Astromemória Estelar</p>
                 </div>
               </div>
+            ) : win.id === 'calendar' ? (
+              <div className="space-y-4">
+                <div className="text-center mb-1">
+                  <h2 className="text-xl font-serif italic font-medium text-[#4169E1]">Calendário do Ciclo</h2>
+                  <p className="text-[10px] text-indigo-300/70 font-medium">Mapeamento de sentimentos e eventos significativos do ciclo atual</p>
+                </div>
+
+                {/* Seletor de Ciclo */}
+                <div className="flex justify-between items-center bg-indigo-950/20 p-2.5 rounded-2xl border border-white/5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase text-indigo-300 tracking-wider">Ciclo:</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-indigo-600/20 border border-indigo-500/20 text-xs font-black text-indigo-200">
+                      Ciclo {viewingCycleId || lunarData.cycleId}
+                    </span>
+                  </div>
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => setViewingCycleId(prev => Math.max(1, (prev || lunarData.cycleId) - 1))}
+                      className="p-1.5 bg-indigo-600 rounded-lg text-white hover:bg-indigo-500 transition-colors active:scale-95 cursor-pointer"
+                      title="Ciclo Anterior"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <button 
+                      onClick={() => setViewingCycleId(prev => Math.min(lunarData.cycleId, (prev || lunarData.cycleId) + 1))}
+                      disabled={(viewingCycleId || lunarData.cycleId) >= lunarData.cycleId}
+                      className="p-1.5 bg-indigo-600 rounded-lg text-white hover:bg-indigo-500 transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      title="Próximo Ciclo"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tabela do Calendário (Grade 4x7 com cabeçalhos de linhas e colunas) */}
+                <div className="overflow-x-auto no-scrollbar">
+                  <div className="min-w-[440px] space-y-2">
+                    {/* Cabeçalho das Colunas */}
+                    <div className="grid grid-cols-8 gap-1.5 text-center">
+                      <div className="text-[9px] font-black uppercase text-indigo-300/40 tracking-wider flex items-center justify-center">Semana</div>
+                      {Array.from({ length: 7 }).map((_, i) => (
+                        <div key={i} className="text-[9px] font-black uppercase text-indigo-300/60 tracking-wider py-1 bg-white/5 rounded-lg border border-white/5">
+                          Dia {i + 1}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Linhas (Semanas) */}
+                    {Array.from({ length: 4 }).map((_, weekIndex) => (
+                      <div key={weekIndex} className="grid grid-cols-8 gap-1.5">
+                        {/* Indicador de Semana */}
+                        {(() => {
+                          const startDayNum = weekIndex * 7 + 1;
+                          const endDayNum = weekIndex * 7 + 7;
+                          const startCellDate = lunarData.getDateForDay(startDayNum);
+                          const endCellDate = lunarData.getDateForDay(endDayNum);
+                          const dateRangeStr = `${startCellDate.getDate()}/${startCellDate.getMonth() + 1} a ${endCellDate.getDate()}/${endCellDate.getMonth() + 1}`;
+                          return (
+                            <div className="flex flex-col items-center justify-center bg-indigo-950/40 rounded-2xl border border-white/5 text-[9px] font-black uppercase text-indigo-300/60 tracking-widest text-center px-1 py-1">
+                              <span>S{weekIndex + 1}</span>
+                              <span className="text-[6.5px] text-indigo-300/40 font-semibold tracking-tighter leading-none mt-0.5">{dateRangeStr}</span>
+                            </div>
+                          );
+                        })()}
+
+                        {/* 7 Dias da Semana */}
+                        {Array.from({ length: 7 }).map((_, dayOfWeekIndex) => {
+                          const lunarDayNum = weekIndex * 7 + dayOfWeekIndex + 1;
+                          const log = logs[lunarDayNum];
+                          const emotion = log ? EMOTIONS.find(e => e.id === log.emotionId) : null;
+                          const isSelected = selectedDay === lunarDayNum;
+                          const cellDate = lunarData.getDateForDay(lunarDayNum);
+                          const cellDayOfMonth = cellDate.getDate();
+
+                          return (
+                            <button
+                              key={lunarDayNum}
+                              onClick={() => setSelectedDay(lunarDayNum)}
+                              className={`aspect-square p-1 rounded-2xl border flex flex-col justify-between items-center transition-all duration-300 cursor-pointer text-left relative group ${
+                                isSelected 
+                                  ? 'ring-2 ring-indigo-500 bg-indigo-900/40 border-indigo-500' 
+                                  : 'bg-indigo-950/20 border-white/5 hover:bg-white/5 hover:border-white/10'
+                              }`}
+                            >
+                              {/* Dia do Mês */}
+                              <span className="absolute top-1 left-1.5 text-[8.5px] font-black text-slate-400">
+                                {cellDayOfMonth}
+                              </span>
+
+                              {/* Conteúdo do Registro */}
+                              {log ? (
+                                <div className="flex flex-col items-center justify-center flex-1 w-full pt-3 pb-1">
+                                  {/* Círculo do Sentimento */}
+                                  <div 
+                                    className="w-6 h-6 rounded-xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-110"
+                                    style={{ backgroundColor: emotion?.color || '#cbd5e1' }}
+                                    title={emotion?.name || 'Sentimento'}
+                                  >
+                                    <LucideIcon name={emotion?.icon || 'Smile'} size={12} />
+                                  </div>
+                                  <span className="text-[7.5px] font-bold tracking-tighter text-slate-300 truncate max-w-full mt-1.5">
+                                    {emotion?.name}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex-1 flex items-center justify-center w-full pt-2">
+                                  <Plus size={11} className="text-slate-500/60 group-hover:text-slate-400 group-hover:scale-125 transition-all" />
+                                </div>
+                              )}
+
+                              {/* Indicador de Nota/Evento */}
+                              {log?.note && (
+                                <span className="absolute bottom-1 right-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" title="Tem anotação" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Detalhes do Dia Selecionado */}
+                <div className="bg-indigo-950/30 rounded-[2.5rem] border border-white/5 p-4.5 sm:p-5 space-y-3 relative overflow-hidden transition-all duration-500">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                  
+                  {/* Cabeçalho do Detalhe */}
+                  <div className="flex justify-between items-start border-b border-white/5 pb-2.5">
+                    <div>
+                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block">
+                        Anotações do Dia
+                      </span>
+                      <h4 className="text-sm font-black text-[#4169E1] uppercase tracking-tight flex items-center gap-1.5">
+                        {lunarData.getDateForDay(selectedDay).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                        <span className="text-[10px] text-slate-400 lowercase font-medium">
+                          (Dia {selectedDay} do Ciclo)
+                        </span>
+                      </h4>
+                    </div>
+                    {logs[selectedDay] && (
+                      <span className="text-[8px] font-black uppercase text-indigo-300/40 tracking-wider">
+                        Registrado
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Detalhes do Sentimento & Nota */}
+                  {logs[selectedDay] ? (
+                    <div className="space-y-3.5">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg"
+                          style={{ backgroundColor: EMOTIONS.find(e => e.id === logs[selectedDay].emotionId)?.color || '#cbd5e1' }}
+                        >
+                          <LucideIcon name={EMOTIONS.find(e => e.id === logs[selectedDay].emotionId)?.icon || 'Smile'} size={18} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-slate-100 uppercase tracking-wide">
+                              {EMOTIONS.find(e => e.id === logs[selectedDay].emotionId)?.name || 'Desconhecido'}
+                            </span>
+                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-400">
+                              Intensidade: {logs[selectedDay].intensity}/5
+                            </span>
+                          </div>
+                          {/* Desenha estrelinhas / pontos de intensidade */}
+                          <div className="flex gap-0.5 mt-0.5">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <div 
+                                key={i} 
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  i < logs[selectedDay].intensity 
+                                    ? 'bg-indigo-400' 
+                                    : 'bg-white/10'
+                                }`} 
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Nota de Evento Significativo */}
+                      <div className="space-y-1.5">
+                        <span className="text-[9px] font-black uppercase text-indigo-300/50 tracking-wider flex items-center gap-1">
+                          <BookOpen size={10} /> Evento Significativo do Dia
+                        </span>
+                        <div className="p-3.5 rounded-2xl bg-indigo-950/50 border border-white/5 text-xs text-slate-300/90 leading-relaxed text-justify whitespace-pre-wrap italic">
+                          {logs[selectedDay].note || "O portal está aberto, mas não há notas narrativas gravadas para este dia."}
+                        </div>
+                      </div>
+
+                      {/* Botão para Editar */}
+                      <div className="flex justify-end pt-1">
+                        <button
+                          onClick={() => {
+                            toggleWindow('journal', 'open');
+                          }}
+                          className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer shadow-lg shadow-indigo-600/15"
+                        >
+                          <LucideIcon name="MessageCircle" size={12} /> Editar Astromemória
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-4 flex flex-col items-center justify-center text-center space-y-3.5">
+                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400">
+                        <Plus size={18} />
+                      </div>
+                      <div className="space-y-1 max-w-xs">
+                        <p className="text-xs font-black text-slate-200 uppercase tracking-wide">Sem registro para este dia</p>
+                        <p className="text-[10px] text-slate-400/80 leading-relaxed">Nenhum sentimento ou evento significativo foi mapeado para o Dia {selectedDay} deste ciclo.</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          toggleWindow('journal', 'open');
+                        }}
+                        className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider px-4.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-lg shadow-indigo-600/15"
+                      >
+                        <Plus size={12} /> Anotar Sentimento & Evento
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : win.id === 'journal' ? (
               <div className="space-y-3">
                 <div className="text-center mb-1">
@@ -2907,7 +3142,7 @@ export default function App() {
                 isNight={isNight}
                 toggleWindow={toggleWindow} 
                 updateWindowPos={updateWindowPos}
-                width={win.id === 'history' ? "600px" : win.id === 'mandala' ? "420px" : "500px"}
+                width={win.id === 'history' || win.id === 'calendar' ? "600px" : win.id === 'mandala' ? "420px" : "500px"}
                 isMobile={isMobile}
               >
                 {Component}
@@ -2942,7 +3177,7 @@ export default function App() {
                 <span className={`text-[8px] font-black uppercase tracking-wider mt-0.5 ${
                   isActive ? 'text-indigo-300' : 'text-slate-500'
                 }`}>
-                  {win.title === 'Mandala Lunar' ? 'Mandala' : win.title === 'Astromemorias' ? 'Diário' : win.title === 'Oráculo Diário' ? 'Oráculo' : win.title === 'Relatórios' ? 'Relatórios' : 'Histórico'}
+                  {win.title === 'Mandala Lunar' ? 'Mandala' : win.title === 'Astromemorias' ? 'Diário' : win.title === 'Oráculo Diário' ? 'Oráculo' : win.title === 'Relatórios' ? 'Relatórios' : win.title === 'Histórico' ? 'Histórico' : win.title === 'Calendário do Ciclo' ? 'Calendário' : 'Informativo'}
                 </span>
               </button>
             );
