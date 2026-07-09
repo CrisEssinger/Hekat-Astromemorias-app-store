@@ -75,6 +75,7 @@ export const EMOTIONS = [
   // Baixa Energia & Melancolia - Tons Frios, Cinzas e Profundos (Azuis Profundos, Grafites, Prata, Lavanda Noturna)
   { id: 'apathy', name: 'Apatia', color: '#A9A9A9', icon: 'Meh', category: 'Baixa Energia & Melancolia' }, // DarkGray
   { id: 'burnout', name: 'Burnout', color: '#111827', icon: 'Flame', category: 'Baixa Energia & Melancolia' }, // Coal Black
+  { id: 'tiredness', name: 'Cansaço', color: '#475569', icon: 'BatteryLow', category: 'Baixa Energia & Melancolia' },
   { id: 'guilt', name: 'Culpa', color: '#4682B4', icon: 'Anchor', category: 'Baixa Energia & Melancolia' }, // SteelBlue
   { id: 'low_energy', name: 'Desânimo', color: '#64748B', icon: 'Cloud', category: 'Baixa Energia & Melancolia' },
   { id: 'isolation', name: 'Isolamento', color: '#2F4F4F', icon: 'UserX', category: 'Baixa Energia & Melancolia' }, // DarkSlateGray

@@ -54,93 +54,93 @@ function generateFallbackOracle(sunSignName?: string, moonSignName?: string, phi
   // ÁGUA: maré, reflexo, emoção, sentimentos, intuição, mergulho, fluir.
 
   // Direções/Mensagens base por combinação de Elemento do Sol e Elemento da Lua
-  const elementTexts: Record<string, { main: string, poética: string }> = {
+  const elementTexts: Record<string, { main: string, advice: string }> = {
     'FOGO_FOGO': {
-      main: `há um convite transcendente ao movimento: a chama interior pulsa em sintonia com a sua vontade mais espontânea. O despertar de um novo impulso exige expressar a sua força pura com coragem resoluta e intocável.`,
-      poética: `No silêncio fecundo do ser, brilha uma faísca sagrada que incendeia os horizontes; permita que a irradiação da sua vontade desperte de maneira autêntica e dissipe as sombras.`
+      main: `há uma faísca viva no agora — a sua vontade de realizar desperta com força total: permita que a irradiação da sua força se revele com entusiasmo.`,
+      advice: `Dê o primeiro passo hoje mesmo em direção ao seu objetivo real.`
     },
     'FOGO_TERRA': {
-      main: `sintonize a força ativa do seu propósito com a sabedoria da paciência. Canalize a vontade ardente no despertar de novas formas, ancorando cada passo para dar sustento tangível aos seus sonhos.`,
-      poética: `Toda chama necessita de um alicerce firme para perdurar; que a sua inteligência respeite o tempo de maturação necessário para que a colheita dos frutos seja abundante.`
+      main: `sintonize a sua vontade de agir com um alicerce estável — o tempo exige paciência e presença para que a colheita seja cheia de substância real.`,
+      advice: `Estruture os seus planos com metas simples e tarefas concretas.`
     },
     'FOGO_AR': {
-      main: `permita que a luz do seu espírito inspire novas conexões e percepções de mundo. Sintonize a vontade criativa com o sopro das ideias, expandindo caminhos de forma ágil e curiosa.`,
-      poética: `A faísca do entusiasmo se propaga no fluxo sutil da mente; use as palavras certas para dar vida às suas visões e sintonizar novos horizontes de aprendizado.`
+      main: `use a sua chama criativa para dar fluxo às ideias — o sopro do aprendizado e as palavras certas trazem clareza de percepção aos seus caminhos.`,
+      advice: `Converse com alguém de confiança para expandir as suas perspectivas.`
     },
     'FOGO_ÁGUA': {
-      main: `o momento exige sintonizar a força criadora com o mistério das suas intuições mais profundas. Equilibre o calor da vontade com a calmaria do sentir, agindo com sabedoria lúcida.`,
-      poética: `O reflexo do fogo nas águas tranquilas da alma revela que todo mergulho interno antecede uma grande revelação; sinta a irradiação da chama no compasso das suas emoções.`
+      main: `sintonize o calor da sua vontade com as marés profundas do sentir — mergulhe em sua intuição silenciosa para guiar as ações com empatia.`,
+      advice: `Silencie os ruídos externos para ouvir as respostas do coração.`
     },
     'TERRA_FOGO': {
-      main: `o alinhamento celeste convida a dar estrutura e forma tangível às suas paixões mais genuínas. Sustente o seu alicerce com perseverança, permitindo que a vontade aja com nobreza e realismo.`,
-      poética: `O solo firme acolhe a faísca e a converte em fogueira permanente; cultive a maturação dos seus dons com o calor do entusiasmo e a certeza da colheita.`
+      main: `dê corpo tangível ao seu alicerce diário — a faísca do entusiasmo desperta o momento certo de agir com coragem, presença e realismo.`,
+      advice: `Use a sua energia concentrada para iniciar aquela tarefa adiada.`
     },
     'TERRA_TERRA': {
-      main: `recolha as suas energias e sustente a estabilidade profunda do seu centro diante de impermanências. Busque segurança na substância real das coisas, agindo com realismo, calma e prudência.`,
-      poética: `Como uma raiz antiga e profunda que assegura o sustento da árvore, respeite a maturação oculta; a colheita do que é valioso exige silenciar os ruídos e honrar seu alicerce.`
+      main: `honre a substância do real e a maturação de cada processo — o seu solo firme exige tempo e paciência para gerar uma colheita valiosa.`,
+      advice: `Evite a pressa desnecessária e concentre-se em concluir o que começou.`
     },
     'TERRA_AR': {
-      main: `o alinhamento pede para trazer clareza mental e ordem prática aos seus pensamentos. Edifique os seus planos respeitando os fatos, buscando ideias que ofereçam estabilidade e síntese realizadora.`,
-      poética: `O sopro da inteligência passeia sobre o solo firme; que a clareza de percepção trace caminhos seguros para que o fluxo das palavras ganhe corpo e estrutura tangível.`
+      main: `traga clareza prática e síntese aos pensamentos — o fluxo dócil do aprendizado ajuda a estruturar o seu alicerce com ideias realizadoras.`,
+      advice: `Escreva as suas prioridades do dia e organize a sua agenda.`
     },
     'TERRA_ÁGUA': {
-      main: `nutra o seu alicerce interno integrando a sensibilidade à persistência lúcida. Acolha com paciência as suas águas internas, compreendendo que toda construção sincera exige afeto e sensibilidade.`,
-      poética: `A terra fértil acolhe a maré dos sentimentos e molda a substância do porvir; mergulhe em seu reflexo interno e permita que a paciência traga ordem e beleza ao que amadurece.`
+      main: `nutra o seu alicerce com afeto e sensibilidade — o reflexo das suas águas revela que o amadurecimento tangível exige paciência dócil.`,
+      advice: `Acolha os seus sentimentos e respeite o ritmo do seu corpo.`
     },
     'AR_FOGO': {
-      main: `o vento cósmico estimula a expandir sua perspectiva e clarear rumos por meio de novas ideias. Sintonize o fluxo do pensamento com o despertar da sua vontade, agindo com leveza e lucidez.`,
-      poética: `O sopro que transporta a centelha espalha a luz do despertar; use suas palavras como faíscas que clareiam a visão e conduzem seu aprendizado rumo à integridade.`
+      main: `o fluxo mental traz um sopro de ânimo renovador — o despertar da sua vontade impulsiona novos caminhos com leveza, visão e entusiasmo.`,
+      advice: `Tome uma decisão simples que traga mais movimento à sua vida.`
     },
     'AR_TERRA': {
-      main: `busque a síntese entre a flexibilidade mental e a estabilidade prática de vida. Acolha o seu fluxo de pensamentos e filtre o essencial, ancorando as ideias em atitudes concretas e lúcidas.`,
-      poética: `O sopro das palavras encontra realismo e sustentação no alicerce da presença; permita que a percepção do momento traga uma maturação fecunda a seus pensamentos.`
+      main: `sintonize o fluxo das palavras com a estabilidade de vida — a clareza de percepção encontra sustento seguro no seu alicerce de rotina.`,
+      advice: `Simplifique as suas obrigações diárias e descarte o que é supérfluo.`
     },
     'AR_AR': {
-      main: `acolha o convite de purificar os pensamentos e sintonizar uma clareza mental revigorante. Mantenha a leveza nas trocas e busque novos caminhos, agindo com curiosidade refinada e isenção.`,
-      poética: `No fluxo infinito da mente, cada percepção é um aprendizado sutil; que o sopro do intelecto pacifique as dúvidas e ilumine a verdadeira síntese das coisas.`
+      main: `purifique as ideias e dê fluxo aos seus pensamentos — o sopro da curiosidade traz clareza de percepção e leveza para as suas palavras.`,
+      advice: `Estude um assunto novo ou organize as suas leituras pendentes.`
     },
     'AR_ÁGUA': {
-      main: `permita que a intuição fecunda se uma à clareza das ideias, harmonizando pensamentos e sentimentos. Acolha o movimento com suavidade, navegando de forma curiosa por suas paisagens sutis.`,
-      poética: `O sopro do vento flerta com o reflexo das águas profundas; sintonize a percepção do invisível e permita-se mergulhar no fluxo compassivo da sua própria sensibilidade.`
+      main: `una o fluxo das palavras à intuição profunda do sentir — a percepção do invisível clareia as memórias e acalma os seus sentimentos.`,
+      advice: `Escreva ou converse abertamente sobre o que está sentindo.`
     },
     'ÁGUA_FOGO': {
-      main: `o oceano do seu inconsciente convida a acolher com empatia as suas vivências íntimas. Equilibre as suas marés emocionais com o despertar de uma nova vontade inspiradora e resoluta.`,
-      poética: `No oceano da sensibilidade, repousa uma chama que incita a coragem; mergulhe no reflexo das suas emoções para resgatar a faísca viva do seu propósito verdadeiro.`
+      main: `acolha as marés do seu coração com empatia — o reflexo das suas emoções desperta a faísca da vontade para agir com afeto e coragem.`,
+      advice: `Siga a sua intuição e faça algo que alegre a sua alma.`
     },
     'ÁGUA_TERRA': {
-      main: `a tônica cósmica convida você a acolher os seus sentimentos mais profundos e dar-lhes segurança. Ancore suas emoções na permanência do ser, agindo com acolhimento lúcido e paciência fecunda.`,
-      poética: `A maré pacifica suas correntezas quando encontra um alicerce estável; permita que a maturação interna flua em direção a uma colheita cheia de doçura e substância real.`
+      main: `traga segurança e estabilidade às suas marés emocionais — o respeito à maturação interna constrói um alicerce firme na caminhada.`,
+      advice: `Respire fundo, sinta o seu corpo e acalme a mente com simplicidade.`
     },
     'ÁGUA_AR': {
-      main: `o alinhamento do agora estimula você a se comunicar com empatia, unindo mente e coração. Reflita sobre as suas memórias com a fluidez do sopro sábio, renovando perspectivas íntimas.`,
-      poética: `Cada emoção encontra clareza sob o brilho da percepção analítica; sintonize o fluxo das palavras sinceras com as correntezas profundas da sua própria intuição.`
+      main: `comunique as suas intuições de forma simples e dócil — o sopro do aprendizado traz síntese para compreender o reflexo das suas emoções.`,
+      advice: `Reserve dez minutos para registrar as suas reflexões em um diário.`
     },
     'ÁGUA_ÁGUA': {
-      main: `acolha as marés profundas da alma com empatia ilimitada, permitindo o mergulho interno. Sintonize-se com a sua intuição silenciosa e sustente a serenidade perante as correntezas da jornada.`,
-      poética: `No espelho límpido do espírito, o reflexo revela seu mistério sutil; deite as dúvidas e apenas flua em comunhão com o oceano do seu próprio sentir.`
+      main: `flua com leveza em suas marés de sensibilidade — o mergulho interno acalma as correntezas íntimas e revela o mistério do seu próprio sentir.`,
+      advice: `Fique alguns minutos em silêncio para cultivar a sua paz interior.`
     }
   };
 
   const key = `${sunElement}_${moonElement}`;
   const selectedText = elementTexts[key] || elementTexts['TERRA_TERRA'];
 
-  let aspectSuffix = '';
+  let aspectText = '';
   if (aspectDesc) {
     const descLower = aspectDesc.toLowerCase();
     if (descLower.includes('conjunção') || descLower.includes('conjuncao') || descLower.includes('impulso') || descLower.includes('autenticidade')) {
-      aspectSuffix = ` Sintonize este impulso de autêntica fusão em si, onde a clareza se sintetiza com nobreza.`;
+      aspectText = ` — nobreza e fusão: viva com autêntico impulso este momento em que a clareza se sintetiza com verdade.`;
     } else if (descLower.includes('oposição') || descLower.includes('oposicao') || descLower.includes('polaridades') || descLower.includes('equilíbrio') || descLower.includes('equilibrio')) {
-      aspectSuffix = ` Diante de polaridades opostas, busque o equilíbrio reflexivo e integre forças complementares.`;
+      aspectText = ` — polaridades opostas: busque a dúvida reflexiva para equilibrar e integrar forças complementares na jornada.`;
     } else if (descLower.includes('quadratura') || descLower.includes('tensaõ') || descLower.includes('tensão') || descLower.includes('conflito') || descLower.includes('turva')) {
-      aspectSuffix = ` Com paciência, abrigue as tensões e conflitos do agora; lembre-se de que a emoção acumulada nunca deve turvar a razão.`;
+      aspectText = ` — paciência diante da tensão: abrigue os conflitos emocionais com calma, lembrando que a emoção acumulada nunca deve turvar a razão.`;
     } else if (descLower.includes('trígono') || descLower.includes('trigono') || descLower.includes('soluções') || descLower.includes('criatividade')) {
-      aspectSuffix = ` Siga pelo rumo das soluções fluidas que a harmonia e a criatividade natural desenham no seu caminhar.`;
+      aspectText = ` — harmonia e fluxo criativo: caminhe sob a luz das soluções fluidas e da clareza abundante.`;
     } else {
-      aspectSuffix = ` Como postura de vida, a atitude essencial neste momento pede para ${aspectDesc.charAt(0).toLowerCase() + aspectDesc.slice(1)}`;
+      aspectText = ` — sabedoria prática: esteja aberto para aprender e aplicar com simplicidade o que já foi assimilado.`;
     }
   }
 
-  const finalMain = `${nameIntro}${selectedText.main}${aspectSuffix}`;
+  const finalMain = `${nameIntro}${selectedText.main}${aspectText} Conselho prático: ${selectedText.advice}`;
   return finalMain;
 }
 
@@ -205,13 +205,14 @@ Siga rigorosamente as diretrizes e regras a seguir:
 
 1. TOM DE VOZ E ESTILO (EQUILÍBRIO ALQUÍMICO):
    - Evite comandos severos ou dogmáticos; evite moralismos ou condescendência beata.
-   - O tom deve ser direto, acolhedor e próximo, transmitindo uma pausa para introspecção profunda.
+   - O tom deve ser direto, informal, acolhedor e próximo, transmitindo uma pausa para introspecção profunda de forma dócil, acessível e clara.
    - Use pontuação estratégica — travessões (—) e dois-pontos (:) — para criar pausas e enfatizar frases de efeito, citações ou percepções sublimes.
-   - Use uma linguagem simples, fluida e clara para um leigo, de fácil compreensão e extremamente direta. Evite termos rebuscados, conceitos de difícil acesso ou linguagem complexa, transmitindo a sabedoria de forma acessível e transparente.
+   - Use uma linguagem simples, fluida e clara para um leigo, de fácil compreensão e extremamente direta. Evite termos rebuscados, conceitos de difícil acesso ou linguagem complexa. Mantenha a profundidade e a sabedoria empática sem hermetismo.
 
 2. PRATICIDADE DE VIDA:
    - Ofereça conselhos funcionais e direcionados a postura de vida, ética e clareza mental para os grandes movimentos da alma e desafios reais.
    - NUNCA sugira rotinas domésticas, tarefas cotidianas ou triviais do dia a dia.
+   - Finalize o texto com um conselho prático e útil (ex: "Conselho prático: ...").
 
 3. DINÂMICA DOS ELEMENTOS (Símbolos Astrológicos do Sol e da Lua):
    - Identifique os elementos correspondentes aos signos do Sol e da Lua informados e module a tônica da mensagem combinando suas essências de acordo com as diretrizes específicas abaixo (NUNCA mencione os nomes dos elementos "Fogo", "Terra", "Ar" ou "Água" em si, apenas use sua simbologia e diretrizes descritas):

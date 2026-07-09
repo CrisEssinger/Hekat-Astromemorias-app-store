@@ -77,7 +77,8 @@ import {
   Radio,
   Trophy,
   PartyPopper,
-  Target
+  Target,
+  BatteryLow
 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'motion/react';
 import { 
@@ -228,7 +229,8 @@ const ICON_MAP: Record<string, any> = {
   Radio,
   Trophy,
   PartyPopper,
-  Target
+  Target,
+  BatteryLow
 };
 
 const LucideIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
@@ -625,7 +627,7 @@ const getClientFallbackOracle = (
 ): string => {
   const sun = sunSignName || 'Touro';
   const moon = moonSignName || 'Peixes';
-  const nameIntro = userName ? `${userName}, ` : '';
+  const nameIntro = userName ? `${userName}, ` : 'Viajante, ';
   
   // Detectar Elementos
   const getElement = (sign: string): 'FOGO' | 'TERRA' | 'AR' | 'ÁGUA' => {
@@ -639,100 +641,93 @@ const getClientFallbackOracle = (
   const sunElement = getElement(sun);
   const moonElement = getElement(moon);
 
-  // Palavras-chave obrigatórias a incorporar sutilmente
-  // FOGO: faísca, irradiação, vontade, despertar, chama.
-  // TERRA: alicerce, tangível, maturação, substância, colheita.
-  // AR: fluxo, sopro, síntese, aprendizado, percepção, palavras.
-  // ÁGUA: maré, reflexo, emoção, sentimentos, intuição, mergulho, fluir.
-
-  // Direções/Mensagens base por combinação de Elemento do Sol e Elemento da Lua
-  const elementTexts: Record<string, { main: string, poética: string }> = {
+  const elementTexts: Record<string, { main: string, advice: string }> = {
     'FOGO_FOGO': {
-      main: `há um convite transcendente ao movimento: a chama interior pulsa em sintonia com a sua vontade mais espontânea. O despertar de um novo impulso exige expressar a sua força pura com coragem resoluta e intocável.`,
-      poética: `No silêncio fecundo do ser, brilha uma faísca sagrada que incendeia os horizontes; permita que a irradiação da sua vontade desperte de maneira autêntica e dissipe as sombras.`
+      main: `sinta a irradiação da chama em seu ser — toda vontade genuína é uma faísca do despertar que convida você a trilhar o seu caminho com coragem.`,
+      advice: `Respire fundo e dê o primeiro passo em direção ao seu objetivo hoje.`
     },
     'FOGO_TERRA': {
-      main: `sintonize a força ativa do seu propósito com a sabedoria da paciência. Canalize a vontade ardente no despertar de novas formas, ancorando cada passo para dar sustento tangível aos seus sonhos.`,
-      poética: `Toda chama necessita de um alicerce firme para perdurar; que a sua inteligência respeite o tempo de maturação necessário para que a colheita dos frutos seja abundante.`
+      main: `ancore a força do seu impulso criativo em bases firmes — toda vontade ardente precisa de um alicerce para maturar e produzir uma colheita real.`,
+      advice: `Escreva um plano de ação simples e execute apenas a primeira tarefa.`
     },
     'FOGO_AR': {
-      main: `permita que a luz do seu espírito inspire novas conexões e percepções de mundo. Sintonize a vontade criativa com o sopro das ideias, expandindo caminhos de forma ágil e curiosa.`,
-      poética: `A faísca do entusiasmo se propaga no fluxo sutil da mente; use as palavras certas para dar vida às suas visões e sintonizar novos horizontes de aprendizado.`
+      main: `permita que a faísca do entusiasmo se propague no sopro das ideias — as palavras certas trazem síntese ao aprendizado e ampliam a percepção.`,
+      advice: `Escreva em poucas palavras o seu principal pensamento do momento.`
     },
     'FOGO_ÁGUA': {
-      main: `o momento exige sintonizar a força criadora com o mistério das suas intuições mais profundas. Equilibre o calor da vontade com a calmaria do sentir, agindo com sabedoria lúcida.`,
-      poética: `O reflexo do fogo nas águas tranquilas da alma revela que todo mergulho interno antecede uma grande revelação; sinta a irradiação da chama no compasso das suas emoções.`
+      main: `equilibre o calor da sua vontade com o fluir da sua intuição — o reflexo das emoções na maré do sentir revela o tempo certo para agir.`,
+      advice: `Beba um copo de água calmamente e observe o movimento ao seu redor.`
     },
     'TERRA_FOGO': {
-      main: `o alinhamento celeste convida a dar estrutura e forma tangível às suas passions mais genuínas. Sustente o seu alicerce com perseverança, permitindo que a vontade aja com nobreza e realismo.`,
-      poética: `O solo firme acolhe a faísca e a converte em fogueira permanente; cultive a maturação dos seus dons com o calor do entusiasmo e a certeza da colheita.`
+      main: `sustente o seu alicerce com dedicação ativa — o calor da vontade traz vitalidade à matéria e impulsiona a maturação dos seus dons.`,
+      advice: `Faça um alongamento rápido para trazer presença e vigor ao corpo.`
     },
     'TERRA_TERRA': {
-      main: `recolha as suas energias e sustente a estabilidade profunda do seu centro diante de impermanências. Busque segurança na substância real das coisas, agindo com realismo, calma e prudência.`,
-      poética: `Como uma raiz antiga e profunda que assegura o sustento da árvore, respeite a maturação oculta; a colheita do que é valioso exige silenciar os ruídos e honrar seu alicerce.`
+      main: `permaneça firme em seu alicerce com paciência e realismo — respeitar o tempo de maturação interna garante estabilidade e segurança.`,
+      advice: `Organize a sua mesa de trabalho para estruturar melhor as suas ideias.`
     },
     'TERRA_AR': {
-      main: `o alinhamento pede para trazer clareza mental e ordem prática aos seus pensamentos. Edifique os seus planos respeitando os fatos, buscando ideias que ofereçam estabilidade e síntese realizadora.`,
-      poética: `O sopro da inteligência passeia sobre o solo firme; que a clareza de percepção trace caminhos seguros para que o fluxo das palavras ganhe corpo e estrutura tangível.`
+      main: `traga clareza prática e ordem aos seus pensamentos — o sopro do aprendizado encontra utilidade concreta quando sintonizado com o realismo.`,
+      advice: `Anote as três prioridades mais importantes e descarte o restante.`
     },
     'TERRA_ÁGUA': {
-      main: `nutra o seu alicerce interno integrando a sensibilidade à persistência lúcida. Acolha com paciência as suas águas internas, compreendendo que toda construção sincera exige afeto e sensibilidade.`,
-      poética: `A terra fértil acolhe a maré dos sentimentos e molda a substância do porvir; mergulhe em seu reflexo interno e permita que a paciência traga ordem e beleza ao que amadurece.`
+      main: `nutra o seu alicerce unindo persistência e sensibilidade — a colheita exige afeto e a compreensão profunda das marés da própria alma.`,
+      advice: `Dedique cinco minutos para respirar calmamente em uma postura relaxada.`
     },
     'AR_FOGO': {
-      main: `o vento cósmico estimula a expandir sua perspectiva e clarear rumos por meio de novas ideias. Sintonize o fluxo do pensamento com o despertar da sua vontade, agindo com leveza e lucidez.`,
-      poética: `O sopro que transporta a centelha espalha a luz do despertar; use suas palavras como faíscas que clareiam a visão e conduzem seu aprendizado rumo à integridade.`
+      main: `sintonize o fluxo do pensamento com o despertar da sua vontade — as palavras certas agem como faíscas que clareiam os rumos da mente.`,
+      advice: `Compartilhe uma ideia construtiva com alguém de sua confiança.`
     },
     'AR_TERRA': {
-      main: `busque a síntese entre a flexibilidade mental e a estabilidade prática de vida. Acolha o seu fluxo de pensamentos e filtre o essencial, ancorando as ideias em atitudes concretas e lúcidas.`,
-      poética: `O sopro das palavras encontra realismo e sustentação no alicerce da presença; permita que a percepção do momento traga uma maturação fecunda a seus pensamentos.`
+      main: `busque a síntese entre a flexibilidade mental e a estabilidade prática — a clareza de percepção encontra sustentação no alicerce real da vida.`,
+      advice: `Dê uma caminhada curta ao ar livre para clarear os seus pensamentos.`
     },
     'AR_AR': {
-      main: `acolha o convite de purificar os pensamentos e sintonizar uma clareza mental revigorante. Mantenha a leveza nas trocas e busque novos caminhos, agindo com curiosidade refinada e isenção.`,
-      poética: `No fluxo infinito da mente, cada percepção é um aprendizado sutil; que o sopro do intelecto pacifique as dúvidas e ilumine a verdadeira síntese das coisas.`
+      main: `acolha o sopro da leveza e purifique as suas percepções — a síntese mental dissolve os ruídos cotidianos e traz um aprendizado revigorante.`,
+      advice: `Feche os olhos e faça três respirações profundas focando no silêncio.`
     },
     'AR_ÁGUA': {
-      main: `permita que a intuição fecunda se uma à clareza das ideias, harmonizando pensamentos e sentimentos. Acolha o movimento com suavidade, navegando de forma curiosa por suas paisagens sutis.`,
-      poética: `O sopro do vento flerta com o reflexo das águas profundas; sintonize a percepção do invisível e permita-se mergulhar no fluxo compassivo da sua própria sensibilidade.`
+      main: `sintonize o fluxo das palavras com as correntezas da sua intuição — o reflexo do invisível na mente traz harmonia e paz ao seu sentir.`,
+      advice: `Anote os seus sentimentos mais fortes e deixe-os fluir livremente.`
     },
     'ÁGUA_FOGO': {
-      main: `o oceano do seu inconsciente convida a acolher com empatia as suas vivências íntimas. Equilibre as suas marés emocionais com o despertar de uma nova vontade inspiradora e resoluta.`,
-      poética: `No oceano da sensibilidade, repousa uma chama que incita a coragem; mergulhe no reflexo das suas emoções para resgatar a faísca viva do seu propósito verdadeiro.`
+      main: `resgate a faísca viva do seu propósito verdadeiro em suas marés de sensibilidade — o mergulho interno traz coragem para guiar a vontade.`,
+      advice: `Lembre-se de um momento de superação pessoal para reacender sua força.`
     },
     'ÁGUA_TERRA': {
-      main: `a tônica cósmica convida você a acolher os seus sentimentos mais profundos e dar-lhes segurança. Ancore suas emoções na permanência do ser, agindo com acolhimento lúcido e paciência fecunda.`,
-      poética: `A maré pacifica suas correntezas quando encontra um alicerce estável; permita que a maturação interna flua em direção a uma colheita cheia de doçura e substância real.`
+      main: `traga segurança e estabilidade às suas marés emocionais — o respeito à maturação interna constrói um alicerce firme na caminhada.`,
+      advice: `Respire fundo, sinta o seu corpo e acalme a mente com simplicidade.`
     },
     'ÁGUA_AR': {
-      main: `o alinhamento do agora estimula você a se comunicar com empatia, unindo mente e coração. Reflita sobre as suas memórias com a fluidez do sopro sábio, renovando perspectivas íntimas.`,
-      poética: `Cada emoção encontra clareza sob o brilho da percepção analítica; sintonize o fluxo das palavras sinceras com as correntezas profundas da sua própria intuição.`
+      main: `comunique as suas intuições de forma simples e dócil — o sopro do aprendizado traz síntese para compreender o reflexo das suas emoções.`,
+      advice: `Reserve dez minutos para registrar as suas reflexões em um diário.`
     },
     'ÁGUA_ÁGUA': {
-      main: `acolha as marés profundas da alma com empatia ilimitada, permitindo o mergulho interno. Sintonize-se com a sua intuição silenciosa e sustente a serenidade perante as correntezas da jornada.`,
-      poética: `No espelho límpido do espírito, o reflexo revela seu mistério sutil; deite as dúvidas e apenas flua em comunhão com o oceano do seu próprio sentir.`
+      main: `flua com leveza em suas marés de sensibilidade — o mergulho interno acalma as correntezas íntimas e revela o mistério do seu próprio sentir.`,
+      advice: `Fique alguns minutos em silêncio para cultivar a sua paz interior.`
     }
   };
 
   const key = `${sunElement}_${moonElement}`;
   const selectedText = elementTexts[key] || elementTexts['TERRA_TERRA'];
 
-  let aspectSuffix = '';
+  let aspectText = '';
   if (aspectDesc) {
     const descLower = aspectDesc.toLowerCase();
     if (descLower.includes('conjunção') || descLower.includes('conjuncao') || descLower.includes('impulso') || descLower.includes('autenticidade')) {
-      aspectSuffix = ` Sintonize este impulso de autêntica fusão em si, onde a clareza se sintetiza com nobreza.`;
+      aspectText = ` — nobreza e fusão: viva com autêntico impulso este momento em que a clareza se sintetiza com verdade.`;
     } else if (descLower.includes('oposição') || descLower.includes('oposicao') || descLower.includes('polaridades') || descLower.includes('equilíbrio') || descLower.includes('equilibrio')) {
-      aspectSuffix = ` Diante de polaridades opostas, busque o equilíbrio reflexivo e integre forças complementares.`;
+      aspectText = ` — polaridades opostas: busque a dúvida reflexiva para equilibrar e integrar forças complementares na jornada.`;
     } else if (descLower.includes('quadratura') || descLower.includes('tensaõ') || descLower.includes('tensão') || descLower.includes('conflito') || descLower.includes('turva')) {
-      aspectSuffix = ` Com paciência, abrigue as tensões e conflitos do agora; lembre-se de que a emoção acumulada nunca deve turvar a razão.`;
+      aspectText = ` — paciência diante da tensão: abrigue os conflitos emocionais com calma, lembrando que a emoção acumulada nunca deve turvar a razão.`;
     } else if (descLower.includes('trígono') || descLower.includes('trigono') || descLower.includes('soluções') || descLower.includes('criatividade')) {
-      aspectSuffix = ` Siga pelo rumo das soluções fluidas que a harmonia e a criatividade natural desenham no seu caminhar.`;
+      aspectText = ` — harmonia e fluxo criativo: caminhe sob a luz das soluções fluidas e da clareza abundante.`;
     } else {
-      aspectSuffix = ` Como postura de vida, a atitude essencial neste momento pede para ${aspectDesc.charAt(0).toLowerCase() + aspectDesc.slice(1)}`;
+      aspectText = ` — sabedoria prática: esteja aberto para aprender e aplicar com simplicidade o que já foi assimilado com sabedoria prática.`;
     }
   }
 
-  const finalMain = `${nameIntro}${selectedText.main}${aspectSuffix}`;
+  const finalMain = `${nameIntro}${selectedText.main}${aspectText} Conselho prático: ${selectedText.advice}`;
 
   return finalMain;
 };
@@ -1941,6 +1936,13 @@ export default function App() {
 
     return { sun, moon, moonDegreeForDay, aspect };
   }, [selectedDay, lunarData.sunSignIndex]);
+
+  const currentMoonDegree1to30 = oracleData.moonDegreeForDay + 1;
+  const currentMoonModalityName = currentMoonDegree1to30 <= 10 
+    ? "Ação" 
+    : currentMoonDegree1to30 <= 20 
+      ? "Maturação" 
+      : "Conclusão";
 
   return (
     <>
