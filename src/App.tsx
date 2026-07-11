@@ -91,6 +91,23 @@ import {
   Area
 } from 'recharts';
 import axios from 'axios';
+
+const isNative = window.location.origin.startsWith('capacitor://') || 
+                 window.location.origin.startsWith('ionic://') || 
+                 window.location.protocol === 'file:';
+
+const buildTimeAppUrl = (process.env.APP_URL || 'https://ais-pre-757guj3wwj6obi7t5znwrf-410434177490.us-east1.run.app').replace(/\/$/, '');
+
+if (isNative && buildTimeAppUrl) {
+  axios.defaults.baseURL = buildTimeAppUrl;
+}
+
+const getApiUrl = (path: string): string => {
+  if (isNative && buildTimeAppUrl) {
+    return `${buildTimeAppUrl}${path}`;
+  }
+  return path;
+};
 import { EMOTIONS, ZODIAC_SIGNS, LUNAR_PHASES, CATEGORIES, PHILOSOPHICAL_QUOTES, ZODIAC_PHRASES } from './constants';
 import { auth, db, signInWithGoogle, logout, subscribeToAuthChanges } from './firebase';
 import { 
@@ -1060,7 +1077,7 @@ export default function App() {
     try {
       console.log(`Gerando relatório ${period} com Gemini...`);
 
-      const response = await fetch("/api/reports", {
+      const response = await fetch(getApiUrl("/api/reports"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1310,7 +1327,7 @@ export default function App() {
     if (!currentUser) return;
     setIsProcessingPayment(true);
     try {
-      const response = await fetch("/api/checkout", {
+      const response = await fetch(getApiUrl("/api/checkout"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: currentUser.uid, planId: "HEKAT_FULL_PASS" }),
@@ -1439,7 +1456,7 @@ export default function App() {
       try {
         console.log("Invocando Oráculo Gemini...");
 
-        const response = await fetch("/api/oracle", {
+        const response = await fetch(getApiUrl("/api/oracle"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
