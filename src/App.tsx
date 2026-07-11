@@ -503,7 +503,7 @@ const getLunarData = (date: Date = new Date()) => {
   const startDayLocal = new Date(cycleStartDate.getUTCFullYear(), cycleStartDate.getUTCMonth(), cycleStartDate.getUTCDate(), 12, 0, 0);
   const nowDayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
   const localDiffDays = Math.round((nowDayLocal.getTime() - startDayLocal.getTime()) / (1000 * 60 * 60 * 24));
-  const mandalaDay = isNaN(localDiffDays) ? 1 : Math.min(28, Math.max(1, localDiffDays + 1));
+  const mandalaDay = isNaN(localDiffDays) ? 1 : Math.min(29, Math.max(1, localDiffDays + 1));
   
   const formatDate = (d: Date) => {
     if (!d || isNaN(d.getTime())) return "01/01";
@@ -519,14 +519,14 @@ const getLunarData = (date: Date = new Date()) => {
     cycleRange: `${formatDate(cycleStartDate)} a ${formatDate(cycleEndDate)}`,
     getSignForDay: (day: number) => {
       const safeDay = isNaN(day) ? 1 : day;
-      const ageForDay = ((safeDay - 1) / 28) * LUNAR_MONTH;
+      const ageForDay = ((safeDay - 1) / 29) * LUNAR_MONTH;
       const dateForDay = new Date(cycleStartDate.getTime() + ageForDay * 24 * 60 * 60 * 1000);
       const resVal = Math.floor(getMoonSignFloat(dateForDay)) % 12;
       return isNaN(resVal) ? 0 : resVal;
     },
     getMoonSignFloatForDay: (day: number) => {
       const safeDay = isNaN(day) ? 1 : day;
-      const ageForDay = ((safeDay - 1) / 28) * LUNAR_MONTH;
+      const ageForDay = ((safeDay - 1) / 29) * LUNAR_MONTH;
       const dateForDay = new Date(cycleStartDate.getTime() + ageForDay * 24 * 60 * 60 * 1000);
       const resVal = getMoonSignFloat(dateForDay);
       return isNaN(resVal) ? 0 : resVal;
@@ -564,14 +564,14 @@ interface WindowData {
   pos: { x: number, y: number };
 }
 
-const MiniMandala = ({ logs, lunarData, size = 180, isNight = true, solarOffset = 0, angleStep = (2 * Math.PI) / 28 }: { logs: Record<number, LogEntry>, lunarData: any, size?: number, isNight?: boolean, solarOffset?: number, angleStep?: number }) => {
+const MiniMandala = ({ logs, lunarData, size = 180, isNight = true, solarOffset = 0, angleStep = (2 * Math.PI) / 29 }: { logs: Record<number, LogEntry>, lunarData: any, size?: number, isNight?: boolean, solarOffset?: number, angleStep?: number }) => {
   const radius = (size / 350) * 140;
   const centerX = size / 2;
   const centerY = size / 2;
   
   const renderSegments = () => {
     const localSegments = [];
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < 29; i++) {
       const dayNum = i + 1;
       const startAngle = Math.PI - (i * angleStep) - solarOffset;
       const endAngle = Math.PI - ((i + 1) * angleStep) - solarOffset;
@@ -1484,7 +1484,7 @@ export default function App() {
   const [topZ, setTopZ] = useState(100);
 
   // Constants for geometry
-  const angleStep = (2 * Math.PI) / 28;
+  const angleStep = (2 * Math.PI) / 29;
   const zodAngleStep = (2 * Math.PI) / 12;
   const solarOffset = (lunarData.sunSignFloat) * zodAngleStep;
 
@@ -1553,7 +1553,7 @@ export default function App() {
   }, [currentUser, isAuthLoading]);
 
   const chartData = useMemo(() => {
-    return Array.from({ length: 28 }, (_, i) => {
+    return Array.from({ length: 29 }, (_, i) => {
       const day = i + 1;
       const log = logs[day];
       return {
@@ -1802,7 +1802,7 @@ export default function App() {
       );
     }
 
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < 29; i++) {
       const dayNum = i + 1;
       const startAngle = Math.PI - (i * angleStep) - solarOffset;
       const endAngle = Math.PI - ((i + 1) * angleStep) - solarOffset;
@@ -2244,7 +2244,7 @@ export default function App() {
                         <button onClick={() => setSelectedDay(p => Math.max(1, p-1))} className="p-1.5 bg-indigo-600 rounded-lg text-white shadow-md shadow-indigo-200/25 hover:bg-indigo-500 transition-colors active:scale-95">
                           <ChevronLeft size={14} />
                         </button>
-                        <button onClick={() => setSelectedDay(p => Math.min(28, p+1))} className="p-1.5 bg-indigo-600 rounded-lg text-white shadow-md shadow-indigo-200/25 hover:bg-indigo-500 transition-colors active:scale-95">
+                        <button onClick={() => setSelectedDay(p => Math.min(29, p+1))} className="p-1.5 bg-indigo-600 rounded-lg text-white shadow-md shadow-indigo-200/25 hover:bg-indigo-500 transition-colors active:scale-95">
                           <ChevronRight size={14} />
                         </button>
                       </div>
@@ -2451,10 +2451,10 @@ export default function App() {
                 <div className="bg-indigo-950/20 p-6 rounded-[2.5rem] border border-white/5 transition-all duration-1000">
                   <div className="flex items-center gap-2 mb-6">
                     <History size={16} className="text-[#4169E1]" />
-                    <h3 className="text-[10px] font-black uppercase text-[#4169E1] tracking-[0.2em]">Trilogia de Memória: Ciclos 1, 2 e 3</h3>
+                    <h3 className="text-[10px] font-black uppercase text-[#4169E1] tracking-[0.2em]">Jornada de Memória: Ciclos 1 a 6</h3>
                   </div>
                   <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                    {[1, 2, 3].map(cycleId => {
+                    {[1, 2, 3, 4, 5, 6].map(cycleId => {
                       const cycleLogs: Record<number, LogEntry> = {};
                       allLogs.filter(l => l.cycleId === cycleId).forEach(l => cycleLogs[l.lunarDay] = l);
                       const hasData = Object.keys(cycleLogs).length > 0;
@@ -2468,39 +2468,31 @@ export default function App() {
                       return (
                         <button 
                           key={`trilogy-${cycleId}`}
-                          onClick={() => hasData && setViewingCycleId(cycleId)}
+                          onClick={() => setViewingCycleId(cycleId)}
                           className={`relative p-3 rounded-[2rem] border transition-all duration-700 flex flex-col items-center gap-3 overflow-hidden
                             ${viewingCycleId === cycleId 
                               ? 'bg-gradient-to-b from-indigo-500/20 to-transparent border-indigo-500 shadow-[0_20px_40px_rgba(79,70,229,0.2)] scale-105 z-10' 
-                              : hasData 
-                                ? 'bg-white/5 border-white/10 hover:bg-white/10 hover:scale-[1.02]' 
-                                : 'bg-transparent border-dashed border-white/5 opacity-25 grayscale cursor-not-allowed'
+                              : 'bg-white/5 border-white/10 hover:bg-white/10 hover:scale-[1.02]'
                             }`}
                         >
                           <div className="flex items-center justify-between w-full px-1">
                             <span className="text-[8px] font-black text-white/40 uppercase">
                               {`Ciclo ${cycleId}`}
                             </span>
-                            {hasData && viewingCycleId === cycleId && <Activity size={8} className="text-emerald-400" />}
+                            {viewingCycleId === cycleId && <Activity size={8} className="text-emerald-400" />}
                           </div>
                           <div className="pointer-events-none transform scale-[0.6] sm:scale-[0.55] origin-top h-[60px] flex items-center justify-center">
-                             {hasData ? (
-                               <MiniMandala logs={cycleLogs} lunarData={{ day: 28 }} size={140} solarOffset={cycleSolarOffset} />
-                             ) : (
-                               <div className="w-12 h-12 border border-dashed border-white/20 rounded-full flex items-center justify-center">
-                                 <Plus size={12} className="text-white/10" />
-                                </div>
-                             )}
+                             <MiniMandala logs={cycleLogs} lunarData={{ day: 29 }} size={140} solarOffset={cycleSolarOffset} />
                           </div>
                           <span className={`text-[7px] font-black uppercase tracking-tighter mt-1 ${viewingCycleId === cycleId ? 'text-indigo-200' : 'text-indigo-300/40'}`}>
-                            {hasData ? (viewingCycleId === cycleId ? 'Ciclo Focado' : 'Ver Ciclo') : 'Sem Dados'}
+                            {viewingCycleId === cycleId ? 'Ciclo Focado' : hasData ? 'Ver Ciclo' : 'Ciclo Vazio'}
                           </span>
                         </button>
                       );
                     })}
                   </div>
                   <div className="flex items-center justify-center mt-4">
-                     <p className="text-[7px] font-black uppercase text-indigo-300/40 tracking-[0.3em]">Navegue pela jornada das três primeiras luas</p>
+                     <p className="text-[7px] font-black uppercase text-indigo-300/40 tracking-[0.3em]">Navegue pela jornada dos ciclos de 1 a 6</p>
                   </div>
                 </div>
 
@@ -2683,7 +2675,7 @@ export default function App() {
                     <h3 className="text-lg font-black uppercase tracking-widest text-[#4169E1] border-b-2 border-indigo-500/20 pb-1">aprendendo o caminho da lua</h3>
                   </div>
                   <p className="text-[16px] leading-relaxed text-indigo-300 font-black italic text-justify">
-                    "Há um padrão de respostas emocionais que seguimos sem nos aperceber dele. É um 'Plano Piloto Emocional' que atua diretamente do inconsciente, mas podemos identificar e o reconhecer pelo ciclo lunar de 28 dias."
+                    "Há um padrão de respostas emocionais que seguimos sem nos aperceber dele. É um 'Plano Piloto Emocional' que atua diretamente do inconsciente, mas podemos identificar e o reconhecer pelo ciclo lunar de 29 dias."
                   </p>
                   <div className="bg-indigo-900/10 p-6 rounded-[2.5rem] border border-indigo-400/10 space-y-5 text-justify">
                     <p className="text-sm leading-relaxed text-indigo-100/80 font-medium">
@@ -2726,7 +2718,7 @@ export default function App() {
                         <div className="p-2.5 bg-indigo-500/10 rounded-xl h-fit"><RotateCw size={16} className="text-indigo-300" /></div>
                         <div>
                           <h4 className="text-[11px] font-black uppercase text-indigo-100 tracking-widest">Análise Mensal (Mandala)</h4>
-                          <p className="text-xs text-indigo-100/80 font-medium leading-normal mt-1 small-caps">O Ciclo Completo: revelação do padrão formado pela soma dos 28 dias em ressonância com as fases lunares.</p>
+                          <p className="text-xs text-indigo-100/80 font-medium leading-normal mt-1 small-caps">O Ciclo Completo: revelação do padrão formado pela soma dos 29 dias em ressonância com as fases lunares.</p>
                         </div>
                       </div>
                       <div className="flex gap-4 p-4 bg-indigo-950/20 rounded-3xl border border-indigo-400/10">

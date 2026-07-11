@@ -2,5 +2,10 @@
 	"appId": "com.ciadoceu.hekat",
 	"appName": "Hekat Astromemorias",
 	"webDir": "dist",
+	"server": {
+		"hostname": "hekat-astromemorias-app-store.vercel.app",
+		"androidScheme": "https",
+		"iosScheme": "https"
+	},
 	"packageClassList": []
 }
