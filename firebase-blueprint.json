@@ -39,6 +39,18 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "Data do envio." }
       },
       "required": ["userId", "message", "createdAt"]
+    },
+    "Report": {
+      "title": "Relatório Astrológico",
+      "description": "Relatórios periódicos gerados pelo Oráculo Hekat (semanal, mensal, trimestral ou correlação).",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "O texto do relatório astrológico do Oráculo." },
+        "logs": { "type": "object", "description": "Logs da mandala no momento do relatório." },
+        "meta": { "type": "object", "description": "Metadados (solarOffset, lunarData) no momento da geração." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Data de atualização do relatório." }
+      },
+      "required": ["text", "logs", "meta", "updatedAt"]
     }
   },
   "firestore": {
@@ -49,6 +61,10 @@
     "/users/{userId}/logs/{logId}": {
       "schema": "Log",
       "description": "Histórico de registros emocionais do usuário."
+    },
+    "/users/{userId}/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Relatórios astrológicos periódicos (weekly, monthly, quarterly, correlation) salvos."
     },
     "/feedback/{feedbackId}": {
       "schema": "Feedback",

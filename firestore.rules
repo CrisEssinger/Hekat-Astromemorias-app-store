@@ -71,6 +71,26 @@ service cloud.firestore {
       allow delete: if isOwner(userId);
     }
 
+    // Regras para os relatórios astrológicos
+    match /users/{userId}/reports/{reportId} {
+      allow read: if isOwner(userId);
+      
+      function isValidReport(data) {
+        return (data.text is string && data.text.size() <= 200000)
+          && (data.logs is map)
+          && (data.meta is map)
+          && (data.updatedAt == request.time);
+      }
+
+      allow create, update: if isOwner(userId)
+        && isValidId(reportId)
+        && isValidReport(request.resource.data)
+        && request.resource.data.keys().hasAll(['text', 'logs', 'meta', 'updatedAt'])
+        && request.resource.data.keys().size() == 4;
+
+      allow delete: if isOwner(userId);
+    }
+
     // Regras para feedbacks globais
     match /feedback/{feedbackId} {
       allow create: if isSignedIn()

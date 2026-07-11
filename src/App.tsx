@@ -963,35 +963,88 @@ export default function App() {
   const generateReport = async (period: 'weekly' | 'monthly' | 'quarterly' | 'correlation') => {
     setIsReportLoading(period);
     
-    // Preparar dados atuais para o Gemini
+    // Helper para obter a data correta de cada log
+    const getLogDate = (log: LogEntry): Date => {
+      if (log.timestamp?.toDate) return log.timestamp.toDate();
+      if (log.timestamp instanceof Date) return log.timestamp;
+      if (typeof log.timestamp === 'string' || typeof log.timestamp === 'number') return new Date(log.timestamp);
+      return new Date();
+    };
+
+    // Preparar dados atuais para o Gemini filtrando adequadamente por período
     let logData = "";
     if (period === 'weekly') {
       const nowTime = now.getTime();
       const sevenDaysAgoMs = nowTime - (7 * 24 * 60 * 60 * 1000);
       
       const weeklyLogs = allLogs.filter(log => {
-        const logDate = log.timestamp?.toDate?.() || (log.timestamp instanceof Date ? log.timestamp : (typeof log.timestamp === 'string' || typeof log.timestamp === 'number' ? new Date(log.timestamp) : new Date()));
+        const logDate = getLogDate(log);
         return logDate.getTime() >= sevenDaysAgoMs && logDate.getTime() <= nowTime;
       });
 
       const finalWeeklyLogs = weeklyLogs.length > 0 
         ? weeklyLogs 
-        : [...allLogs].sort((a, b) => {
-            const ad = a.timestamp?.toDate?.() || new Date();
-            const bd = b.timestamp?.toDate?.() || new Date();
-            return bd.getTime() - ad.getTime();
-          }).slice(0, 7).reverse();
+        : [...allLogs].sort((a, b) => getLogDate(b).getTime() - getLogDate(a).getTime()).slice(0, 7).reverse();
 
       logData = finalWeeklyLogs.map(log => {
         const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || 'Neutro';
-        const logDate = log.timestamp?.toDate?.() || (log.timestamp instanceof Date ? log.timestamp : new Date());
-        const dateStr = logDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        const dateStr = getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Notas: "${log.note}"` : ''}`;
+      }).join('\n');
+    } else if (period === 'monthly') {
+      const nowTime = now.getTime();
+      const twentyNineDaysAgoMs = nowTime - (29 * 24 * 60 * 60 * 1000);
+      
+      const monthlyLogs = allLogs.filter(log => {
+        const logDate = getLogDate(log);
+        return logDate.getTime() >= twentyNineDaysAgoMs && logDate.getTime() <= nowTime;
+      });
+
+      const finalMonthlyLogs = monthlyLogs.length > 0 
+        ? monthlyLogs 
+        : [...allLogs].sort((a, b) => getLogDate(b).getTime() - getLogDate(a).getTime()).slice(0, 29).reverse();
+
+      logData = finalMonthlyLogs.map(log => {
+        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || 'Neutro';
+        const dateStr = getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Notas: "${log.note}"` : ''}`;
+      }).join('\n');
+    } else if (period === 'quarterly') {
+      const nowTime = now.getTime();
+      const ninetyDaysAgoMs = nowTime - (90 * 24 * 60 * 60 * 1000);
+      
+      const quarterlyLogs = allLogs.filter(log => {
+        const logDate = getLogDate(log);
+        return logDate.getTime() >= ninetyDaysAgoMs && logDate.getTime() <= nowTime;
+      });
+
+      const finalQuarterlyLogs = quarterlyLogs.length > 0 
+        ? quarterlyLogs 
+        : [...allLogs].sort((a, b) => getLogDate(b).getTime() - getLogDate(a).getTime()).slice(0, 90).reverse();
+
+      logData = finalQuarterlyLogs.map(log => {
+        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || 'Neutro';
+        const dateStr = getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
         return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Notas: "${log.note}"` : ''}`;
       }).join('\n');
     } else {
-      logData = (Object.entries(logs) as [string, LogEntry][]).map(([day, log]) => {
-        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name;
-        return `Dia ${day}: ${emotion} (Intensidade ${log.intensity}${log.note ? `, Nota: ${log.note}` : ''})`;
+      // correlation: use last 3 cycles of 29 days (87 days)
+      const nowTime = now.getTime();
+      const eightySevenDaysAgoMs = nowTime - (87 * 24 * 60 * 60 * 1000);
+      
+      const correlationLogs = allLogs.filter(log => {
+        const logDate = getLogDate(log);
+        return logDate.getTime() >= eightySevenDaysAgoMs && logDate.getTime() <= nowTime;
+      });
+
+      const finalCorrelationLogs = correlationLogs.length > 0 
+        ? correlationLogs 
+        : [...allLogs].sort((a, b) => getLogDate(b).getTime() - getLogDate(a).getTime()).slice(0, 87).reverse();
+
+      logData = finalCorrelationLogs.map(log => {
+        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || 'Neutro';
+        const dateStr = getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Notas: "${log.note}"` : ''}`;
       }).join('\n');
     }
 
@@ -1002,20 +1055,13 @@ export default function App() {
       .map(log => `Ciclo ${log.cycleId}, Dia ${log.lunarDay}: ${EMOTIONS.find(e => e.id === log.emotionId)?.name} (${log.intensity})${log.note ? ` - Nota: ${log.note}` : ''}`)
       .join('\n');
 
-    // Agrupar todos os logs (atuais + anteriores) por fase lunar para correlação de padrões através das mandalas sucessivas
-    const currentLogList = (Object.entries(logs) as [string, LogEntry][]).map(([day, log]) => ({
-      ...log,
-      lunarDay: parseInt(day),
-    }));
-    const combinedLogs = [...allLogs.filter(l => l.cycleId !== lunarData.cycleId), ...currentLogList];
-    
     const getPhaseName = (day: number) => {
       const ph = LUNAR_PHASES.slice().reverse().find(p => day >= p.startDay) || LUNAR_PHASES[0];
       return ph.name;
     };
 
     const phaseGroups: Record<string, Record<string, number>> = {};
-    combinedLogs.forEach(l => {
+    allLogs.forEach(l => {
       const phaseName = getPhaseName(l.lunarDay);
       const emotionName = EMOTIONS.find(e => e.id === l.emotionId)?.name || 'Outro';
       if (!phaseGroups[phaseName]) {
@@ -1098,14 +1144,28 @@ export default function App() {
       const text = data.text;
       
       console.log(`Relatório ${period} recebido:`, text);
-      setReports(prev => ({ 
-        ...prev, 
-        [period]: { 
-          text: text || "Os astros não revelaram nada hoje.",
-          logs: { ...logs }, // Captura o estado atual da mandala
-          meta: { solarOffset, lunarData: { ...lunarData } } // Captura metadados para renderização histórica
-        } 
-      }));
+      setReports(prev => {
+        const updated = { 
+          ...prev, 
+          [period]: { 
+            text: text || "Os astros não revelaram nada hoje.",
+            logs: { ...logs },
+            meta: { solarOffset, lunarData: { ...lunarData } }
+          } 
+        };
+
+        if (currentUser && db) {
+          const reportDocRef = doc(db, 'users', currentUser.uid, 'reports', period);
+          setDoc(reportDocRef, {
+            text: text || "Os astros não revelaram nada hoje.",
+            logs: { ...logs },
+            meta: { solarOffset, lunarData: { ...lunarData } },
+            updatedAt: serverTimestamp()
+          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
+        }
+
+        return updated;
+      });
     } catch (error: any) {
       console.error(`Erro ao gerar relatório ${period}:`, error);
       
@@ -1113,14 +1173,28 @@ export default function App() {
       const formattedName = rawName ? rawName.trim() : '';
       const fallbackText = getClientFallbackReport(period, logData, formattedName);
       
-      setReports(prev => ({ 
-        ...prev, 
-        [period]: { 
-          text: fallbackText,
-          logs: { ...logs }, // Captura o estado atual da mandala mesmo se no fallback
-          meta: { solarOffset, lunarData: { ...lunarData } } // Captura metadados para renderização histórica mesmo no fallback
-        } 
-      }));
+      setReports(prev => {
+        const updated = { 
+          ...prev, 
+          [period]: { 
+            text: fallbackText,
+            logs: { ...logs },
+            meta: { solarOffset, lunarData: { ...lunarData } }
+          } 
+        };
+
+        if (currentUser && db) {
+          const reportDocRef = doc(db, 'users', currentUser.uid, 'reports', period);
+          setDoc(reportDocRef, {
+            text: fallbackText,
+            logs: { ...logs },
+            meta: { solarOffset, lunarData: { ...lunarData } },
+            updatedAt: serverTimestamp()
+          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
+        }
+
+        return updated;
+      });
     } finally {
       setIsReportLoading(null);
     }
@@ -1420,6 +1494,47 @@ export default function App() {
     });
     return () => unsubscribe();
   }, [currentUser, lunarData.cycleId]);
+
+  // Sync Reports with Firebase
+  useEffect(() => {
+    if (!currentUser) { 
+      setReports({ 
+        weekly: { text: null, logs: null, meta: null }, 
+        monthly: { text: null, logs: null, meta: null }, 
+        quarterly: { text: null, logs: null, meta: null },
+        correlation: { text: null, logs: null, meta: null }
+      }); 
+      return; 
+    }
+    if (!db) {
+      console.warn("Hekat: Firestore is not initialized for reports.");
+      return;
+    }
+    const reportsRef = collection(db, 'users', currentUser.uid, 'reports');
+    const unsubscribe = onSnapshot(reportsRef, (snapshot) => {
+      const updatedReports: any = {
+        weekly: { text: null, logs: null, meta: null }, 
+        monthly: { text: null, logs: null, meta: null }, 
+        quarterly: { text: null, logs: null, meta: null },
+        correlation: { text: null, logs: null, meta: null }
+      };
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const periodId = doc.id as 'weekly' | 'monthly' | 'quarterly' | 'correlation';
+        if (updatedReports[periodId]) {
+          updatedReports[periodId] = {
+            text: data.text || null,
+            logs: data.logs || null,
+            meta: data.meta || null
+          };
+        }
+      });
+      setReports(updatedReports);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${currentUser.uid}/reports`);
+    });
+    return () => unsubscribe();
+  }, [currentUser]);
 
   // Oracle Fetch Logic with Ref Caching and Robust Error Detection
   useEffect(() => {
