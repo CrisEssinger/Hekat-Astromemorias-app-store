@@ -49,6 +49,7 @@ export const EMOTIONS = [
   { id: 'saudade', name: 'Saudade', color: '#98FB98', icon: 'History', category: 'Calma & Reflexão' }, // PaleGreen
   { id: 'solitude', name: 'Solitude', color: '#5F9EA0', icon: 'User', category: 'Calma & Reflexão' }, // CadetBlue
   { id: 'surprise', name: 'Surpresa', color: '#00CED1', icon: 'Gift', category: 'Calma & Reflexão' }, // DarkTurquoise
+  { id: 'organizacao', name: 'Organização', color: '#10B981', icon: 'LayoutGrid', category: 'Calma & Reflexão' },
 
   // Tensão & Desafios - Tons Graduados do Lilás ao Roxo e Índigo Profundos
   { id: 'anxiety', name: 'Ansiedade', color: '#9932CC', icon: 'AlertCircle', category: 'Tensão & Desafios' }, // DarkOrchid
