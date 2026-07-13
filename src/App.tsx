@@ -749,6 +749,21 @@ const getClientFallbackOracle = (
   return finalMain;
 };
 
+// Helper to serialize lunarData without function properties for Firestore and local consistency
+const serializeLunarData = (data: any) => {
+  if (!data) return null;
+  return {
+    day: typeof data.day === 'number' ? data.day : 1,
+    cycleId: typeof data.cycleId === 'number' ? data.cycleId : 1,
+    illumination: typeof data.illumination === 'number' ? data.illumination : 0,
+    cycleRange: typeof data.cycleRange === 'string' ? data.cycleRange : "",
+    moonSignFloat: typeof data.moonSignFloat === 'number' ? data.moonSignFloat : 0,
+    sunSignFloat: typeof data.sunSignFloat === 'number' ? data.sunSignFloat : 0,
+    sunSignIndex: typeof data.sunSignIndex === 'number' ? data.sunSignIndex : 0,
+    cycleName: typeof data.cycleName === 'string' ? data.cycleName : ""
+  };
+};
+
 const getClientFallbackReport = (
   period: string, 
   logData?: string, 
@@ -1150,7 +1165,7 @@ export default function App() {
           [period]: { 
             text: text || "Os astros não revelaram nada hoje.",
             logs: { ...logs },
-            meta: { solarOffset, lunarData: { ...lunarData } }
+            meta: { solarOffset, lunarData: serializeLunarData(lunarData) }
           } 
         };
 
@@ -1159,7 +1174,7 @@ export default function App() {
           setDoc(reportDocRef, {
             text: text || "Os astros não revelaram nada hoje.",
             logs: { ...logs },
-            meta: { solarOffset, lunarData: { ...lunarData } },
+            meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
             updatedAt: serverTimestamp()
           }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
         }
@@ -1179,7 +1194,7 @@ export default function App() {
           [period]: { 
             text: fallbackText,
             logs: { ...logs },
-            meta: { solarOffset, lunarData: { ...lunarData } }
+            meta: { solarOffset, lunarData: serializeLunarData(lunarData) }
           } 
         };
 
@@ -1188,7 +1203,7 @@ export default function App() {
           setDoc(reportDocRef, {
             text: fallbackText,
             logs: { ...logs },
-            meta: { solarOffset, lunarData: { ...lunarData } },
+            meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
             updatedAt: serverTimestamp()
           }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
         }
