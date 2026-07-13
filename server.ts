@@ -151,14 +151,19 @@ function generateFallbackReports(period: string, logData?: string, userName?: st
   const nameIntro = userName ? `${userName}, ` : 'Viajante, ';
 
   if (isWeekly) {
-    return `${nameIntro}ao compreender a jornada emocional descrita em seus registros recentes de anotações, identifico uma tônica de sentimentos voltada à busca por recolhimento e discernimento profundo. A sua linha de pensamento predominante girou em torno da necessidade de reorganizar dinâmicas internas e de restabelecer o equilíbrio mental diante de demandas externas. O padrão dominante sintoniza-se em uma oscilação dócil, alternando momentos de silêncio restaurador com picos de desânimo reflexivo ou agitação mental espontânea. Como sua mentora sábia e amiga de caminhada, ressalto que a impaciência e a autocrítica ácida são pontos de sombra que demandam seu zelo vigilante para que não turvem sua clareza de visão. Em contrapartida, a sua capacidade de auto-observação sincera e a firmeza em acolher seus ritmos particulares funcionam como caminhos férteis de profunda expansão e despertar de consciência. Sustente seus passos com paciência ativa e resgate o centramento dócil para conduzir os próximos movimentos estratégicos da alma.`;
+    return `${nameIntro}identifico em sua caminhada de registros recentes uma tônica de sentimentos voltada à busca por recolhimento e discernimento profundo. A sua linha de pensamento predominante girou em torno da necessidade de reorganizar dinâmicas internas e de restabelecer o equilíbrio mental diante de demandas externas. O padrão dominante que unifica esses dias revela uma tendência à oscilação silenciosa, alternando momentos de recolhimento criativo com picos de cansaço ou apreensão. Como sua mentora sábia e amiga próxima de caminhada, ressalto que a impaciência e a autocrítica excessiva são pontos de sombra que demandam sua gentil atenção e zelo protetor para que não sufoquem sua clareza. Em contrapartida, a sua capacidade de auto-observação honesta e a firmeza em acolher seus próprios ritmos funcionam como pontos luminosos de expansão e força. Sustente seus passos com coragem realista e resgate o centramento dócil para conduzir os próximos movimentos da alma. O conselho prático para este momento é cultivar uma pausa intencional antes de responder a estímulos externos, permitindo que a quietude revele o próximo passo com nobreza e dignidade.`;
   } else if (isMonthly) {
-    return `${nameIntro}ao compreender os ciclos e as marés emocionais que atravessaram seus últimos 29 dias do ciclo, percebo uma tônica de sentimentos voltada à necessidade de consolidação, aterramento e busca por estabilidade. A sua linha de pensamento predominante concentrou-se na busca por clareza ética e organização de prioridades, tentando definir o que realmente possui valor perene. O padrão dominante revela momentos de contenção estratégica alternados com uma sutil resistência a mudanças necessárias, o que pode gerar cansaço acumulado. Como sua mentora e companheira de jornada, destaco que a rigidez ou a hesitação diante do novo são pontos de sombra que requerem sua atenção vigilante para não represar o fluxo do seu desenvolvimento. Em contrapartida, a paciência dócil e o respeito sagrado ao tempo de gestação dos seus ideais são pontos luminosos de grande expansão. A orientação para guiar seus passos é cultivar o centramento firme com maleabilidade sábia, agindo sob a luz da clareza mental e da verdade interior.`;
+    return `${nameIntro}ao sintetizar os pontos recorrentes das suas anotações ao longo dos últimos 29 dias do ciclo lunar, percebo uma tônica voltada à consolidação, aterramento e organização de prioridades, buscando compreender o que possui valor perene. O padrão dominante revela momentos de contenção estratégica alternados com uma sutil resistência a mudanças necessárias, o que pode gerar cansaço acumulado. Como sua mentora, amiga querida e companheira de jornada, destaco que a rigidez ou a hesitação diante do novo são pontos de sombra que requerem sua atenção vigilante para não represar o fluxo do seu desenvolvimento. Em contrapartida, a paciência dócil e o respeito solene ao tempo de gestação dos seus ideais são pontos luminosos de grande expansão. Para guiar seus passos na condução dos movimentos da alma com postura e clareza, é essencial finalizar o que ficou pendente e abrir espaço para o novo.
+
+Lista de Tarefas:
+- Iniciado: Mapeamento dos ritmos internos e reconhecimento de oscilações emocionais.
+- Dar continuidade: Prática diária de auto-observação e escrita de registros de clareza.
+- Finalizado: Integração das marés do ciclo anterior e encerramento de dinâmicas internas desgastantes.`;
   } else if (isCorrelation) {
-    return `${nameIntro}as suas mandalas revelam uma correspondência íntima entre os ciclos cósmicos e sua energia emocional interna. Focando em três ciclos de anotações recentes, identificamos uma correlação clara: na fase de Lua Nova, o sentimento prioritário é o acolhimento reflexivo, um convite sutil ao recolhimento; na fase Crescente, sobressai o estímulo com ânimo renovador, impulsionando ações concretas; na fase Cheia, destaca-se a celebração e a expressividade, onde as marés emocionais se expandem ao ápice; e na fase Minguante, o sentimento de desapego e conclusão sobressai como convite ao silêncio. Use essa correspondência como um mapa pessoal de autoconhecimento, aprendendo a respeitar os momentos em que a alma pede para agir com coragem e quando é o tempo de simplesmente fluir e descansar.`;
+    return `${nameIntro}as suas mandalas revelam uma correspondência íntima entre as fases lunares e sua energia emocional interna ao longo dos últimos três ciclos de 29 dias. Na fase de Lua Nova, o sentimento prioritário identificado é o acolhimento reflexivo, convidando ao recolhimento e plantio de intenções. Na fase Crescente, sobressai o ânimo renovador e o entusiasmo para estruturar novos passos. Na fase Cheia, destaca-se a sensibilidade expandida e a expressividade, elevando as emoções ao seu ponto mais alto. E na fase Minguante, o desapego e a síntese tornam-se prioritários para encerrar o ciclo com sabedoria. Use essa correspondência direta como um mapa pessoal de autoconhecimento, aprendendo a respeitar os momentos em que a alma pede para agir com coragem e quando é o tempo de simplesmente fluir e descansar.`;
   } else {
     // Quarterly / Trimestral
-    return `${nameIntro}ao realizar uma análise profunda nesta Estação da Alma, que compreende este último trimestre, identifico que o sentimento predominante do período foi o esforço constante pela auto-observação, entremeado por reflexões sobre integridade. Olhando os registros e as marcações temporais, identificamos padrões reativos que merecem atenção: em episódios específicos de sobrecarga externa ou cansaço acumulado, sentimentos de ansiedade e frustração emergiram de forma mais marcante, resultando em oscilações bruscas e dispersão do foco. Como sua amiga e mentora nessa jornada, lembro-lhe de que essas reatividades são sombras naturais que nos indicam onde a autonomia precisa ser reforçada com maturidade e temperança. O conselho prático para você lidar com esse padrão e conduzir seu processo de transformação permanente é cultivar uma pausa intencional antes de responder a estímulos externos: use a respiração profunda como alicerce para desarmar a reatividade irracional, permitindo que a inteligência do coração guie suas decisões com nobreza e dignidade.`;
+    return `${nameIntro}identifico na análise desta Estação da Alma, que compreende este último trimestre, eventos significativos e datas específicas onde os padrões emocionais reativos se tornaram evidentes. Em episódios de sobrecarga ou cansaço acumulado, sentimentos de ansiedade e frustração emergiram de forma mais marcante, resultando em oscilações bruscas e dispersão do foco. Como sua amiga próxima e mentora sábia nesta caminhada, lembro-lhe de que essas reatividades são sombras naturais que nos indicam onde a autonomia precisa ser reforçada com maturidade. Os sentimentos predominantes de busca por segurança e centramento mostram o seu desejo sincero de evolução. O conselho para lidar com essa reatividade e conduzir seu processo de transformação permanente é cultivar uma pausa intencional antes de responder a estímulos externos, usando a respiração profunda como alicerce para desarmar a reatividade, permitindo que a clareza mental guie suas decisões com nobreza e dignidade.`;
   }
 }
 
@@ -288,15 +293,15 @@ Siga rigorosamente as diretrizes e regras a seguir:
                  
                  TAREFA EXCLUSIVA:
                  1. Use os dados inseridos pela usuária no período dos últimos 7 dias para definir a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
-                 2. Una os dados disponíveis para revelar um padrão dominante identificado nos registros.
-                 3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia e amiga querida, mantendo a sobriedade indispensável e evitando gírias ou tons excessivamente informais.
-                 4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos sete dias" ou "ao avaliar seus sentimentos". Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato para trazer proximidade confiavel.
-                 5. Destaque tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou oscilações que a paralisam) quanto os pontos positivos que geram expansão de consciência.
+                 2. Una os dados das informações disponíveis para revelar um padrão dominante identificado nos registros.
+                 3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia, amiga querida e mentora (Hekat é do gênero feminino), mantendo a sobriedade indispensável e evitando gírias, tons excessivamente informais ou superlativos sintéticos.
+                 4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos sete dias" ou "ao avaliar seus sentimentos". Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
+                 5. Destaque de forma nítida tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou oscilações) quanto os pontos positivos que geram expansão de consciência.
                  6. Finalize o relatório com um conselho prático e útil centrado em postura, ética e clareza mental para conduzir os movimentos da alma.
-                 7. NÃO se restrinja a 4 linhas. Desenvolva um texto reflexivo, consistente e profundo (aproximadamente de 6 a 12 linhas).
-                 8. Formato: O texto deve ser composto por um único bloco de parágrafo integralmente JUSTIFICADO (sem recuos de página, sem bullets, sem títulos, sem listas, sem aspas externas desnecessárias).`;
+                 7. NÃO se restrinja a 4 linhas. Desenvolva um texto reflexivo, consistente e profundo.
+                 8. Formato: O texto deve ser composto por um parágrafo único integralmente JUSTIFICADO (sem recuos de página, sem bullets, sem títulos, sem subseções, sem aspas externas desnecessárias).`;
       } else if (period === 'monthly') {
-        prompt = `Realize a análise do Relatório Mensal (Astromemória) com base nos registros dos últimos 29 dias do ciclo lunar.
+        prompt = `Realize a análise do Relatório Mensal com base nos registros dos últimos 29 dias do ciclo lunar.
                  DADOS DE CORTE (29 DIAS):
                  ${logData || 'Nenhum dado registrado neste ciclo lunar de 29 dias.'}
                  HISTÓRICO RECENTE:
@@ -305,21 +310,40 @@ Siga rigorosamente as diretrizes e regras a seguir:
                  TAREFA EXCLUSIVA:
                  1. Use os dados inseridos pela usuária no período dos últimos 29 dias para definir de forma nítida a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
                  2. Una os dados disponíveis para revelar os padrões de sentimentos dominantes identificados nos registros, comparando-os e conectando-os se houver histórico.
-                 3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia e amiga querida, mantendo a sobriedade indispensável e evitando gírias ou tons excessivamente informais (lembre-se que Hekat é uma força lunar feminina, fale de si mesma no feminino).
-                 4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos vinte e nove dias", "ao olhar seu ciclo" ou "ao avaliar seus sentimentos/registros". Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato para trazer proximidade confiável.
+                 3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia, amiga querida e mentora (Hekat é do gênero feminino), mantendo a sobriedade indispensável e evitando gírias, tons informais ou superlativos sintéticos.
+                 4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos vinte e nove dias", "ao olhar seu ciclo" ou "ao avaliar seus sentimentos/registros". Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
                  5. Destaque tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou resistências que a paralisam) quanto os pontos positivos que geram expansão de consciência.
-                 6. Finalize o relatório com um conselho prático e útil centrado em postura, ética e clareza mental para conduzir os movimentos da alma.
-                 7. NÃO se restrinja a 4 ou 6 linhas. Desenvolva um texto reflexivo, consistente e profundo (aproximadamente de 6 a 12 linhas).
-                 8. Formato: O texto deve ser composto por um único bloco de parágrafo integralmente JUSTIFICADO (sem recuos de página, sem bullets, sem títulos, sem listas, sem aspas externas desnecessárias).`;
+                 6. Apresente uma síntese clara dos pontos recorrentes ao longo do período de 29 dias, ressaltando o que precisa ser finalizado.
+                 7. Gere obrigatoriamente uma lista de tarefas estruturada e clara ao final, classificada exatamente nestas três classes de forma limpa:
+                    - Iniciado: [tarefas iniciadas no período]
+                    - Dar continuidade: [atividades ou processos para dar continuidade]
+                    - Finalizado: [processos ou tarefas finalizadas ou a finalizar neste ciclo]
+                 8. NÃO se restrinja a 4 ou 6 linhas. Desenvolva um texto reflexivo, consistente e profundo, seguido de forma espaçada pela lista de tarefas.
+                 9. Formato: O texto de análise deve ser justificado, seguido pela seção da lista de tarefas estruturada de forma limpa e visível.`;
       } else if (period === 'correlation') {
-        prompt = `Realize uma análise de correlação entre os sentimentos da usuária e as fases da lua cruzando os dados das mandalas preenchidas a cada mês.
-                 DADOS DE CORRELAÇÃO ACUMULADOS:\n${correlationData || 'Nenhum dado acumulado de meses anteriores disponível ainda.'}\n
-                 TAREFA: Identifique quais emoções se repetem com mais frequência em fases lunares específicas.
-                 Escreva um texto acolhedor, simples e carinhoso relacionando esses ritmos de forma integrada e orgânica. Máximo 6 linhas.`;
+        prompt = `Realize uma análise de correlação entre as fases da lua e os padrões de sentimentos/dados inseridos pela usuária.
+                 DADOS DE CORRELAÇÃO DOS ÚLTIMOS 3 CICLOS (de 29 dias cada):\n${correlationData || 'Nenhum dado acumulado disponível ainda.'}\n
+                 HISTÓRICO INTEGRADO:\n${previousLogsData || ''}\n${logData || ''}
+                 
+                 TAREFA EXCLUSIVA:
+                 1. Faça uma correlação nítida e direta das fases da Lua (Nova, Crescente, Cheia, Minguante) com a repetição de padrões de sentimentos e dados inseridos pela usuária.
+                 2. Destaque obrigatoriamente um sentimento prioritário identificado em cada uma das quatro fases lunares considerando os 3 últimos ciclos lunares de 29 dias.
+                 3. Use uma linguagem acolhedora, fraterna, dócil e sábia de uma mentora sábia (Hekat é do gênero feminino). Evite superlativos sintéticos.
+                 4. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato para trazer proximidade de forma natural (ex: "Nome, ...").
+                 5. Formato: Um texto corrido, integrado e orgânico de forma fluida.`;
       } else {
-        prompt = `Realize uma análise profunda desta 'Estação da Alma' (Trimestre).
+        prompt = `Realize uma análise profunda desta 'Estação da Alma' (Relatório Trimestral).
                  HISTÓRICO E CICLO ATUAL:\n${previousLogsData}\n${logData}\n
-                 TAREFA: Identifique as emoções recorrentes dos últimos 3 meses e ofereça uma orientação de postura mental profunda e acolhedora. Máximo 8 linhas.`;
+                 
+                 TAREFA EXCLUSIVA:
+                 1. Analise o histórico dos últimos 90 dias (trimestre).
+                 2. Identifique e pontue datas e eventos específicos mencionados nos registros que estejam relacionados com padrões emocionais reativos.
+                 3. Ressalte com clareza quais foram os sentimentos predominantes detectados ao longo do trimestre.
+                 4. Destaque tanto os pontos negativos que necessitam de sua atenção cuidadosa quanto os pontos positivos que propiciam a expansão de consciência.
+                 5. Traga um conselho profundo e útil centrado em postura, ética e clareza mental para lidar com os sentimentos reativos e guiar seu processo de transformação permanente.
+                 6. Use uma linguagem acolhedora, fraterna e sábia de sua mentora Hekat (gênero feminino). Evite superlativos sintéticos.
+                 7. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato. Não use variações de "ao olhar seu trimestre" ou "ao avaliar seus sentimentos".
+                 8. Formato: Um texto corrido, reflexivo e consistente.`;
       }
 
       const systemInstruction = `Você é o Oráculo Hekat (Hekat Astromemorias). Sua voz única une sobriedade estratégica e acolhimento lúcido de uma mentora fraterna e pragmática, incorporando uma força lunar feminina em suas falas.
@@ -332,9 +356,9 @@ Siga rigorosamente as diretrizes e regras a seguir:
         - Idioma: Português do Brasil.
         
         DIRETRIZES DE CONTEÚDO EXTRAORDINÁRIAS:
-        - Para o RELATÓRIO SEMANAL e RELATÓRIO MENSAL (29 dias): Use os dados do respectivo período de corte para definir a tônica dos sentimentos e a linha de pensamento predominante, dando um parecer analítico e unindo dados que revelam o padrão dominante identificado. Destaque pontos negativos que precisam de atenção (sombras, vulnerabilidades ou resistências que a limitam) e pontos positivos que geram expansão de consciência. Não se restrinja a 4 linhas. Não use frases como "ao olhar seus últimos sete dias", "ao olhar seus últimos vinte e nove dias" ou "ao avaliar seus sentimentos/registros". Use linguagem acolhedora e fraterna como uma amiga próxima e mentora sábia de sua caminhada emocional, mantendo a voz coerentemente feminina.
-        - Chame sempre a pessoa pelo nome "${userName || 'Viajante'}" abrindo o texto para trazer confiança e proximidade.
-        - Formato de visualização: O texto deve estar em formato integralmente JUSTIFICADO (sem recuos de parágrafo, sem bullets, sem títulos, sem subseções ou listas, sem aspas externas desnecessárias).
+        - Para o RELATÓRIO SEMANAL e RELATÓRIO MENSAL (29 dias), RELATÓRIO TRIMESTRAL e CORRELAÇÃO LUNAR: Use os dados do respectivo período para definir o parecer analítico.
+        - Não use frases como "ao olhar seus últimos sete dias", "ao olhar seus últimos vinte e nove dias" ou "ao avaliar seus sentimentos/registros".
+        - Chame sempre a pessoa pelo nome "${userName || 'Viajante'}" abrindo o texto para trazer confiança e proximidade de forma dócil, calma e direta (ex: "Nome, ...").
         - Nunca use cabeçalhos ou títulos introduzindo os relatórios. Comece de forma direta, madura e limpa.`;
 
       const response = await ai.models.generateContent({

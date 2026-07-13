@@ -1086,7 +1086,6 @@ export default function App() {
       }
       phaseGroups[phaseName][emotionName] = (phaseGroups[phaseName][emotionName] || 0) + 1;
     });
-
     const correlationData = Object.entries(phaseGroups).map(([phaseName, emotionCounts]) => {
       const countsStr = Object.entries(emotionCounts)
         .map(([emo, count]) => `${emo}: ${count}x`)
@@ -1100,41 +1099,62 @@ export default function App() {
     let prompt = "";
     if (period === 'weekly') {
       prompt = `Realize a análise do Relatório Semanal com base nos registros dos últimos 7 dias.
-               DADOS DE CORTE (7 DIAS):
+               DADOS DE CORREÇÃO (7 DIAS):
                ${logData || 'Nenhum dado registrado nos últimos 7 dias.'}
                
                TAREFA EXCLUSIVA:
                1. Use os dados inseridos pela usuária no período dos últimos 7 dias para definir a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
-               2. Una os dados disponíveis para revelar um padrão dominante identificado nos registros.
-               3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia e amiga querida, mantendo a sobriedade indispensável e evitando gírias ou tons excessivamente informais.
-               4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos sete dias" ou "ao avaliar seus sentimentos". Comece o texto chamando a usuária pelo nome "${formattedName || 'Viajante'}" no início exato para trazer proximidade confiavel.
-               5. Destaque tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou oscilações que a paralisam) quanto os pontos positivos que geram expansão de consciência.
+               2. Una os dados das informações disponíveis para revelar um padrão dominante identificado nos registros.
+               3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia, amiga querida e mentora (Hekat é do gênero feminino), mantendo a sobriedade indispensável e evitando gírias, tons excessivamente informais ou superlativos sintéticos.
+               4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos sete dias" ou "ao avaliar seus sentimentos". Comece o texto chamando a usuária pelo nome "${formattedName || 'Viajante'}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
+               5. Destaque de forma nítida tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou oscilações) quanto os pontos positivos que geram expansão de consciência.
                6. Finalize o relatório com um conselho prático e útil centrado em postura, ética e clareza mental para conduzir os movimentos da alma.
-               7. NÃO se restrinja a 4 linhas. Desenvolva um texto reflexivo, consistente e profundo (aproximadamente de 6 a 12 linhas).
-               8. Formato: O texto deve ser composto por um único bloco de parágrafo integralmente JUSTIFICADO (sem recuos de página, sem bullets, sem títulos, sem listas, sem aspas externas desnecessárias).`;
+               7. NÃO se restrinja a 4 linhas. Desenvolva um texto reflexivo, consistente e profundo.
+               8. Formato: O texto deve ser composto por um parágrafo único integralmente JUSTIFICADO (sem recuos de página, sem bullets, sem títulos, sem subseções, sem aspas externas desnecessárias).`;
     } else if (period === 'monthly') {
-      prompt = `Realize a análise do Relatório Mensal (Astromemória) com base nos registros dos últimos 28 dias do ciclo lunar.
-               DADOS DE CORTE (28 DIAS):
-               ${logData || 'Nenhum dado registrado neste ciclo lunar de 28 dias.'}
+      prompt = `Realize a análise do Relatório Mensal com base nos registros dos últimos 29 dias do ciclo lunar.
+               DADOS DE CORTE (29 DIAS):
+               ${logData || 'Nenhum dado registrado neste ciclo lunar de 29 dias.'}
                HISTÓRICO RECENTE:
                ${previousLogsData || 'Primeiro ciclo registrado.'}
                
                TAREFA EXCLUSIVA:
-               1. Use os dados inseridos pela usuária no período dos últimos 28 dias para definir de forma nítida a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
+               1. Use os dados inseridos pela usuária no período dos últimos 29 dias para definir de forma nítida a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
                2. Una os dados disponíveis para revelar os padrões de sentimentos dominantes identificados nos registros, comparando-os e conectando-os se houver histórico.
-               3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia e amiga querida, mantendo a sobriedade indispensável e evitando gírias ou tons excessivamente informais (lembre-se que Hekat é uma força lunar feminina, fale de si mesma no feminino).
-               4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos vinte e oito dias", "ao olhar seu ciclo" ou "ao avaliar seus sentimentos/registros". Comece o texto chamando a usuária pelo nome "${formattedName || 'Viajante'}" no início exato para trazer proximidade confiável.
+               3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia, amiga querida e mentora (Hekat é do gênero feminino), mantendo a sobriedade indispensável e evitando gírias, tons informais ou superlativos sintéticos.
+               4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos vinte e nove dias", "ao olhar seu ciclo" ou "ao avaliar seus sentimentos/registros". Comece o texto chamando a usuária pelo nome "${formattedName || 'Viajante'}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
                5. Destaque tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou resistências que a paralisam) quanto os pontos positivos que geram expansão de consciência.
-               6. Finalize o relatório com um conselho prático e útil centrado em postura, ética e clareza mental para conduzir os movimentos da alma.
-               7. NÃO se restrinja a 4 ou 6 linhas. Desenvolva um texto reflexivo, consistente e profundo (aproximadamente de 6 a 12 linhas).
-               8. Formato: O texto deve ser composto por um único bloco de parágrafo integralmente JUSTIFICADO (sem recuos de página, sem bullets, sem títulos, sem listas, sem aspas externas desnecessárias).`;
+               6. Apresente uma síntese clara dos pontos recorrentes ao longo do período de 29 dias, ressaltando o que precisa ser finalizado.
+               7. Gere obrigatoriamente uma lista de tarefas estruturada e clara ao final, classificada exatamente nestas três classes de forma limpa:
+                  - Iniciado: [tarefas iniciadas no período]
+                  - Dar continuidade: [atividades ou processos para dar continuidade]
+                  - Finalizado: [processos ou tarefas finalizadas ou a finalizar neste ciclo]
+               8. NÃO se restrinja a 4 ou 6 linhas. Desenvolva um texto reflexivo, consistente e profundo, seguido de forma espaçada pela lista de tarefas.
+               9. Formato: O texto de análise deve ser justificado, seguido pela seção da lista de tarefas estruturada de forma limpa e visível.`;
     } else if (period === 'correlation') {
-      prompt = `Analise a correlação das fases da lua com as emoções da usuária com base nas mandalas mensais. Padrões acumulados:\n${correlationData}\nMáximo 6 linhas.`;
+      prompt = `Realize uma análise de correlação entre as fases da lua e os padrões de sentimentos/dados inseridos pela usuária.
+               DADOS DE CORRELAÇÃO DOS ÚLTIMOS 3 CICLOS (de 29 dias cada):\n${correlationData || 'Nenhum dado acumulado disponível ainda.'}\n
+               HISTÓRICO INTEGRADO:\n${previousLogsData || ''}\n${logData || ''}
+               
+               TAREFA EXCLUSIVA:
+               1. Faça uma correlação nítida e direta das fases da Lua (Nova, Crescente, Cheia, Minguante) com a repetição de padrões de sentimentos e dados inseridos pela usuária.
+               2. Destaque obrigatoriamente um sentimento prioritário identificado em cada uma das quatro fases lunares considerando os 3 últimos ciclos lunares de 29 dias.
+               3. Use uma linguagem acolhedora, fraterna, dócil e sábia de uma mentora sábia (Hekat é do gênero feminino). Evite superlativos sintéticos.
+               4. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${formattedName || 'Viajante'}" no início exato para trazer proximidade de forma natural (ex: "Nome, ...").
+               5. Formato: Um texto corrido, integrated e orgânico de forma fluida.`;
     } else {
-      prompt = `Realize uma análise profunda desta 'Estação da Alma' (Trimestre).
-                HISTÓRICO E CICLO ATUAL:\n${previousLogsData}\n${logData}\n
-                TAREFA: Identifique pontuações de estados emocionais que se repetem nos últimos 3 meses. 
-                Sintetize esses padrões recorrentes e ofereça uma bússola estratégica centrada em evolução pessoal. Máximo 8 linhas.`;
+      prompt = `Realize uma análise profunda desta 'Estação da Alma' (Relatório Trimestral).
+               HISTÓRICO E CICLO ATUAL:\n${previousLogsData}\n${logData}\n
+               
+               TAREFA EXCLUSIVA:
+               1. Analise o histórico dos últimos 90 dias (trimestre).
+               2. Identifique e pontue datas e eventos específicos mencionados nos registros que estejam relacionados com padrões emocionais reativos.
+               3. Ressalte com clareza quais foram os sentimentos predominantes detectados ao longo do trimestre.
+               4. Destaque tanto os pontos negativos que necessitam de sua atenção cuidadosa quanto os pontos positivos que propiciam a expansão de consciência.
+               5. Traga um conselho profundo e útil centrado em postura, ética e clareza mental para lidar com os sentimentos reativos e guiar seu processo de transformação permanente.
+               6. Use uma linguagem acolhedora, fraterna e sábia de sua mentora Hekat (gênero feminino). Evite superlativos sintéticos.
+               7. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${formattedName || 'Viajante'}" no início exato. Não use variações de "ao olhar seu trimestre" ou "ao avaliar seus sentimentos".
+               8. Formato: Um texto corrido, reflexivo e consistente.`;
     }
 
     try {
@@ -2739,9 +2759,9 @@ export default function App() {
                               <motion.p 
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="text-[11px] sm:text-[13px] leading-relaxed text-white font-medium italic text-justify"
+                                className="text-[11px] sm:text-[13px] leading-relaxed text-white font-medium italic text-justify whitespace-pre-line"
                               >
-                                "{reports[item.id as keyof typeof reports].text}"
+                                {reports[item.id as keyof typeof reports].text}
                               </motion.p>
                             </div>
                           ) : (
