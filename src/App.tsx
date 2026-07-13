@@ -3171,7 +3171,9 @@ export default function App() {
                         <div key={cat} className="flex-shrink-0 space-y-4 w-full snap-center p-4 rounded-3xl border transition-all duration-1000 bg-indigo-950/20 border-white/5">
                           <h4 className="text-[9px] font-black uppercase tracking-widest text-indigo-200/60">{cat}</h4>
                           <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
-                            {EMOTIONS.filter(e => e.category === cat).map(emo => {
+                            {EMOTIONS.filter(e => e.category === cat)
+                              .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                              .map(emo => {
                               const isLight = isColorLight(emo.color);
                               const textColorClass = isLight ? 'text-indigo-950 font-extrabold' : 'text-white font-black';
                               const textShadowClass = isLight ? '' : 'drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.8)]';
