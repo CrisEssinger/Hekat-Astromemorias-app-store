@@ -475,7 +475,7 @@ Siga rigorosamente as diretrizes e regras a seguir:
 
         daysData.push({
           lunarDay: dayIndex,
-          dateString: targetDate.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit" }),
+          dateString: targetDate.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" }),
           isoDate: targetDate.toISOString(),
           sun: {
             longitude: sunLon,

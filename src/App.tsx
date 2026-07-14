@@ -455,6 +455,20 @@ const getZodiacSignSafely = (index: number) => {
   return ZODIAC_SIGNS[rounded];
 };
 
+const getSaoPauloDateParts = (d: Date) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric'
+  });
+  const parts = formatter.formatToParts(d);
+  const year = parseInt(parts.find(p => p.type === 'year')?.value || '1970');
+  const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1; // 0-indexed month
+  const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
+  return { year, month, day };
+};
+
 const getLunarData = (date: Date = new Date()) => {
   // Garantir que a data recebida seja um objeto válido, se não usar d1 hoje
   const now = (date && !isNaN(date.getTime())) ? date : new Date();
@@ -519,16 +533,19 @@ const getLunarData = (date: Date = new Date()) => {
   const cycleStartDate = new Date(referenceDate.getTime() + Math.floor(diffInDays / LUNAR_MONTH) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
   const cycleEndDate = new Date(referenceDate.getTime() + (Math.floor(diffInDays / LUNAR_MONTH) + 1) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
 
-  const startDayLocal = new Date(cycleStartDate.getUTCFullYear(), cycleStartDate.getUTCMonth(), cycleStartDate.getUTCDate(), 12, 0, 0);
-  const nowDayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
-  const localDiffDays = Math.round((nowDayLocal.getTime() - startDayLocal.getTime()) / (1000 * 60 * 60 * 24));
+  // Sincronização do Calendário com o fuso brasileiro (America/Sao_Paulo)
+  const startParts = getSaoPauloDateParts(cycleStartDate);
+  const nowParts = getSaoPauloDateParts(now);
+  
+  const startDayTime = Date.UTC(startParts.year, startParts.month, startParts.day, 12, 0, 0);
+  const nowDayTime = Date.UTC(nowParts.year, nowParts.month, nowParts.day, 12, 0, 0);
+  
+  const localDiffDays = Math.round((nowDayTime - startDayTime) / (1000 * 60 * 60 * 24));
   const mandalaDay = isNaN(localDiffDays) ? 1 : Math.min(29, Math.max(1, localDiffDays + 1));
   
   const formatDate = (d: Date) => {
     if (!d || isNaN(d.getTime())) return "01/01";
-    const dayStr = String(d.getUTCDate()).padStart(2, '0');
-    const monthStr = String(d.getUTCMonth() + 1).padStart(2, '0');
-    return `${dayStr}/${monthStr}`;
+    return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' });
   };
   
   return {
@@ -557,7 +574,8 @@ const getLunarData = (date: Date = new Date()) => {
     getDateForDay: (day: number) => {
       const safeDay = isNaN(day) ? 1 : day;
       const d = new Date(cycleStartDate.getTime() + (safeDay - 1) * 24 * 60 * 60 * 1000);
-      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0);
+      const dParts = getSaoPauloDateParts(d);
+      return new Date(Date.UTC(dParts.year, dParts.month, dParts.day, 12, 0, 0));
     }
   };
 };
@@ -816,7 +834,7 @@ export default function App() {
   }, []);
 
   const baseLunarData = useMemo(() => getLunarData(now), [now]);
-  const todayCalendarDate = useMemo(() => now.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }), [now]);
+  const todayCalendarDate = useMemo(() => now.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }), [now]);
   
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
   const [viewingCycleId, setViewingCycleId] = useState<number | null>(null);
@@ -1522,7 +1540,7 @@ export default function App() {
           cycleId: cycleIdVal,
           lunarDay: Number(data.lunarDay),
           timestamp: data.date,
-          date: logDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })
+          date: logDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })
         });
       });
       setAllLogs(logsArray);
@@ -2322,9 +2340,9 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-0.5 sm:gap-2">
-              <div className="hidden lg:flex items-center gap-1.5 text-slate-100 font-bold text-[11px]">
-                  <span className="tabular-nums bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">{todayCalendarDate}</span>
-                  <span className="tabular-nums bg-white/5 px-2 py-0.5 rounded-lg border border-white/5 text-indigo-300">{now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</span>
+              <div className="flex items-center gap-1 sm:gap-1.5 text-slate-100 font-bold text-[9px] sm:text-[11px]">
+                  <span className="tabular-nums bg-indigo-500/10 text-indigo-200 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md sm:rounded-lg border border-indigo-500/15 leading-none shadow-sm">{todayCalendarDate}</span>
+                  <span className="tabular-nums bg-white/5 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md sm:rounded-lg border border-white/5 text-indigo-300/80 leading-none hidden xs:inline-block">{now.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}</span>
               </div>
 
               {currentUser ? (
@@ -2403,7 +2421,27 @@ export default function App() {
                 <div className="w-full mb-3">
                    <div className="flex justify-between items-center bg-indigo-950/20 p-3 rounded-2xl border border-white/5 transition-colors duration-1000 gap-4 sm:gap-6">
                       <div className="flex-1 mr-4 sm:mr-5 min-w-0">
-                        <span className="text-[11px] sm:text-[10px] font-black text-indigo-300 uppercase tracking-widest block">{lunarData.getDateForDay(selectedDay).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                        <div className="flex items-center flex-wrap gap-1.5 mb-1">
+                          <span className="text-[11px] sm:text-[10px] font-black text-indigo-300 uppercase tracking-widest block leading-none">
+                            {lunarData.getDateForDay(selectedDay).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: 'long', year: 'numeric' })}
+                          </span>
+                          {selectedDay === lunarData.day && (viewingCycleId || lunarData.cycleId) === lunarData.cycleId ? (
+                            <span className="px-1.5 py-0.5 text-[8.5px] sm:text-[7.5px] font-black tracking-widest bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/15 uppercase leading-none shadow-sm">
+                              Hoje
+                            </span>
+                          ) : (
+                            <button 
+                              onClick={() => {
+                                setSelectedDay(lunarData.day);
+                                setViewingCycleId(lunarData.cycleId);
+                              }} 
+                              className="px-1.5 py-0.5 text-[8.5px] sm:text-[7.5px] font-black tracking-widest bg-amber-500/15 text-amber-400 rounded-md border border-amber-500/20 uppercase hover:bg-amber-500/25 transition-all cursor-pointer active:scale-95 leading-none inline-flex items-center gap-1 shadow-sm"
+                              title="Voltar para o dia de hoje"
+                            >
+                              <RotateCcw size={8} /> Ir para Hoje
+                            </button>
+                          )}
+                        </div>
                         <h3 className="text-[11px] sm:text-[12.5px] font-black text-[#4169E1] uppercase tracking-tighter whitespace-nowrap">{`Fase ${phase.name} • Dia ${selectedDay} do Ciclo Lunar`}</h3>
                         <p className="text-[11px] sm:text-[10px] leading-relaxed text-indigo-300/70 font-medium mt-1 italic text-left whitespace-normal break-words overflow-visible">
                            {phase.tasks}
@@ -3088,7 +3126,7 @@ export default function App() {
                         Anotações do Dia
                       </span>
                       <h4 className="text-xs sm:text-sm font-black text-[#4169E1] uppercase tracking-tight flex flex-wrap items-center gap-1 sm:gap-1.5">
-                        {lunarData.getDateForDay(selectedDay).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                        {lunarData.getDateForDay(selectedDay).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: 'long', year: 'numeric' })}
                         <span className="text-[9px] sm:text-[10px] text-slate-400 lowercase font-medium">
                           (Dia {selectedDay} do Ciclo)
                         </span>
