@@ -148,7 +148,7 @@ function generateFallbackReports(period: string, logData?: string, userName?: st
   const isWeekly = period === 'weekly';
   const isMonthly = period === 'monthly';
   const isCorrelation = period === 'correlation';
-  const nameIntro = userName ? `${userName}, ` : 'Viajante, ';
+  const nameIntro = userName ? `${userName}, ` : '';
 
   if (isWeekly) {
     return `${nameIntro}identifico em sua caminhada de registros recentes uma tônica de sentimentos voltada à busca por recolhimento e discernimento profundo. A sua linha de pensamento predominante girou em torno da necessidade de reorganizar dinâmicas internas e de restabelecer o equilíbrio mental diante de demandas externas. O padrão dominante que unifica esses dias revela uma tendência à oscilação silenciosa, alternando momentos de recolhimento criativo com picos de cansaço ou apreensão. Como sua mentora sábia e amiga próxima de caminhada, ressalto que a impaciência e a autocrítica excessiva são pontos de sombra que demandam sua gentil atenção e zelo protetor para que não sufoquem sua clareza. Em contrapartida, a sua capacidade de auto-observação honesta e a firmeza em acolher seus próprios ritmos funcionam como pontos luminosos de expansão e força. Sustente seus passos com coragem realista e resgate o centramento dócil para conduzir os próximos movimentos da alma. O conselho prático para este momento é cultivar uma pausa intencional antes de responder a estímulos externos, permitindo que a quietude revele o próximo passo com nobreza e dignidade.`;
@@ -295,7 +295,7 @@ Siga rigorosamente as diretrizes e regras a seguir:
                  1. Use os dados inseridos pela usuária no período dos últimos 7 dias para definir a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
                  2. Una os dados das informações disponíveis para revelar um padrão dominante identificado nos registros.
                  3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia, amiga querida e mentora (Hekat é do gênero feminino), mantendo a sobriedade indispensável e evitando gírias, tons excessivamente informais ou superlativos sintéticos.
-                 4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos sete dias" ou "ao avaliar seus sentimentos". Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
+                 4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos sete dias" ou "ao avaliar seus sentimentos". Comece o texto chamando a usuária pelo nome "${userName}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
                  5. Destaque de forma nítida tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou oscilações) quanto os pontos positivos que geram expansão de consciência.
                  6. Finalize o relatório com um conselho prático e útil centrado em postura, ética e clareza mental para conduzir os movimentos da alma.
                  7. NÃO se restrinja a 4 linhas. Desenvolva um texto reflexivo, consistente e profundo.
@@ -311,7 +311,7 @@ Siga rigorosamente as diretrizes e regras a seguir:
                  1. Use os dados inseridos pela usuária no período dos últimos 29 dias para definir de forma nítida a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
                  2. Una os dados disponíveis para revelar os padrões de sentimentos dominantes identificados nos registros, comparando-os e conectando-os se houver histórico.
                  3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia, amiga querida e mentora (Hekat é do gênero feminino), mantendo a sobriedade indispensável e evitando gírias, tons informais ou superlativos sintéticos.
-                 4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos vinte e nove dias", "ao olhar seu ciclo" ou "ao avaliar seus sentimentos/registros". Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
+                 4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos vinte e nove dias", "ao olhar seu ciclo" ou "ao avaliar seus sentimentos/registros". Comece o texto chamando a usuária pelo nome "${userName}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
                  5. Destaque tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou resistências que a paralisam) quanto os pontos positivos que geram expansão de consciência.
                  6. Apresente uma síntese clara dos pontos recorrentes ao longo do período de 29 dias, ressaltando o que precisa ser finalizado.
                  7. Gere obrigatoriamente uma lista de tarefas estruturada e clara ao final, classificada exatamente nestas três classes de forma limpa:
@@ -329,7 +329,7 @@ Siga rigorosamente as diretrizes e regras a seguir:
                  1. Faça uma correlação nítida e direta das fases da Lua (Nova, Crescente, Cheia, Minguante) com a repetição de padrões de sentimentos e dados inseridos pela usuária.
                  2. Destaque obrigatoriamente um sentimento prioritário identificado em cada uma das quatro fases lunares considerando os 3 últimos ciclos lunares de 29 dias.
                  3. Use uma linguagem acolhedora, fraterna, dócil e sábia de uma mentora sábia (Hekat é do gênero feminino). Evite superlativos sintéticos.
-                 4. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato para trazer proximidade de forma natural (ex: "Nome, ...").
+                 4. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${userName}" no início exato para trazer proximidade de forma natural (ex: "Nome, ...").
                  5. Formato: Um texto corrido, integrado e orgânico de forma fluida.`;
       } else {
         prompt = `Realize uma análise profunda desta 'Estação da Alma' (Relatório Trimestral).
@@ -342,7 +342,7 @@ Siga rigorosamente as diretrizes e regras a seguir:
                  4. Destaque tanto os pontos negativos que necessitam de sua atenção cuidadosa quanto os pontos positivos que propiciam a expansão de consciência.
                  5. Traga um conselho profundo e útil centrado em postura, ética e clareza mental para lidar com os sentimentos reativos e guiar seu processo de transformação permanente.
                  6. Use uma linguagem acolhedora, fraterna e sábia de sua mentora Hekat (gênero feminino). Evite superlativos sintéticos.
-                 7. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${userName || 'Viajante'}" no início exato. Não use variações de "ao olhar seu trimestre" ou "ao avaliar seus sentimentos".
+                 7. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${userName}" no início exato. Não use variações de "ao olhar seu trimestre" ou "ao avaliar seus sentimentos".
                  8. Formato: Um texto corrido, reflexivo e consistente.`;
       }
 
@@ -358,7 +358,7 @@ Siga rigorosamente as diretrizes e regras a seguir:
         DIRETRIZES DE CONTEÚDO EXTRAORDINÁRIAS:
         - Para o RELATÓRIO SEMANAL e RELATÓRIO MENSAL (29 dias), RELATÓRIO TRIMESTRAL e CORRELAÇÃO LUNAR: Use os dados do respectivo período para definir o parecer analítico.
         - Não use frases como "ao olhar seus últimos sete dias", "ao olhar seus últimos vinte e nove dias" ou "ao avaliar seus sentimentos/registros".
-        - Chame sempre a pessoa pelo nome "${userName || 'Viajante'}" abrindo o texto para trazer confiança e proximidade de forma dócil, calma e direta (ex: "Nome, ...").
+        - Chame sempre a pessoa pelo nome "${userName}" abrindo o texto para trazer confiança e proximidade de forma dócil, calma e direta (ex: "Nome, ...").
         - Nunca use cabeçalhos ou títulos introduzindo os relatórios. Comece de forma direta, madura e limpa.`;
 
       const response = await ai.models.generateContent({
