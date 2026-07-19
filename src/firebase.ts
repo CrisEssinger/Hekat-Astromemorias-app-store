@@ -3,11 +3,22 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { getFirestore, doc, setDoc, updateDoc, serverTimestamp, collection, addDoc, query, orderBy, limit, onSnapshot, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
+// Suporte para carregar credenciais dinâmicas em ambientes externos (como Vercel)
+const resolvedConfig = {
+  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
+  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
+  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
+  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket,
+  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId,
+  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || firebaseConfig.appId,
+  firestoreDatabaseId: (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || firebaseConfig.firestoreDatabaseId || "ai-studio-fcf53257-735c-47bf-b827-d142cabebb63"
+};
+
 console.log("Portal Hekat: Iniciando módulos do Firebase com parâmetros de segurança da versão 2.1.0-fix...");
 
 let app: any = null;
 try {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  app = getApps().length === 0 ? initializeApp(resolvedConfig) : getApp();
   console.log("Portal Hekat: Firebase App carregado de modo preventivo.");
 } catch (e) {
   console.error("Portal Hekat: Erro crítico ao iniciar o Firebase App:", e);
@@ -26,8 +37,8 @@ try {
 export let db: any = null;
 try {
   if (app) {
-    db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-    console.log("Portal Hekat: Firestore configurado para utilizar banco:", firebaseConfig.firestoreDatabaseId);
+    db = getFirestore(app, resolvedConfig.firestoreDatabaseId);
+    console.log("Portal Hekat: Firestore configurado para utilizar banco:", resolvedConfig.firestoreDatabaseId);
   }
 } catch (e) {
   console.error("Portal Hekat: Erro ao instanciar a referência do Firestore:", e);
