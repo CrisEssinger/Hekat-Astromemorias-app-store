@@ -2277,22 +2277,6 @@ export default function App() {
 
               <div className="w-full space-y-4">
                 <button 
-                  onClick={handleLogin}
-                  disabled={isLoggingIn}
-                  className="w-full group relative flex items-center justify-center gap-3 px-8 py-5 bg-[#4169E1] hover:bg-[#3158CF] text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-indigo-600/30 transition-all active:scale-95 disabled:opacity-50 overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                  <span className="flex items-center justify-center gap-3 relative z-10">
-                    {isLoggingIn ? (
-                      <RefreshCw className="animate-spin" size={18} />
-                    ) : (
-                      <LogIn size={18} />
-                    )}
-                    <span>{isLoggingIn ? 'Invocando Ritual...' : 'Entrar no Portal'}</span>
-                  </span>
-                </button>
-
-                <button 
                   onClick={() => {
                     const guestUser = {
                       uid: 'guest_user',
@@ -2307,11 +2291,12 @@ export default function App() {
                       hasSeenGuide: true
                     });
                   }}
-                  className="w-full group relative flex items-center justify-center gap-3 px-8 py-4 bg-transparent border border-[#BF8A10]/30 hover:border-[#BF8A10]/60 text-[#BF8A10] hover:text-[#BF8A10]/80 text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all active:scale-95 overflow-hidden"
+                  className="w-full group relative flex items-center justify-center gap-3 px-8 py-5 bg-[#BF8A10] hover:bg-[#a6770d] text-[#0d0d0d] text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-[#BF8A10]/20 transition-all active:scale-95 overflow-hidden"
                 >
-                  <span className="flex items-center justify-center gap-2 relative z-10">
-                    <UserIcon size={14} />
-                    <span>Acessar Modo Visitante</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  <span className="flex items-center justify-center gap-3 relative z-10">
+                    <LogIn size={18} />
+                    <span>ACESSAR</span>
                   </span>
                 </button>
 
