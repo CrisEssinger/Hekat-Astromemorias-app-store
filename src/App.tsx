@@ -1199,24 +1199,30 @@ export default function App() {
       const text = data.text;
       
       console.log(`Relatório ${period} recebido:`, text);
+      const updatedReport = { 
+        text: text || "Os astros não revelaram nada hoje.",
+        logs: { ...logs },
+        meta: { solarOffset, lunarData: serializeLunarData(lunarData) }
+      };
+
       setReports(prev => {
         const updated = { 
           ...prev, 
-          [period]: { 
-            text: text || "Os astros não revelaram nada hoje.",
-            logs: { ...logs },
-            meta: { solarOffset, lunarData: serializeLunarData(lunarData) }
-          } 
+          [period]: updatedReport
         };
 
-        if (currentUser && db) {
-          const reportDocRef = doc(db, 'users', currentUser.uid, 'reports', period);
-          setDoc(reportDocRef, {
-            text: text || "Os astros não revelaram nada hoje.",
-            logs: { ...logs },
-            meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
-            updatedAt: serverTimestamp()
-          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
+        if (currentUser) {
+          if (currentUser.uid === 'guest_user') {
+            localStorage.setItem(`hekat_guest_report_${period}`, JSON.stringify(updatedReport));
+          } else if (db) {
+            const reportDocRef = doc(db, 'users', currentUser.uid, 'reports', period);
+            setDoc(reportDocRef, {
+              text: text || "Os astros não revelaram nada hoje.",
+              logs: { ...logs },
+              meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
+              updatedAt: serverTimestamp()
+            }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
+          }
         }
 
         return updated;
@@ -1227,25 +1233,30 @@ export default function App() {
       const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
       const formattedName = rawName ? rawName.trim() : '';
       const fallbackText = getClientFallbackReport(period, logData, formattedName);
+      const fallbackReport = { 
+        text: fallbackText,
+        logs: { ...logs },
+        meta: { solarOffset, lunarData: serializeLunarData(lunarData) }
+      };
       
       setReports(prev => {
         const updated = { 
           ...prev, 
-          [period]: { 
-            text: fallbackText,
-            logs: { ...logs },
-            meta: { solarOffset, lunarData: serializeLunarData(lunarData) }
-          } 
+          [period]: fallbackReport
         };
 
-        if (currentUser && db) {
-          const reportDocRef = doc(db, 'users', currentUser.uid, 'reports', period);
-          setDoc(reportDocRef, {
-            text: fallbackText,
-            logs: { ...logs },
-            meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
-            updatedAt: serverTimestamp()
-          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
+        if (currentUser) {
+          if (currentUser.uid === 'guest_user') {
+            localStorage.setItem(`hekat_guest_report_${period}`, JSON.stringify(fallbackReport));
+          } else if (db) {
+            const reportDocRef = doc(db, 'users', currentUser.uid, 'reports', period);
+            setDoc(reportDocRef, {
+              text: fallbackText,
+              logs: { ...logs },
+              meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
+              updatedAt: serverTimestamp()
+            }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
+          }
         }
 
         return updated;
@@ -1304,12 +1315,18 @@ export default function App() {
 
   const handleSaveName = async () => {
     if (!nameInput.trim() || !currentUser) return;
-    if (!db) {
-      console.error("Firestore is not initialized.");
-      return;
-    }
     setIsSavingName(true);
     try {
+      if (currentUser.uid === 'guest_user') {
+        localStorage.setItem('hekat_guest_name', nameInput.trim());
+        setUserData(prev => prev ? { ...prev, name: nameInput.trim() } : { name: nameInput.trim(), isPremium: true, hasSeenGuide: true });
+        setShowNameModal(false);
+        return;
+      }
+      if (!db) {
+        console.error("Firestore is not initialized.");
+        return;
+      }
       const userRef = doc(db, 'users', currentUser.uid);
       
       // Se por algum motivo o perfil não estiver inicializado ou sem uid, cria-se o perfil completo para satisfazer o allow create
@@ -1358,7 +1375,7 @@ export default function App() {
       } else if (err.code === 'auth/cancelled-popup-request') {
         setLoginError("O ritual de acesso foi interrompido.");
       } else if (err.code === 'auth/unauthorized-domain' || (err.message && err.message.toLowerCase().includes('unauthorized-domain'))) {
-        setLoginError("Este domínio ('" + window.location.hostname + "') não está autorizado no console do Firebase.");
+        setLoginError("Este domínio ('" + window.location.hostname + "') não está autorizado no console do Firebase. Adicione este domínio no console do Firebase ou acesse como Visitante abaixo.");
       } else {
         setLoginError("Não foi possível abrir o portal. Erro: " + (err.message || "Conexão instável"));
       }
@@ -1407,6 +1424,17 @@ export default function App() {
         unsubscribeSnapshot = null;
       }
       if (user) {
+        if (user.uid === 'guest_user') {
+          const localName = localStorage.getItem('hekat_guest_name') || '';
+          setUserData({
+            name: localName || 'Visitante',
+            isPremium: true,
+            hasSeenGuide: true
+          });
+          setIsLoggingIn(false);
+          setIsAuthLoading(false);
+          return;
+        }
         if (!db) {
           console.warn("Hekat: Firestore is not initialized.");
           setUserData({ isPremium: false });
@@ -1507,6 +1535,19 @@ export default function App() {
   // Sync Logs with Firebase
   useEffect(() => {
     if (!currentUser) { setAllLogs([]); return; }
+    if (currentUser.uid === 'guest_user') {
+      const localLogs = localStorage.getItem('hekat_guest_logs');
+      if (localLogs) {
+        try {
+          setAllLogs(JSON.parse(localLogs));
+        } catch (e) {
+          console.error("Erro ao carregar logs locais do visitante:", e);
+        }
+      } else {
+        setAllLogs([]);
+      }
+      return;
+    }
     if (!db) {
       console.warn("Hekat: Firestore is not initialized. Operating in local-only mode.");
       return;
@@ -1560,6 +1601,27 @@ export default function App() {
         correlation: { text: null, logs: null, meta: null }
       }); 
       return; 
+    }
+    if (currentUser.uid === 'guest_user') {
+      const updatedReports: any = {
+        weekly: { text: null, logs: null, meta: null }, 
+        monthly: { text: null, logs: null, meta: null }, 
+        quarterly: { text: null, logs: null, meta: null },
+        correlation: { text: null, logs: null, meta: null }
+      };
+      const periods = ['weekly', 'monthly', 'quarterly', 'correlation'];
+      periods.forEach(p => {
+        const saved = localStorage.getItem(`hekat_guest_report_${p}`);
+        if (saved) {
+          try {
+            updatedReports[p] = JSON.parse(saved);
+          } catch (e) {
+            console.error(`Erro ao analisar relatório local ${p}:`, e);
+          }
+        }
+      });
+      setReports(updatedReports);
+      return;
     }
     if (!db) {
       console.warn("Hekat: Firestore is not initialized for reports.");
@@ -1807,10 +1869,13 @@ export default function App() {
       lunarDay: selectedDay,
       date: todayCalendarDate 
     };
-    setAllLogs(prev => [...prev.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === selectedDay)), newEntry]);
+    const updatedLogs = [...allLogs.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === selectedDay)), newEntry];
+    setAllLogs(updatedLogs);
     
     if (currentUser) {
-      if (!db) {
+      if (currentUser.uid === 'guest_user') {
+        localStorage.setItem('hekat_guest_logs', JSON.stringify(updatedLogs));
+      } else if (!db) {
         console.warn("Hekat: Firestore is not initialized. Operating in local-only mode.");
       } else {
         // Id único baseado em ciclo e dia para permitir histórico
@@ -1857,10 +1922,16 @@ export default function App() {
     const logId = `cycle_${activeCycleId}_day_${dayToDelete}`;
 
     // Atualização otimista do estado local
-    setAllLogs(prev => prev.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === dayToDelete)));
+    setAllLogs(prev => {
+      const updated = prev.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === dayToDelete));
+      if (currentUser && currentUser.uid === 'guest_user') {
+        localStorage.setItem('hekat_guest_logs', JSON.stringify(updated));
+      }
+      return updated;
+    });
 
     if (currentUser) {
-      if (db) {
+      if (currentUser.uid !== 'guest_user' && db) {
         const logRef = doc(db, "users", currentUser.uid, "logs", logId);
         try {
           await deleteDoc(logRef);
@@ -2218,6 +2289,29 @@ export default function App() {
                       <LogIn size={18} />
                     )}
                     <span>{isLoggingIn ? 'Invocando Ritual...' : 'Entrar no Portal'}</span>
+                  </span>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    const guestUser = {
+                      uid: 'guest_user',
+                      displayName: 'Visitante Hekat',
+                      email: 'guest@hekat.com'
+                    };
+                    setCurrentUser(guestUser as any);
+                    const localName = localStorage.getItem('hekat_guest_name') || '';
+                    setUserData({
+                      name: localName || 'Visitante',
+                      isPremium: true,
+                      hasSeenGuide: true
+                    });
+                  }}
+                  className="w-full group relative flex items-center justify-center gap-3 px-8 py-4 bg-transparent border border-[#BF8A10]/30 hover:border-[#BF8A10]/60 text-[#BF8A10] hover:text-[#BF8A10]/80 text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all active:scale-95 overflow-hidden"
+                >
+                  <span className="flex items-center justify-center gap-2 relative z-10">
+                    <UserIcon size={14} />
+                    <span>Acessar Modo Visitante</span>
                   </span>
                 </button>
 
