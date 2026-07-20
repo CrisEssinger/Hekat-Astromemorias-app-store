@@ -1,28 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Bloqueio total por padrão
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Funções auxiliares de segurança
     function isSignedIn() {
       return request.auth != null;
     }
-
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\-]+$');
     }
 
-    // Regras para a coleção de usuários
     match /users/{userId} {
       allow read: if isOwner(userId);
-      
+
       function isValidUser(data) {
         return data.uid == request.auth.uid
           && (data.email == null || data.email == request.auth.token.email || data.email.lower() == request.auth.token.email.lower())
@@ -30,12 +25,11 @@ service cloud.firestore {
           && (!data.keys().contains('photoURL') || data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 5000))
           && (!data.keys().contains('name') || data.name == null || (data.name is string && data.name.size() <= 500));
       }
-
-      allow create: if isOwner(userId) 
+      allow create: if isOwner(userId)
         && isValidUser(request.resource.data)
         && request.resource.data.keys().hasAll(['uid', 'email'])
         && (request.resource.data.get('createdAt', request.time) == request.time);
-      
+
       allow update: if isOwner(userId)
         && isValidUser(request.resource.data)
         && (request.resource.data.get('uid', request.auth.uid) == resource.data.get('uid', request.auth.uid))
@@ -45,10 +39,9 @@ service cloud.firestore {
         && (request.resource.data.get('updatedAt', request.time) == request.time || request.resource.data.get('updatedAt', request.time) == resource.data.get('updatedAt', request.time));
     }
 
-    // Regras para os registros emocionais
     match /users/{userId}/logs/{logId} {
       allow read: if isOwner(userId);
-      
+
       function isValidLog(data) {
         return data.userId == request.auth.uid
           && (data.emotionId is string && data.emotionId.size() <= 100 || !data.keys().contains('emotionId'))
@@ -57,49 +50,27 @@ service cloud.firestore {
           && (data.note is string && data.note.size() <= 3000 || !data.keys().contains('note'))
           && (data.cycleId is number || !data.keys().contains('cycleId'));
       }
-
       allow create: if isOwner(userId)
         && isValidId(logId)
         && isValidLog(request.resource.data)
-        && request.resource.data.keys().hasAll(['emotionId', 'intensity', 'date', 'userId', 'lunarDay'])
-        && request.resource.data.date == request.time;
-      
+        && request.resource.data.keys().hasAll(['emotionId', 'intensity', 'date', 'userId', 'lunarDay']);
+
       allow update: if isOwner(userId)
         && isValidLog(request.resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['note', 'date', 'intensity', 'emotionId', 'cycleId', 'userId', 'lunarDay']);
-
       allow delete: if isOwner(userId);
     }
 
-    // Regras para os relatórios astrológicos
     match /users/{userId}/reports/{reportId} {
       allow read: if isOwner(userId);
-      
+
       function isValidReport(data) {
         return (data.text is string && data.text.size() <= 200000)
           && (data.logs is map)
           && (data.meta is map)
           && (data.updatedAt == request.time);
       }
-
       allow create, update: if isOwner(userId)
         && isValidId(reportId)
         && isValidReport(request.resource.data)
-        && request.resource.data.keys().hasAll(['text', 'logs', 'meta', 'updatedAt'])
-        && request.resource.data.keys().size() == 4;
-
-      allow delete: if isOwner(userId);
-    }
-
-    // Regras para feedbacks globais
-    match /feedback/{feedbackId} {
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.message is string
-        && request.resource.data.message.size() <= 3000
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.keys().hasAll(['userId', 'message', 'createdAt'])
-        && request.resource.data.keys().size() == 3;
-    }
-  }
-}
+        && request.resource.data.keys().hasAll(['text', 'logs',
