@@ -1,0 +1,42 @@
+<p>Esta Política de Privacidade descreve como o aplicativo <strong>Hekat Astromemorias</strong> trata as informações e dados dos usuários. Nosso compromisso é garantir a transparência e a segurança durante o uso de nossa plataforma.</p>
+
+<h2>1. Informações Coletadas</h2>
+<p>O aplicativo coleta apenas o <strong>NOME</strong> do usuário. Esta informação é utilizada exclusivamente para personalizar os textos gerados pelo aplicativo, criando uma experiência mais próxima, amigável e individualizada.</p>
+<ul>
+    <li>O nome fornecido não é armazenado em nossos servidores de forma permanente.</li>
+    <li>Não solicitamos dados sensíveis como CPF, endereço ou dados bancários.</li>
+</ul>
+
+<h2>2. Uso do Firebase</h2>
+<p>O Hekat Astromemorias utiliza o <strong>Firebase</strong> (um serviço fornecido pelo Google) como infraestrutura técnica de backend. O Firebase pode coletar dados técnicos automáticos para garantir o funcionamento adequado do aplicativo, tais como:</p>
+<ul>
+    <li>Relatórios de erros (Crashlytics);</li>
+    <li>Dados básicos de desempenho e telemetria;</li>
+    <li>Analytics básicos de uso.</li>
+</ul>
+<p>Para mais informações sobre como o Google trata esses dados, acesse: <a href="https://firebase.google.com/support/privacy" target="_blank">Privacidade no Firebase</a>.</p>
+
+<h2>3. Permissões do Dispositivo</h2>
+<p>O Hekat Astromemorias <strong>NÃO</strong> solicita permissões especiais do seu dispositivo, tais como acesso à câmera, localização GPS, microfone, contatos ou galeria de fotos.</p>
+
+<h2>4. Compartilhamento de Dados</h2>
+<p>Nós <strong>NÃO</strong> compartilhamos, vendemos, alugamos ou transferimos quaisquer dados de usuários para terceiros ou empresas de marketing.</p>
+
+<h2>5. Publicidade</h2>
+<p>O aplicativo é livre de anúncios. <strong>NÃO</strong> exibimos banners, vídeos ou qualquer tipo de publicidade de terceiros dentro da plataforma.</p>
+
+<h2>6. Segurança</h2>
+<p>Como o aplicativo não armazena dados pessoais sensíveis ou permanentes, o risco de exposição de informações é mínimo. Toda a infraestrutura técnica segue os rigorosos padrões de segurança globais do Google Firebase.</p>
+
+<h2>7. Direitos do Usuário</h2>
+<p>Visto que o aplicativo não mantém um banco de dados permanente com informações identificáveis do usuário, não há dados para acessar, editar ou excluir após o encerramento da sessão. O usuário tem total liberdade para interromper o uso do aplicativo a qualquer momento.</p>
+
+<h2>8. Privacidade de Crianças</h2>
+<p>O Hekat Astromemorias é direcionado ao público adulto (maiores de 18 anos). Não coletamos intencionalmente dados de crianças ou adolescentes.</p>
+
+<h2>9. Alterações desta Política</h2>
+<p>Esta política pode ser atualizada periodicamente para refletir melhorias no aplicativo ou mudanças legais. A data de "Última atualização" no topo deste documento indicará quando as mudanças foram realizadas.</p>
+
+<h2>10. Contato</h2>
+<p>Em caso de dúvidas ou sugestões sobre esta Política de Privacidade, entre em contato conosco através do e-mail: <br>
+<strong>[SEU E-MAIL AQUI]</strong></p>
