@@ -73,4 +73,9 @@ service cloud.firestore {
       allow create, update: if isOwner(userId)
         && isValidId(reportId)
         && isValidReport(request.resource.data)
-        && request.resource.data.keys().hasAll(['text', 'logs',
+        && request.resource.data.keys().hasAll(['text', 'logs', 'meta', 'updatedAt']);
+
+      allow delete: if isOwner(userId);
+    }
+  }
+}

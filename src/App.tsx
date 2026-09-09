@@ -662,111 +662,107 @@ const getClientFallbackOracle = (
   userName?: string, 
   aspectDesc?: string
 ): string => {
-  const sun = sunSignName || 'Touro';
-  const moon = moonSignName || 'Peixes';
+  const sunRaw = (sunSignName || 'Touro').trim();
+  const moonRaw = (moonSignName || 'Peixes').trim();
+  const sun = sunRaw.toLowerCase();
+  const moon = moonRaw.toLowerCase();
   const nameIntro = userName ? `${userName}, ` : '';
   
-  // Detectar Elementos
+  // Arquétipos astrológicos naturais e acolhedores
+  const archetypes: Record<string, string> = {
+    'áries': 'a coragem e a iniciativa de Áries',
+    'aries': 'a coragem e a iniciativa de Áries',
+    'touro': 'a persistência e o valor real de Touro',
+    'gêmeos': 'a mente curiosa e a comunicação de Gêmeos',
+    'gemeos': 'a mente curiosa e a comunicação de Gêmeos',
+    'câncer': 'o afeto acolhedor e as raízes de Câncer',
+    'cancer': 'o afeto acolhedor e as raízes de Câncer',
+    'leão': 'o brilho nobre e a generosidade de Leão',
+    'leao': 'o brilho nobre e a generosidade de Leão',
+    'virgem': 'o discernimento lúcido e o cuidado de Virgem',
+    'libra': 'a busca de harmonia e ponderação de Libra',
+    'escorpião': 'a profundidade e o poder de transformação de Escorpião',
+    'escorpiao': 'a profundidade e o poder de transformação de Escorpião',
+    'sagitário': 'a visão ampla e o entusiasmo de Sagitário',
+    'sagitario': 'a visão ampla e o entusiasmo de Sagitário',
+    'capricórnio': 'a maturidade serena e a paciência de Capricórnio',
+    'capricornio': 'a maturidade serena e a paciência de Capricórnio',
+    'aquário': 'a liberdade de pensamento e a renovação de Aquário',
+    'aquario': 'a liberdade de pensamento e a renovação de Aquário',
+    'peixes': 'a sensibilidade empática e a intuição de Peixes'
+  };
+
   const getElement = (sign: string): 'FOGO' | 'TERRA' | 'AR' | 'ÁGUA' => {
-    const s = sign.toLowerCase();
-    if (['áries', 'leão', 'sagitário', 'aries', 'leao', 'sagitario'].includes(s)) return 'FOGO';
-    if (['touro', 'virgem', 'capricórnio', 'capricornio'].includes(s)) return 'TERRA';
-    if (['gêmeos', 'gemeos', 'libra', 'aquário', 'aquario'].includes(s)) return 'AR';
-    return 'ÁGUA'; // Câncer, Escorpião, Peixes
+    if (['áries', 'leão', 'sagitário', 'aries', 'leao', 'sagitario'].includes(sign)) return 'FOGO';
+    if (['touro', 'virgem', 'capricórnio', 'capricornio'].includes(sign)) return 'TERRA';
+    if (['gêmeos', 'gemeos', 'libra', 'aquário', 'aquario'].includes(sign)) return 'AR';
+    return 'ÁGUA';
   };
 
   const sunElement = getElement(sun);
   const moonElement = getElement(moon);
 
-  const elementTexts: Record<string, { main: string, advice: string }> = {
-    'FOGO_FOGO': {
-      main: `sinta a irradiação da chama em seu ser — toda vontade genuína é uma faísca do despertar que convida você a trilhar o seu caminho com coragem.`,
-      advice: `Respire fundo e dê o primeiro passo em direção ao seu objetivo hoje.`
-    },
-    'FOGO_TERRA': {
-      main: `ancore a força do seu impulso criativo em bases firmes — toda vontade ardente precisa de um alicerce para maturar e produzir uma colheita real.`,
-      advice: `Escreva um plano de ação simples e execute apenas a primeira tarefa.`
-    },
-    'FOGO_AR': {
-      main: `permita que a faísca do entusiasmo se propague no sopro das ideias — as palavras certas trazem síntese ao aprendizado e ampliam a percepção.`,
-      advice: `Escreva em poucas palavras o seu principal pensamento do momento.`
-    },
-    'FOGO_ÁGUA': {
-      main: `equilibre o calor da sua vontade com o fluir da sua intuição — o reflexo das emoções na maré do sentir revela o tempo certo para agir.`,
-      advice: `Beba um copo de água calmamente e observe o movimento ao seu redor.`
-    },
-    'TERRA_FOGO': {
-      main: `sustente o seu alicerce com dedicação ativa — o calor da vontade traz vitalidade à matéria e impulsiona a maturação dos seus dons.`,
-      advice: `Faça um alongamento rápido para trazer presença e vigor ao corpo.`
-    },
-    'TERRA_TERRA': {
-      main: `permaneça firme em seu alicerce com paciência e realismo — respeitar o tempo de maturação interna garante estabilidade e segurança.`,
-      advice: `Organize a sua mesa de trabalho para estruturar melhor as suas ideias.`
-    },
-    'TERRA_AR': {
-      main: `traga clareza prática e ordem aos seus pensamentos — o sopro do aprendizado encontra utilidade concreta quando sintonizado com o realismo.`,
-      advice: `Anote as três prioridades mais importantes e descarte o restante.`
-    },
-    'TERRA_ÁGUA': {
-      main: `nutra o seu alicerce unindo persistência e sensibilidade — a colheita exige afeto e a compreensão profunda das marés da própria alma.`,
-      advice: `Dedique cinco minutos para respirar calmamente em uma postura relaxada.`
-    },
-    'AR_FOGO': {
-      main: `sintonize o fluxo do pensamento com o despertar da sua vontade — as palavras certas agem como faíscas que clareiam os rumos da mente.`,
-      advice: `Compartilhe uma ideia construtiva com alguém de sua confiança.`
-    },
-    'AR_TERRA': {
-      main: `busque a síntese entre a flexibilidade mental e a estabilidade prática — a clareza de percepção encontra sustentação no alicerce real da vida.`,
-      advice: `Dê uma caminhada curta ao ar livre para clarear os seus pensamentos.`
-    },
-    'AR_AR': {
-      main: `acolha o sopro da leveza e purifique as suas percepções — a síntese mental dissolve os ruídos cotidianos e traz um aprendizado revigorante.`,
-      advice: `Feche os olhos e faça três respirações profundas focando no silêncio.`
-    },
-    'AR_ÁGUA': {
-      main: `sintonize o fluxo das palavras com as correntezas da sua intuição — o reflexo do invisível na mente traz harmonia e paz ao seu sentir.`,
-      advice: `Anote os seus sentimentos mais fortes e deixe-os fluir livremente.`
-    },
-    'ÁGUA_FOGO': {
-      main: `resgate a faísca viva do seu propósito verdadeiro em suas marés de sensibilidade — o mergulho interno traz coragem para guiar a vontade.`,
-      advice: `Lembre-se de um momento de superação pessoal para reacender sua força.`
-    },
-    'ÁGUA_TERRA': {
-      main: `traga segurança e estabilidade às suas marés emocionais — o respeito à maturação interna constrói um alicerce firme na caminhada.`,
-      advice: `Respire fundo, sinta o seu corpo e acalme a mente com simplicidade.`
-    },
-    'ÁGUA_AR': {
-      main: `comunique as suas intuições de forma simples e dócil — o sopro do aprendizado traz síntese para compreender o reflexo das suas emoções.`,
-      advice: `Reserve dez minutos para registrar as suas reflexões em um diário.`
-    },
-    'ÁGUA_ÁGUA': {
-      main: `flua com leveza em suas marés de sensibilidade — o mergulho interno acalma as correntezas íntimas e revela o mistério do seu próprio sentir.`,
-      advice: `Fique alguns minutos em silêncio para cultivar a sua paz interior.`
-    }
-  };
+  const sunArch = archetypes[sun] || `a força essencial de ${sunRaw}`;
+  const moonArch = archetypes[moon] || `a presença de ${moonRaw}`;
 
-  const key = `${sunElement}_${moonElement}`;
-  const selectedText = elementTexts[key] || elementTexts['TERRA_TERRA'];
-
-  let aspectText = '';
-  if (aspectDesc) {
-    const descLower = aspectDesc.toLowerCase();
-    if (descLower.includes('conjunção') || descLower.includes('conjuncao') || descLower.includes('impulso') || descLower.includes('autenticidade')) {
-      aspectText = ` — nobreza e fusão: viva com autêntico impulso este momento em que a clareza se sintetiza com verdade.`;
-    } else if (descLower.includes('oposição') || descLower.includes('oposicao') || descLower.includes('polaridades') || descLower.includes('equilíbrio') || descLower.includes('equilibrio')) {
-      aspectText = ` — polaridades opostas: busque a dúvida reflexiva para equilibrar e integrar forças complementares na jornada.`;
-    } else if (descLower.includes('quadratura') || descLower.includes('tensaõ') || descLower.includes('tensão') || descLower.includes('conflito') || descLower.includes('turva')) {
-      aspectText = ` — paciência diante da tensão: abrigue os conflitos emocionais com calma, lembrando que a emoção acumulada nunca deve turvar a razão.`;
-    } else if (descLower.includes('trígono') || descLower.includes('trigono') || descLower.includes('soluções') || descLower.includes('criatividade')) {
-      aspectText = ` — harmonia e fluxo criativo: caminhe sob a luz das soluções fluidas e da clareza abundante.`;
-    } else {
-      aspectText = ` — sabedoria prática: esteja aberto para aprender e aplicar com simplicidade o que já foi assimilado com sabedoria prática.`;
-    }
+  // Frase inicial harmonizando os arquétipos
+  let archetypesIntro = '';
+  if (sun === moon) {
+    archetypesIntro = `acolha com integridade ${sunArch}.`;
+  } else {
+    archetypesIntro = `sintonize ${sunArch} com ${moonArch}.`;
   }
 
-  const finalMain = `${nameIntro}${selectedText.main}${aspectText} Conselho prático: ${selectedText.advice}`;
+  // Síntese dos elementos com palavras-chave mandatórias incorporadas com simplicidade e fluidez:
+  // FOGO: faísca, irradiação, vontade, despertar, chama.
+  // TERRA: maturação, substância, colheita.
+  // AR: fluxo, sopro, síntese, aprendizado, percepção, palavras.
+  // ÁGUA: maré, reflexo, emoção, sentimentos, intuição, mergulho, fluir.
+  const elementMap: Record<string, string> = {
+    'FOGO_FOGO': 'A faísca da sua vontade desperta com intensidade, irradiando uma chama viva que dissipa dúvidas e impulsiona a sua ação com coragem.',
+    'FOGO_TERRA': 'A faísca da sua vontade ganha substância real quando respeita o tempo de maturação para gerar uma colheita consistente.',
+    'FOGO_AR': 'A chama criativa da vontade ganha fluxo no sopro das ideias, onde as palavras certas trazem síntese ao aprendizado e clareiam a percepção.',
+    'FOGO_ÁGUA': 'A faísca da sua vontade encontra as marés do sentir, unindo o mergulho no reflexo das emoções à intuição que guia os seus passos.',
+    'TERRA_FOGO': 'A substância do que você constrói ganha presença fértil quando a faísca da vontade desperta a coragem necessária para uma colheita fecunda.',
+    'TERRA_TERRA': 'A substância do real exige presença e paciência, honrando o ritmo natural da maturação para assegurar uma colheita fecunda e segura.',
+    'TERRA_AR': 'A clareza prática ganha síntese através do sopro do aprendizado, unindo o fluxo de boas palavras à maturação de uma colheita com substância.',
+    'TERRA_ÁGUA': 'A maturação interna se fortalece com afeto e serenidade, permitindo que as marés da alma e o reflexo das emoções enriqueçam a sua colheita.',
+    'AR_FOGO': 'O fluxo mental recebe um sopro renovador, enquanto a faísca do despertar irradia a sua vontade de expandir horizontes com entusiasmo.',
+    'AR_TERRA': 'O fluxo das palavras ganha substância ao encontrar sustento na realidade, permitindo que a percepção amadureça com tempo e paciência.',
+    'AR_AR': 'O fluxo do pensamento e o sopro das ideias trazem síntese lúcida, onde o aprendizado e as palavras certas ampliam a sua percepção.',
+    'AR_ÁGUA': 'O fluxo das palavras se harmoniza com a intuição, onde o reflexo de águas serenas acalma a mente e pacifica os sentimentos.',
+    'ÁGUA_FOGO': 'As marés do sentir acolhem a faísca da vontade, acendendo o reflexo de emoções que despertam a coragem de agir com nobreza.',
+    'ÁGUA_TERRA': 'As marés da sensibilidade ganham estabilidade e substância quando o respeito à maturação interna constrói um alicerce seguro para o sentir.',
+    'ÁGUA_AR': 'O reflexo das emoções encontra síntese no sopro do aprendizado, permitindo que as palavras comuniquem a intuição com suavidade.',
+    'ÁGUA_ÁGUA': 'As marés íntimas fluem em harmonia com a sua sensibilidade, onde o mergulho interior acalma as correntezas e acolhe os sentimentos com verdade.'
+  };
 
-  return finalMain;
+  const elemKey = `${sunElement}_${moonElement}`;
+  const elementText = elementMap[elemKey] || elementMap['TERRA_TERRA'];
+
+  // Qualidade do aspecto sem citar termos técnicos e conselho final integrado sem rótulos
+  let aspectClause = '';
+  let aspectAdvice = '';
+
+  const descLower = (aspectDesc || '').toLowerCase();
+  if (descLower.includes('conjunção') || descLower.includes('conjuncao') || descLower.includes('impulso') || descLower.includes('autenticidade')) {
+    aspectClause = 'Este impulso de fusão pede autenticidade em síntese com a sua verdade interior.';
+    aspectAdvice = 'Sustente a firmeza ética dos seus atos hoje, alinhando a vontade consciente ao seu propósito essencial.';
+  } else if (descLower.includes('oposição') || descLower.includes('oposicao') || descLower.includes('polaridades') || descLower.includes('equilíbrio') || descLower.includes('equilibrio')) {
+    aspectClause = 'Diante de polaridades em diálogo, acolha a dúvida fértil para encontrar o equilíbrio entre forças complementares.';
+    aspectAdvice = 'Busque a ponderação serena diante de visões contrastantes, harmonizando os opostos antes de firmar a sua postura.';
+  } else if (descLower.includes('quadratura') || descLower.includes('tensaõ') || descLower.includes('tensão') || descLower.includes('conflito') || descLower.includes('turva')) {
+    aspectClause = 'Diante de qualquer tensão emocional ou conflito, exercite a paciência e a espera — jamais permita que a emoção turve a razão.';
+    aspectAdvice = 'Preserve a serenidade interior e aguarde a turbulência passar antes de tomar atitudes definitivas hoje.';
+  } else if (descLower.includes('trígono') || descLower.includes('trigono') || descLower.includes('soluções') || descLower.includes('criatividade')) {
+    aspectClause = 'Caminhe com leveza sob o fluxo harmônico de soluções criativas e clareza espontânea.';
+    aspectAdvice = 'Confie no curso natural dos acontecimentos e deixe a sua sabedoria interior orientar as escolhas de hoje.';
+  } else {
+    aspectClause = 'Mantenha a mente receptiva para aprender com simplicidade e aplicar o que já foi assimilado com maturidade.';
+    aspectAdvice = 'Aplique com sobriedade o discernimento ético nas situações que exigirem o seu posicionamento hoje.';
+  }
+
+  return `${nameIntro}${archetypesIntro} ${elementText} ${aspectClause} ${aspectAdvice}`;
 };
 
 // Helper to serialize lunarData without function properties for Firestore and local consistency
@@ -1295,7 +1291,7 @@ export default function App() {
     
     const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
     const formattedName = rawName ? rawName.trim() : '';
-    const cacheKey = `sun_${sunIdx}_moon_${moonIdx}_name_${formattedName}`;
+    const cacheKey = `sun_${sunIdx}_moon_${moonIdx}_day_${selectedDay}_name_${formattedName}`;
     
     delete oracleCache.current[cacheKey];
     setOracleTrigger(prev => prev + 1);
@@ -1664,7 +1660,7 @@ export default function App() {
 
       const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
       const formattedName = rawName ? rawName.trim() : '';
-      const cacheKey = `sun_${sunIdx}_moon_${moonIdx}_name_${formattedName}`;
+      const cacheKey = `sun_${sunIdx}_moon_${moonIdx}_day_${selectedDay}_name_${formattedName}`;
 
       if (oracleCache.current[cacheKey]) {
         setOracleText(oracleCache.current[cacheKey]);
@@ -1680,7 +1676,7 @@ export default function App() {
       const diff = Math.abs(sunIdx - moonIdx);
       const dist = diff > 6 ? 12 - diff : diff;
       let aspect = { name: 'Conjunção', desc: 'impulso, autenticidade, fusão em síntese das simbologias dos signos envolvidos.' };
-      if (dist === 1 || dist === 2) aspect = { name: 'Sextil', desc: 'Estar aberto para aprender e aplicar o que já foi assimilado em experiências.' };
+      if (dist === 1 || dist === 2) aspect = { name: 'Sextil', desc: 'abertura para aprender e aplicar com simplicidade o que já foi assimilado com sabedoria prática.' };
       else if (dist === 3) aspect = { name: 'Quadratura', desc: 'tensão emocional, conflitos, espera, paciência, emoção turva a razão.' };
       else if (dist === 4) aspect = { name: 'Trígono', desc: 'soluções, harmonia, fluidez, clareza, criatividade.' };
       else if (dist === 5 || dist === 6) aspect = { name: 'Oposição', desc: 'dúvida, equilíbrio das polaridades, complementariedade.' };
@@ -2656,7 +2652,7 @@ export default function App() {
                       </div>
                     ) : (
                       <>
-                        <p id="oracle-text-container" className="text-sm sm:text-base leading-relaxed text-white font-medium text-justify whitespace-pre-line max-w-[90%] sm:max-w-[80%] pb-4">
+                        <p id="oracle-text-container" className="text-sm sm:text-base leading-relaxed text-white font-medium text-justify whitespace-pre-line max-w-[90%] sm:max-w-[80%] pb-4 hyphens-auto">
                           {oracleText}
                         </p>
                         <button 
