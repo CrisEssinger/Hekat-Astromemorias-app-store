@@ -1557,7 +1557,7 @@ export default function App() {
         const cycleIdNum = typeof data.cycleId === 'number' ? data.cycleId : Number(data.cycleId || 0);
         const logDate = data.date?.toDate?.() || new Date();
         const rawEmotionId = data.emotionId;
-        const normalizedEmotionId = rawEmotionId === 'clarity' ? 'clareza' : rawEmotionId;
+        const normalizedEmotionId = rawEmotionId === 'clarity' ? 'clareza' : rawEmotionId === 'challenge' ? 'desafio' : rawEmotionId;
         
         // Extract cycleId directly from the doc.id prefix if it conforms to cycle_X_day_Y format
         let cycleIdVal = isNaN(cycleIdNum) ? 0 : cycleIdNum;

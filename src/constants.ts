@@ -56,6 +56,7 @@ export const EMOTIONS = [
   { id: 'apprehension', name: 'Apreensão', color: '#8B5CF6', icon: 'AlertCircle', category: 'Tensão & Desafios' },
   { id: 'annoyance', name: 'Chateação', color: '#DA70D6', icon: 'Frown', category: 'Tensão & Desafios' }, // Orchid/Lilás Vibrante
   { id: 'jealousy', name: 'Ciúme', color: '#B57EDC', icon: 'Lock', category: 'Tensão & Desafios' }, // Lilás Médio
+  { id: 'desafio', name: 'Desafio', color: '#7C3AED', icon: 'Target', category: 'Tensão & Desafios' }, // Violet Vibrante
   { id: 'distrust', name: 'Desconfiança', color: '#4B0082', icon: 'ShieldOff', category: 'Tensão & Desafios' }, // Indigo
   { id: 'dispersao', name: 'Dispersão', color: '#D8BFD8', icon: 'Shuffle', category: 'Tensão & Desafios' }, // Thistle/Lilás Acinzentado
   { id: 'selfishness', name: 'Egoísmo', color: '#6A5ACD', icon: 'UserCheck', category: 'Tensão & Desafios' }, // SlateBlue
