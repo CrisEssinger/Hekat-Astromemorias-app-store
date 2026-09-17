@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, ReactNode, RefObject, FC } from 'react';
+import { useState, useEffect, useMemo, useRef, ReactNode, RefObject, FC, ChangeEvent } from 'react';
 /**
  * Hekat OS - Oráculo de Astromemórias
  * Versão: 2.1.0-fix
@@ -79,7 +79,12 @@ import {
   Trophy,
   PartyPopper,
   Target,
-  BatteryLow
+  BatteryLow,
+  ArrowDownUp,
+  Upload,
+  Download,
+  Copy,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'motion/react';
 import { 
@@ -780,6 +785,49 @@ const serializeLunarData = (data: any) => {
   };
 };
 
+function parseClientLogData(logData?: string) {
+  if (!logData || !logData.trim()) {
+    return {
+      hasLogs: false,
+      count: 0,
+      dominant: 'recolhimento',
+      secondary: '',
+      notesSummary: '',
+      emotionsList: [] as string[]
+    };
+  }
+
+  const lines = logData.split('\n').filter(l => l.trim().length > 0);
+  const emotionCounts: Record<string, number> = {};
+  const notes: string[] = [];
+
+  for (const line of lines) {
+    const matchEmotion = line.match(/Sentimento\s+([A-Za-zÀ-ÿ]+)/i);
+    if (matchEmotion) {
+      const em = matchEmotion[1].trim();
+      emotionCounts[em] = (emotionCounts[em] || 0) + 1;
+    }
+    const matchNote = line.match(/Notas?:\s*"([^"]+)"/i) || line.match(/Anotações?:\s*"([^"]+)"/i);
+    if (matchNote && matchNote[1].trim()) {
+      notes.push(matchNote[1].trim());
+    }
+  }
+
+  const sorted = Object.entries(emotionCounts).sort((a, b) => b[1] - a[1]);
+  const dominant = sorted[0]?.[0] || 'recolhimento e auto-observação';
+  const secondary = sorted[1]?.[0] || '';
+  const notesSummary = notes.length > 0 ? ` As anotações trazem à tona reflexões como "${notes.slice(0, 2).join('" e "')}", revelando a sinceridade do seu processo íntimo.` : '';
+
+  return {
+    hasLogs: lines.length > 0,
+    count: lines.length,
+    dominant,
+    secondary,
+    notesSummary,
+    emotionsList: sorted.map(s => `${s[0]} (${s[1]}x)`)
+  };
+}
+
 const getClientFallbackReport = (
   period: string, 
   logData?: string, 
@@ -789,15 +837,40 @@ const getClientFallbackReport = (
   const isMonthly = period === 'monthly';
   const isCorrelation = period === 'correlation';
   const nameIntro = userName ? `${userName}, ` : '';
+  const info = parseClientLogData(logData);
 
   if (isWeekly) {
-    return `${nameIntro}ao compreender a jornada emocional descrita em seus registros recentes, identifico uma tônica de sentimentos voltada à busca por recolhimento e discernimento profundo. A sua linha de pensamento predominante girou em torno da necessidade de reorganizar dinâmicas internas e de restabelecer o equilíbrio mental diante de demandas externas. O padrão dominante que unifica esses dias revela uma tendência à oscilação silenciosa, alternando momentos de recolhimento criativo com picos de cansaço ou apreensão. Como amiga e mentora de sua caminhada, ressalto que a impaciência e a autocrítica excessiva são pontos de sombra que demandam sua gentil atenção e zelo protetor para que não sufoquem sua clareza. Em contrapartida, a sua capacidade de auto-observação honesta e a firmeza em acolher seus próprios ritmos funcionam como pontos luminosos de expansão e força. Sustente seus passos com coragem realista e resgate o centramento dócil para conduzir os próximos movimentos da alma.`;
+    const emotionClause = info.hasLogs
+      ? (info.secondary 
+          ? `uma tônica de sentimentos voltada predominantemente a ${info.dominant.toLowerCase()}, acompanhada de manifestações de ${info.secondary.toLowerCase()}`
+          : `uma tônica de sentimentos voltada predominantemente a ${info.dominant.toLowerCase()}`)
+      : `uma tônica de sentimentos voltada à busca por recolhimento e discernimento profundo`;
+
+    return `${nameIntro}identifico em sua caminhada de registros diários ${emotionClause}. A sua linha de pensamento predominante girou em torno de integrar essas percepções e harmonizar os movimentos da mente com a sabedoria do sentir.${info.notesSummary} O padrão dominante que unifica esses dias revela momentos de auto-observação honesta e busca por clareza. Como sua mentora sábia e amiga próxima de caminhada, ressalto que as oscilações emocionais e a autocrítica são pontos de sombra que demandam sua gentil atenção e zelo protetor para que não sufoquem sua clareza. Em contrapartida, a constância em registrar a verdade do seu sentir e acolher seus próprios ritmos funcionam como pontos luminosos de grande expansão e força. Sustente seus passos com postura ética e resgate o centramento dócil para conduzir os próximos movimentos da alma. O conselho prático para este momento é cultivar uma pausa intencional antes de responder a qualquer provocação externa, permitindo que a quietude revele o próximo passo com nobreza e dignidade.`;
   } else if (isMonthly) {
-    return `${nameIntro}ao compreender os ciclos e as marés emocionais que atravessaram seus últimos 28 dias, percebo uma tônica de sentimentos voltada à necessidade de consolidação, aterramento e busca por estabilidade em meio às águas flutuantes da rotina. A sua linha de pensamento predominante concentrou-se na busca por clareza ética e organização de prioridades, tentando definir o que realmente possui valor essencial. O padrão dominante revela momentos de contenção estratégica alternados com uma sutil resistência a mudanças necessárias, o que pode gerar cansaço acumulado. Como sua amiga e mentora nessa jornada, destaco que a rigidez ou a hesitação diante do novo são pontos de sombra que requerem sua atenção vigilante para não represar o fluxo do seu desenvolvimento. Em contrapartida, a paciência madura e o respeito solene ao tempo de gestação dos seus ideais são pontos luminosos de grande expansão. A orientação para guiar seus passos é cultivar o centramento firme com maleabilidade sábia, agindo sempre sob a luz da clareza mental e da verdade interior.`;
+    const emotionClause = info.hasLogs
+      ? (info.secondary 
+          ? `uma tônica ancorada em ${info.dominant.toLowerCase()} e ${info.secondary.toLowerCase()}`
+          : `uma tônica ancorada em ${info.dominant.toLowerCase()}`)
+      : `uma tônica voltada à consolidação, aterramento e organização de prioridades`;
+
+    return `${nameIntro}ao sintetizar os pontos recorrentes das suas anotações ao longo dos últimos 28 dias do ciclo lunar, percebo ${emotionClause}, estruturando sua caminhada de maturação e centramento.${info.notesSummary} O padrão dominante revela momentos de colheita sincera alternados com períodos em que a mente pede paciência para assimilar as transformações necessárias. Como sua mentora, amiga querida e companheira de jornada, destaco que a pressa ou a rigidez diante dos desdobramentos da vida são sombras que requerem sua atenção vigilante para não represar o fluxo do seu desenvolvimento. Em contrapartida, a constância em observar-se com afeto e o respeito solene ao tempo de gestação dos seus ideais são pontos luminosos de grande expansão. Para guiar seus passos na condução dos movimentos da alma com postura e clareza, finalize o que ficou pendente e abra espaço para o novo florescer.
+
+Lista de Tarefas:
+- Iniciado: Reconhecimento consciente dos padrões de ${info.dominant.toLowerCase()} e escuta atenta das marés internas.
+- Dar continuidade: Prática diária de escrita de astromemórias e sustentação da clareza mental.
+- Finalizado: Integração das oscilações passadas e encerramento de dinâmicas internas de autocobrança.`;
   } else if (isCorrelation) {
-    return `${nameIntro}as mandalas de cada mês revelam uma correspondência íntima entre os ciclos da natureza e sua energia interna. Use essa percepção como um mapa de autoconhecimento, aprendendo as horas certas de iniciar movimentos com coragem, as horas de perseverar em equilíbrio ou quando é o instante de apenas fruir com leveza.`;
+    const emotionContext = info.hasLogs
+      ? ` Os registros apontam que sentimentos como ${info.dominant.toLowerCase()}${info.secondary ? ` e ${info.secondary.toLowerCase()}` : ''} dialogam diretamente com as oscilações de luz do céu.`
+      : '';
+    return `${nameIntro}as suas mandalas revelam uma correspondência íntima entre as fases lunares e sua energia emocional interna ao longo dos ciclos registrados.${emotionContext} Na fase de Lua Nova, o sentimento prioritário identificado é o acolhimento reflexivo, convidando ao recolhimento e plantio de intenções. Na fase Crescente, sobressai o ânimo renovador e o entusiasmo para estruturar novos passos. Na fase Cheia, destaca-se a sensibilidade expandida e a expressividade, elevando as emoções ao seu ponto mais alto. E na fase Minguante, o desapego e a síntese tornam-se prioritários para encerrar o ciclo com sabedoria. Use essa correspondência direta como um mapa pessoal de autoconhecimento, aprendendo a respeitar os momentos em que a alma pede para agir com coragem e quando é o tempo de simplesmente fluir e descansar.`;
   } else {
-    return `${nameIntro}registrar e se escutar é um exercício contínuo de sabedoria e coragem silenciosa. O aprendizado desse período convida você a ancorar seu centro no presente absoluto, sustentando seus valores de maneira firme, mas mantendo a mente aberta e maleável diante das correntes da vida.`;
+    // Quarterly / Trimestral
+    const emotionContext = info.hasLogs 
+      ? ` Em seus registros deste trimestre, sobressaíram sentimentos de ${info.dominant.toLowerCase()}${info.secondary ? ` e ${info.secondary.toLowerCase()}` : ''}, marcando momentos cruciais de tomada de consciência.` 
+      : '';
+    return `${nameIntro}identifico na análise desta Estação da Alma, que compreende este último trimestre, eventos significativos e datas específicas onde os padrões emocionais se tornaram evidentes.${emotionContext} Em episódios de sobrecarga ou cansaço acumulado, reações de hesitação e ansiedade emergiram de forma mais marcante, resultando em oscilações do foco. Como sua amiga próxima e mentora sábia nesta caminhada, lembro-lhe de que essas reatividades são sombras naturais que nos indicam onde a autonomia precisa ser reforçada com maturidade. Os sentimentos predominantes de busca por segurança e centramento mostram o seu desejo sincero de evolução. O conselho para lidar com essa reatividade e conduzir seu processo de transformação permanente é cultivar uma pausa intencional antes de responder a estímulos externos, usando a respiração profunda como alicerce para desarmar a reatividade, permitindo que a clareza mental guie suas decisões com nobreza e dignidade.`;
   }
 };
 
@@ -990,6 +1063,7 @@ export default function App() {
     correlation: { text: null, logs: null, meta: null }
   });
   const [isReportLoading, setIsReportLoading] = useState<string | null>(null);
+  const [isUpdatingAllReports, setIsUpdatingAllReports] = useState(false);
 
   const generateReport = async (period: 'weekly' | 'monthly' | 'quarterly' | 'correlation') => {
     setIsReportLoading(period);
@@ -998,92 +1072,50 @@ export default function App() {
     const getLogDate = (log: LogEntry): Date => {
       if (log.timestamp?.toDate) return log.timestamp.toDate();
       if (log.timestamp instanceof Date) return log.timestamp;
-      if (typeof log.timestamp === 'string' || typeof log.timestamp === 'number') return new Date(log.timestamp);
+      if (typeof log.timestamp === 'string' || typeof log.timestamp === 'number') {
+        const d = new Date(log.timestamp);
+        if (!isNaN(d.getTime())) return d;
+      }
       return new Date();
     };
 
-    // Preparar dados atuais para o Gemini filtrando adequadamente por período
+    // Ordenação decrescente: do mais recente para o mais antigo
+    const sortedDescLogs = [...allLogs].sort((a, b) => {
+      const dateA = getLogDate(a).getTime();
+      const dateB = getLogDate(b).getTime();
+      if (Math.abs(dateB - dateA) > 60000) return dateB - dateA;
+      if (b.cycleId !== a.cycleId) return b.cycleId - a.cycleId;
+      return b.lunarDay - a.lunarDay;
+    });
+
+    const formatLogLine = (log: LogEntry) => {
+      const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || log.emotionId || 'Neutro';
+      const dateStr = log.date || getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Anotações: "${log.note}"` : ''}`;
+    };
+
+    // Preparar dados atuais filtrando adequadamente por período
     let logData = "";
     if (period === 'weekly') {
-      const nowTime = now.getTime();
-      const sevenDaysAgoMs = nowTime - (7 * 24 * 60 * 60 * 1000);
-      
-      const weeklyLogs = allLogs.filter(log => {
-        const logDate = getLogDate(log);
-        return logDate.getTime() >= sevenDaysAgoMs && logDate.getTime() <= nowTime;
-      });
-
-      const finalWeeklyLogs = weeklyLogs.length > 0 
-        ? weeklyLogs 
-        : [...allLogs].sort((a, b) => getLogDate(b).getTime() - getLogDate(a).getTime()).slice(0, 7).reverse();
-
-      logData = finalWeeklyLogs.map(log => {
-        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || 'Neutro';
-        const dateStr = getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-        return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Notas: "${log.note}"` : ''}`;
-      }).join('\n');
+      const finalWeeklyLogs = sortedDescLogs.slice(0, 7).reverse();
+      logData = finalWeeklyLogs.map(formatLogLine).join('\n');
     } else if (period === 'monthly') {
-      const nowTime = now.getTime();
-      const twentyNineDaysAgoMs = nowTime - (29 * 24 * 60 * 60 * 1000);
-      
-      const monthlyLogs = allLogs.filter(log => {
-        const logDate = getLogDate(log);
-        return logDate.getTime() >= twentyNineDaysAgoMs && logDate.getTime() <= nowTime;
-      });
-
-      const finalMonthlyLogs = monthlyLogs.length > 0 
-        ? monthlyLogs 
-        : [...allLogs].sort((a, b) => getLogDate(b).getTime() - getLogDate(a).getTime()).slice(0, 29).reverse();
-
-      logData = finalMonthlyLogs.map(log => {
-        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || 'Neutro';
-        const dateStr = getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-        return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Notas: "${log.note}"` : ''}`;
-      }).join('\n');
+      const finalMonthlyLogs = sortedDescLogs.slice(0, 29).reverse();
+      logData = finalMonthlyLogs.map(formatLogLine).join('\n');
     } else if (period === 'quarterly') {
-      const nowTime = now.getTime();
-      const ninetyDaysAgoMs = nowTime - (90 * 24 * 60 * 60 * 1000);
-      
-      const quarterlyLogs = allLogs.filter(log => {
-        const logDate = getLogDate(log);
-        return logDate.getTime() >= ninetyDaysAgoMs && logDate.getTime() <= nowTime;
-      });
-
-      const finalQuarterlyLogs = quarterlyLogs.length > 0 
-        ? quarterlyLogs 
-        : [...allLogs].sort((a, b) => getLogDate(b).getTime() - getLogDate(a).getTime()).slice(0, 90).reverse();
-
-      logData = finalQuarterlyLogs.map(log => {
-        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || 'Neutro';
-        const dateStr = getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-        return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Notas: "${log.note}"` : ''}`;
-      }).join('\n');
+      const finalQuarterlyLogs = sortedDescLogs.slice(0, 90).reverse();
+      logData = finalQuarterlyLogs.map(formatLogLine).join('\n');
     } else {
-      // correlation: use last 3 cycles of 29 days (87 days)
-      const nowTime = now.getTime();
-      const eightySevenDaysAgoMs = nowTime - (87 * 24 * 60 * 60 * 1000);
-      
-      const correlationLogs = allLogs.filter(log => {
-        const logDate = getLogDate(log);
-        return logDate.getTime() >= eightySevenDaysAgoMs && logDate.getTime() <= nowTime;
-      });
-
-      const finalCorrelationLogs = correlationLogs.length > 0 
-        ? correlationLogs 
-        : [...allLogs].sort((a, b) => getLogDate(b).getTime() - getLogDate(a).getTime()).slice(0, 87).reverse();
-
-      logData = finalCorrelationLogs.map(log => {
-        const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || 'Neutro';
-        const dateStr = getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-        return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Notas: "${log.note}"` : ''}`;
-      }).join('\n');
+      // correlation: use last 3 cycles (87 entries)
+      const finalCorrelationLogs = sortedDescLogs.slice(0, 87).reverse();
+      logData = finalCorrelationLogs.map(formatLogLine).join('\n');
     }
 
     // Contexto de meses anteriores para continuidade e padrões
     const previousLogsData = allLogs
-      .filter(log => log.cycleId < lunarData.cycleId)
+      .filter(log => log.cycleId < (viewingCycleId || lunarData.cycleId))
       .slice(-40) // Ajustado para incluir notas sem exceder limites práticos
-      .map(log => `Ciclo ${log.cycleId}, Dia ${log.lunarDay}: ${EMOTIONS.find(e => e.id === log.emotionId)?.name} (${log.intensity})${log.note ? ` - Nota: ${log.note}` : ''}`)
+      .map(log => `Ciclo ${log.cycleId}, Dia ${log.lunarDay}: ${EMOTIONS.find(e => e.id === log.emotionId)?.name || log.emotionId} (${log.intensity})${log.note ? ` - Nota: ${log.note}` : ''}`)
       .join('\n');
 
     const getPhaseName = (day: number) => {
@@ -1261,6 +1293,20 @@ export default function App() {
       setIsReportLoading(null);
     }
   };
+
+  const updateAllReports = async () => {
+    if (isUpdatingAllReports || isReportLoading) return;
+    setIsUpdatingAllReports(true);
+    try {
+      for (const p of ['weekly', 'monthly', 'quarterly', 'correlation'] as const) {
+        await generateReport(p);
+      }
+    } catch (e) {
+      console.error("Erro ao sincronizar todos os relatórios:", e);
+    } finally {
+      setIsUpdatingAllReports(false);
+    }
+  };
   const isNight = true;
 
   const [selectedDay, setSelectedDay] = useState(lunarData.day);
@@ -1277,6 +1323,11 @@ export default function App() {
   const [note, setNote] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
+  const [isDataSyncOpen, setIsDataSyncOpen] = useState(false);
+  const [syncTab, setSyncTab] = useState<'transfer' | 'cloud'>('transfer');
+  const [importInputText, setImportInputText] = useState('');
+  const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+  const [hasCopied, setHasCopied] = useState(false);
   
   const oracleCache = useRef<Record<string, string>>({});
   const [oracleText, setOracleText] = useState<string>("Invocando a sabedoria dos astros...");
@@ -1294,6 +1345,8 @@ export default function App() {
     const cacheKey = `sun_${sunIdx}_moon_${moonIdx}_day_${selectedDay}_name_${formattedName}`;
     
     delete oracleCache.current[cacheKey];
+    setOracleText("Invocando a sabedoria dos astros...");
+    setIsOracleLoading(true);
     setOracleTrigger(prev => prev + 1);
   };
 
@@ -1548,6 +1601,36 @@ export default function App() {
       console.warn("Hekat: Firestore is not initialized. Operating in local-only mode.");
       return;
     }
+
+    // Se o usuário possuía registros locais de visitante neste navegador, sincronizar com a nuvem
+    const guestLogsStr = localStorage.getItem('hekat_guest_logs');
+    if (guestLogsStr) {
+      try {
+        const guestLogs = JSON.parse(guestLogsStr);
+        if (Array.isArray(guestLogs) && guestLogs.length > 0) {
+          console.log(`Hekat: Migrando ${guestLogs.length} memórias locais do visitante para a nuvem de ${currentUser.uid}...`);
+          guestLogs.forEach(async (log: any) => {
+            if (log.lunarDay && log.emotionId) {
+              const cId = Number(log.cycleId) || 1;
+              const logId = `cycle_${cId}_day_${log.lunarDay}`;
+              const docRef = doc(db, 'users', currentUser.uid, 'logs', logId);
+              await setDoc(docRef, {
+                emotionId: log.emotionId,
+                intensity: Number(log.intensity) || 3,
+                note: log.note || "",
+                cycleId: cId,
+                lunarDay: Number(log.lunarDay),
+                userId: currentUser.uid,
+                date: serverTimestamp()
+              }, { merge: true }).catch(err => console.warn("Hekat auto-migration warning:", err));
+            }
+          });
+        }
+      } catch (e) {
+        console.error("Erro ao migrar memórias locais:", e);
+      }
+    }
+
     const logsRef = collection(db, 'users', currentUser.uid, 'logs');
     const q = query(logsRef, orderBy("date", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -1900,6 +1983,11 @@ export default function App() {
       toggleWindow('journal', 'close');
       toggleWindow('mandala', 'open');
     }, 1500);
+
+    // Atualizar análise semanal em segundo plano com o novo registro diário
+    setTimeout(() => {
+      generateReport('weekly').catch(e => console.warn("Atualização automática semanal:", e));
+    }, 600);
   };
 
   const handleReset = async () => {
@@ -1911,6 +1999,165 @@ export default function App() {
       setAllLogs([]);
       setIsResetOpen(false);
     }
+  };
+
+  const fallbackCopyTextToClipboard = (text: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setHasCopied(true);
+      setTimeout(() => setHasCopied(false), 3000);
+    } catch (err) {
+      console.error("Falha ao copiar:", err);
+    }
+    document.body.removeChild(textArea);
+  };
+
+  const handleCopyBackup = () => {
+    const backupData = {
+      version: "1.0",
+      app: "Hekat Astromemorias",
+      exportDate: new Date().toISOString(),
+      userName: userData?.name || currentUser?.displayName || '',
+      totalLogs: allLogs.length,
+      logs: allLogs
+    };
+    const jsonStr = JSON.stringify(backupData, null, 2);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(jsonStr).then(() => {
+        setHasCopied(true);
+        setTimeout(() => setHasCopied(false), 3000);
+      }).catch(() => {
+        fallbackCopyTextToClipboard(jsonStr);
+      });
+    } else {
+      fallbackCopyTextToClipboard(jsonStr);
+    }
+  };
+
+  const handleDownloadBackup = () => {
+    const backupData = {
+      version: "1.0",
+      app: "Hekat Astromemorias",
+      exportDate: new Date().toISOString(),
+      userName: userData?.name || currentUser?.displayName || '',
+      totalLogs: allLogs.length,
+      logs: allLogs
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hekat_astromemorias_backup_${todayCalendarDate.replace(/\//g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportLogs = (textOrJson: string) => {
+    try {
+      setSyncStatus({ type: null, message: '' });
+      let logsToImport: any[] = [];
+      const trimmed = textOrJson.trim();
+      if (!trimmed) {
+        throw new Error("Por favor, cole o texto de backup ou selecione um arquivo.");
+      }
+      
+      let parsed: any;
+      try {
+        parsed = JSON.parse(trimmed);
+      } catch (e) {
+        throw new Error("Formato inválido. Certifique-se de colar o código JSON completo do backup.");
+      }
+
+      if (Array.isArray(parsed)) {
+        logsToImport = parsed;
+      } else if (parsed && Array.isArray(parsed.logs)) {
+        logsToImport = parsed.logs;
+      } else {
+        throw new Error("Estrutura não reconhecida. O arquivo precisa conter a lista de astromemórias.");
+      }
+
+      if (logsToImport.length === 0) {
+        throw new Error("Nenhuma astromemória encontrada no backup.");
+      }
+
+      const validLogs: LogEntry[] = [];
+      for (const item of logsToImport) {
+        if (!item.lunarDay || !item.emotionId) continue;
+        const cycleIdNum = Number(item.cycleId) || 1;
+        validLogs.push({
+          emotionId: item.emotionId,
+          intensity: Number(item.intensity) || 3,
+          note: item.note || "",
+          cycleId: cycleIdNum,
+          lunarDay: Number(item.lunarDay),
+          date: item.date || todayCalendarDate
+        });
+      }
+
+      if (validLogs.length === 0) {
+        throw new Error("Nenhum registro com campos válidos (dia lunar e emoção) foi encontrado.");
+      }
+
+      // Mesclagem segura: preserva registros atuais e adiciona/atualiza com os importados
+      const map = new Map<string, LogEntry>();
+      allLogs.forEach(l => map.set(`c${l.cycleId}_d${l.lunarDay}`, l));
+      validLogs.forEach(l => map.set(`c${l.cycleId}_d${l.lunarDay}`, l));
+
+      const merged = Array.from(map.values());
+      setAllLogs(merged);
+
+      if (currentUser?.uid === 'guest_user') {
+        localStorage.setItem('hekat_guest_logs', JSON.stringify(merged));
+      } else if (currentUser && db) {
+        validLogs.forEach(async (l) => {
+          const logId = `cycle_${l.cycleId}_day_${l.lunarDay}`;
+          const logRef = doc(db, 'users', currentUser.uid, 'logs', logId);
+          await setDoc(logRef, {
+            emotionId: l.emotionId,
+            intensity: l.intensity,
+            note: l.note,
+            cycleId: l.cycleId,
+            lunarDay: l.lunarDay,
+            userId: currentUser.uid,
+            date: serverTimestamp()
+          }, { merge: true }).catch(err => console.warn("Erro ao salvar log importado no Firestore:", err));
+        });
+      }
+
+      setSyncStatus({ 
+        type: 'success', 
+        message: `${validLogs.length} astromemória(s) resgatada(s) e mescladas com sucesso! Total atual: ${merged.length} memórias.` 
+      });
+      setImportInputText('');
+    } catch (err: any) {
+      setSyncStatus({ 
+        type: 'error', 
+        message: err.message || "Falha ao importar dados. Verifique o formato." 
+      });
+    }
+  };
+
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        handleImportLogs(content);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleDeleteLog = async (dayToDelete: number) => {
@@ -2387,8 +2634,16 @@ export default function App() {
               ))}
               <div className="h-4 w-[1px] bg-white/10 mx-0.5 sm:mx-1.5 flex-shrink-0" />
               <button 
+                onClick={() => { setIsDataSyncOpen(true); setSyncStatus({ type: null, message: '' }); }}
+                className="p-2 px-2.5 sm:p-2 sm:px-3 text-indigo-300 hover:text-indigo-200 transition-all hover:bg-indigo-500/10 rounded-xl flex-shrink-0 cursor-pointer active:scale-90"
+                title="Sincronizar & Resgatar Dados do Celular"
+              >
+                <ArrowDownUp size={18} />
+              </button>
+              <button 
                 onClick={() => setIsResetOpen(true)}
                 className="p-2 px-2.5 sm:p-2 sm:px-3 text-indigo-300 hover:text-indigo-200 transition-all hover:bg-indigo-500/10 rounded-xl flex-shrink-0 cursor-pointer active:scale-90"
+                title="Formatar Ciclo"
               >
                 <RotateCcw size={18} />
               </button>
@@ -2533,30 +2788,43 @@ export default function App() {
                    </div>
                 </div>
 
-                {/* Seletor de Ciclo para Visualização */}
-                <div className="flex items-center gap-1.5 bg-indigo-950/40 p-1 rounded-xl border border-white/10 mb-3 shadow-lg backdrop-blur-sm">
-                  <button 
-                    onClick={() => setViewingCycleId(prev => Math.max(1, (prev || lunarData.cycleId) - 1))}
-                    className="p-1 hover:bg-white/10 rounded-lg text-indigo-300 transition-colors active:scale-90"
-                  >
-                    <ChevronLeft size={12} />
-                  </button>
-                  <div className="px-2.5 text-center min-w-[85px]">
-                    <span className="text-[10px] font-black text-white uppercase block tracking-wider">
-                      {`Ciclo ${viewingCycleId || lunarData.cycleId}`}
-                    </span>
-                    {(viewingCycleId || lunarData.cycleId) === lunarData.cycleId ? (
-                      <span key="ciclo-atual-indicator" className="text-[8px] font-black text-emerald-400 uppercase tracking-tighter animate-pulse">Ciclo Atual</span>
-                    ) : (
-                      <span key="memoria-gravada-indicator" className="text-[8px] font-black text-amber-400/80 uppercase tracking-tighter">Memória Gravada</span>
-                    )}
+                {/* Seletor de Ciclo para Visualização e Backup */}
+                <div className="flex items-center justify-between gap-2 w-full max-w-[350px] mb-3">
+                  <div className="flex items-center gap-1.5 bg-indigo-950/40 p-1 rounded-xl border border-white/10 shadow-lg backdrop-blur-sm">
+                    <button 
+                      onClick={() => setViewingCycleId(prev => Math.max(1, (prev || lunarData.cycleId) - 1))}
+                      className="p-1 hover:bg-white/10 rounded-lg text-indigo-300 transition-colors active:scale-90"
+                      title="Ciclo anterior"
+                    >
+                      <ChevronLeft size={12} />
+                    </button>
+                    <div className="px-2.5 text-center min-w-[85px]">
+                      <span className="text-[10px] font-black text-white uppercase block tracking-wider">
+                        {`Ciclo ${viewingCycleId || lunarData.cycleId}`}
+                      </span>
+                      {(viewingCycleId || lunarData.cycleId) === lunarData.cycleId ? (
+                        <span key="ciclo-atual-indicator" className="text-[8px] font-black text-emerald-400 uppercase tracking-tighter animate-pulse">Ciclo Atual</span>
+                      ) : (
+                        <span key="memoria-gravada-indicator" className="text-[8px] font-black text-amber-400/80 uppercase tracking-tighter">Memória Gravada</span>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => setViewingCycleId(prev => Math.min(lunarData.cycleId, (prev || lunarData.cycleId) + 1))}
+                      disabled={(viewingCycleId || lunarData.cycleId) >= lunarData.cycleId}
+                      className="p-1 hover:bg-white/10 rounded-lg text-indigo-300 transition-colors disabled:opacity-20 active:scale-90"
+                      title="Próximo ciclo"
+                    >
+                      <ChevronRight size={12} />
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => setViewingCycleId(prev => Math.min(lunarData.cycleId, (prev || lunarData.cycleId) + 1))}
-                    disabled={(viewingCycleId || lunarData.cycleId) >= lunarData.cycleId}
-                    className="p-1 hover:bg-white/10 rounded-lg text-indigo-300 transition-colors disabled:opacity-20 active:scale-90"
+
+                  <button
+                    onClick={() => { setIsDataSyncOpen(true); setSyncStatus({ type: null, message: '' }); }}
+                    className="flex items-center gap-1.5 px-2.5 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 hover:text-white rounded-xl border border-indigo-500/30 text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-sm"
+                    title="Resgatar ou transferir anotações entre celular e computador"
                   >
-                    <ChevronRight size={12} />
+                    <ArrowDownUp size={12} className="text-amber-400" />
+                    <span>Resgatar / Backup</span>
                   </button>
                 </div>
 
@@ -2813,6 +3081,31 @@ export default function App() {
               </div>
             ) : win.id === 'reports' ? (
                 <div className="space-y-4 sm:space-y-6">
+                  {/* Barra Superior de Sincronização com Registros Diários */}
+                  <div className="p-4 sm:p-5 rounded-[2rem] bg-indigo-950/40 border border-indigo-500/20 backdrop-blur-md shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 shadow-inner">
+                        <Sparkles size={20} className="text-indigo-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-indigo-100">Sincronização com Registros Diários</h4>
+                        <p className="text-[10px] text-indigo-300/80 font-medium">
+                          {allLogs.length > 0 
+                            ? `${allLogs.length} anotação(ões) diária(s) registrada(s) no seu mapa lunar` 
+                            : 'Nenhum registro ainda — anote na Mandala para alimentar a análise'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={updateAllReports}
+                      disabled={isUpdatingAllReports || !!isReportLoading}
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg hover:shadow-indigo-500/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                    >
+                      <RotateCw size={14} className={isUpdatingAllReports ? "animate-spin" : ""} />
+                      <span>{isUpdatingAllReports ? "Atualizando Todos..." : "Atualizar Todos com Meus Registros"}</span>
+                    </button>
+                  </div>
+
                   <div className="grid grid-cols-1 gap-3 sm:gap-4">
                     {[
                       { id: 'weekly', title: 'Relatório Semanal', icon: 'Clock', color: 'bg-amber-100/20 text-amber-500' },
@@ -2835,10 +3128,12 @@ export default function App() {
                           </div>
                           <button 
                             onClick={() => generateReport(item.id as any)}
-                            disabled={!!isReportLoading}
-                            className="p-2.5 sm:p-3 rounded-full bg-indigo-600 text-white shadow-lg hover:shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 font-black"
+                            disabled={!!isReportLoading || isUpdatingAllReports}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[10px] font-black uppercase tracking-wider shadow-md hover:shadow-indigo-500/20 transition-all disabled:opacity-50"
+                            title="Atualizar relatório com dados diários"
                           >
-                            {isReportLoading === item.id ? <RotateCw className="animate-spin" size={14} /> : <Activity size={14} />}
+                            {isReportLoading === item.id ? <RotateCw className="animate-spin" size={12} /> : <Activity size={12} />}
+                            <span>{isReportLoading === item.id ? "Atualizando..." : (reports[item.id as keyof typeof reports].text ? "Atualizar" : "Gerar")}</span>
                           </button>
                         </div>
                         
@@ -3491,6 +3786,197 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Data Sync & Recovery Modal */}
+      <AnimatePresence>
+        {isDataSyncOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[10500] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-indigo-950/95 border border-indigo-500/30 p-6 sm:p-7 rounded-[2.5rem] shadow-2xl max-w-lg w-full text-slate-100 backdrop-blur-xl relative space-y-5 max-h-[90vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-inner">
+                    <ArrowDownUp size={20} className="text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-[#BF8A10] uppercase tracking-wider">
+                      Resgate & Backup de Dados
+                    </h3>
+                    <p className="text-[11px] text-indigo-300/80 font-medium">
+                      Sincronize suas anotações entre celular e computador
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { setIsDataSyncOpen(false); setSyncStatus({ type: null, message: '' }); }}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-indigo-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Status do Dispositivo Atual */}
+              <div className="p-3.5 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-between gap-3 text-xs">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-indigo-300/70 tracking-wider block">Neste dispositivo</span>
+                  <span className="font-extrabold text-white text-sm">
+                    {allLogs.length} astromemória(s) salva(s)
+                  </span>
+                  {allLogs.length > 0 && (
+                    <span className="text-[10px] text-indigo-400 block mt-0.5">
+                      Ciclos presentes: {[...new Set(allLogs.map(l => l.cycleId))].sort((a, b) => Number(a) - Number(b)).join(', ')}
+                    </span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-indigo-300/70 tracking-wider block">Conta / Modo</span>
+                  <span className="font-bold text-amber-300 text-xs">
+                    {currentUser?.uid === 'guest_user' ? 'Modo Visitante (Local)' : (currentUser?.email || 'Conectado')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex rounded-xl bg-black/40 p-1 border border-white/10 text-xs font-bold">
+                <button
+                  onClick={() => setSyncTab('transfer')}
+                  className={`flex-1 py-2 rounded-lg transition-all text-center cursor-pointer ${syncTab === 'transfer' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-300/70 hover:text-white'}`}
+                >
+                  Transferir (Copiar / Colar)
+                </button>
+                <button
+                  onClick={() => setSyncTab('cloud')}
+                  className={`flex-1 py-2 rounded-lg transition-all text-center cursor-pointer ${syncTab === 'cloud' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-300/70 hover:text-white'}`}
+                >
+                  Nuvem (Conta Google)
+                </button>
+              </div>
+
+              {/* Conteúdo Aba Transfer */}
+              {syncTab === 'transfer' ? (
+                <div className="space-y-4 text-xs">
+                  {/* Passo 1: Exportar */}
+                  <div className="p-4 rounded-2xl bg-indigo-900/30 border border-indigo-500/20 space-y-3">
+                    <div className="flex items-center gap-2 text-[#BF8A10] font-black uppercase text-[11px] tracking-wider">
+                      <Download size={14} />
+                      <span>1. Para exportar deste aparelho</span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      Se você está no celular com suas astromemórias anotadas, clique abaixo para copiar os dados ou baixar o arquivo:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={handleCopyBackup}
+                        className="flex-1 min-w-[130px] py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+                      >
+                        {hasCopied ? <Check size={14} className="text-emerald-300" /> : <Copy size={14} />}
+                        <span>{hasCopied ? "Copiado com Sucesso!" : "Copiar Astromemórias"}</span>
+                      </button>
+                      <button
+                        onClick={handleDownloadBackup}
+                        className="py-2.5 px-3 bg-white/10 hover:bg-white/15 active:scale-95 text-indigo-200 hover:text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Download size={14} />
+                        <span>Baixar .json</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Passo 2: Importar */}
+                  <div className="p-4 rounded-2xl bg-indigo-900/30 border border-indigo-500/20 space-y-3">
+                    <div className="flex items-center gap-2 text-[#BF8A10] font-black uppercase text-[11px] tracking-wider">
+                      <Upload size={14} />
+                      <span>2. Para restaurar ou importar aqui</span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      Cole aqui o código copiado do celular ou carregue o arquivo .json baixado para trazer suas memórias imediatamente:
+                    </p>
+                    <textarea
+                      value={importInputText}
+                      onChange={(e) => setImportInputText(e.target.value)}
+                      placeholder='Cole aqui o código de backup gerado no celular...'
+                      className="w-full h-20 p-2.5 rounded-xl bg-black/40 border border-white/10 text-slate-100 text-[11px] placeholder:text-slate-500 font-mono outline-none focus:border-indigo-500 transition-colors resize-none"
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => handleImportLogs(importInputText)}
+                        disabled={!importInputText.trim()}
+                        className="flex-1 py-2.5 px-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-slate-950 font-black text-[11px] uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
+                      >
+                        Restaurar & Integrar Dados
+                      </button>
+                      <label className="py-2.5 px-3 bg-white/10 hover:bg-white/15 text-indigo-200 hover:text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer transition-all">
+                        <FileText size={14} />
+                        <span>Subir Arquivo</span>
+                        <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Conteúdo Aba Nuvem */
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 rounded-2xl bg-indigo-900/30 border border-indigo-500/20 space-y-3">
+                    <div className="flex items-center gap-2 text-[#BF8A10] font-black uppercase text-[11px] tracking-wider">
+                      <ShieldCheck size={16} className="text-emerald-400" />
+                      <span>Sincronização em Nuvem via Google</span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      Ao conectar sua conta Google no celular e no computador:
+                    </p>
+                    <ul className="list-disc list-inside text-slate-300/90 text-[11px] space-y-1.5 pl-1">
+                      <li>Todas as memórias anotadas no celular sobem de forma segura para o banco na nuvem.</li>
+                      <li>Ao abrir o computador e entrar com a mesma conta, tudo é carregado automaticamente.</li>
+                      <li>Você não precisa se preocupar com backups manuais ao trocar de aparelho.</li>
+                    </ul>
+
+                    {currentUser?.uid === 'guest_user' ? (
+                      <div className="pt-2">
+                        <button
+                          onClick={() => {
+                            setIsDataSyncOpen(false);
+                            handleLogin();
+                          }}
+                          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <LogIn size={16} />
+                          <span>Conectar com Google Agora</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-emerald-300 text-[11px] font-medium flex items-center gap-2">
+                        <Check size={16} className="text-emerald-400 shrink-0" />
+                        <span>Você está conectado com {currentUser?.email}. Seus dados salvos sincronizam na nuvem.</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Mensagem de Feedback de Status */}
+              {syncStatus.type && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-3 rounded-xl text-xs font-bold ${syncStatus.type === 'success' ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-300' : 'bg-rose-950/60 border border-rose-500/40 text-rose-300'}`}
+                >
+                  {syncStatus.message}
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Name Onboarding Modal */}
       <AnimatePresence>
         {showNameModal && (
@@ -3516,10 +4002,8 @@ export default function App() {
               
               <div className="space-y-2">
                 <h3 className="text-2xl font-black text-[#BF8A10] uppercase tracking-wider">Qual seu nome?</h3>
-                <p className="text-xs text-indigo-200/60 leading-relaxed font-semibold text-center">
-                  O Oráculo e seus Relatórios usarão esta identificação<br />
-                  para guiar você neste caminho de Auto observação<br />
-                  acompanhando os Ciclos Lunares.
+                <p className="text-xs text-indigo-200/60 leading-relaxed font-semibold text-justify">
+                  O Oráculo e seus Relatórios usarão esta identificação para guiar você neste caminho de Auto observação acompanhando os Ciclos Lunares.
                 </p>
               </div>
 

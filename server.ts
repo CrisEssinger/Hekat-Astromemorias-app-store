@@ -29,6 +29,89 @@ function getAI() {
   return aiClient;
 }
 
+// Resilient helper to call Gemini with fast model order, staggered parallel fallback and optimal latency
+async function generateWithGemini(contents: string, systemInstruction?: string): Promise<string> {
+  const ai = getAI();
+  // Fast, responsive models prioritized first
+  const models = [
+    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash"
+  ];
+
+  const callModel = async (model: string, timeoutMs = 6000): Promise<string> => {
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout on model ${model}`)), timeoutMs)
+    );
+    const response = await Promise.race([
+      ai.models.generateContent({
+        model,
+        contents,
+        config: systemInstruction ? { systemInstruction } : undefined,
+      }),
+      timeoutPromise
+    ]);
+
+    if (response && response.text) {
+      return response.text.trim();
+    }
+    throw new Error(`Empty response from ${model}`);
+  };
+
+  // Staggered race: initiate primary model immediately
+  // If primary has not responded within 2200ms, launch secondary model in parallel
+  let primaryPromise: Promise<string>;
+  try {
+    primaryPromise = callModel(models[0], 6000);
+  } catch (err) {
+    primaryPromise = Promise.reject(err);
+  }
+
+  const staggeredPromise = new Promise<string>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      // Launch secondary model concurrently
+      callModel(models[1], 5500)
+        .then(resolve)
+        .catch(() => {
+          // If secondary also fails, try third
+          callModel(models[2], 5000).then(resolve).catch(reject);
+        });
+    }, 2200);
+
+    // If primary resolves first, clear timer
+    primaryPromise.then(
+      val => {
+        clearTimeout(timer);
+        resolve(val);
+      },
+      () => {
+        // If primary rejects immediately (e.g. 503 error), kick off secondary right away
+        clearTimeout(timer);
+        callModel(models[1], 5500)
+          .then(resolve)
+          .catch(() => {
+            callModel(models[2], 5000).then(resolve).catch(reject);
+          });
+      }
+    );
+  });
+
+  try {
+    return await Promise.race([primaryPromise, staggeredPromise]);
+  } catch {
+    // If racing fails, sequentially try any remaining candidate
+    for (let i = 2; i < models.length; i++) {
+      try {
+        return await callModel(models[i], 5000);
+      } catch {
+        // continue
+      }
+    }
+    throw new Error("All Gemini models temporarily unavailable");
+  }
+}
+
 // Elegantly styled fallback generator matching Hekat's strict brand guidelines and voice (fluid, simple, profound astrological wisdom without technical labels or awkward punctuation)
 function generateFallbackOracle(sunSignName?: string, moonSignName?: string, philosophicalPhrase?: string, userName?: string, aspectDesc?: string): string {
   const sunRaw = (sunSignName || 'Touro').trim();
@@ -134,26 +217,88 @@ function generateFallbackOracle(sunSignName?: string, moonSignName?: string, phi
   return `${nameIntro}${archetypesIntro} ${elementText} ${aspectClause} ${aspectAdvice}`;
 }
 
+function parseLogDataInfo(logData?: string) {
+  if (!logData || !logData.trim()) {
+    return {
+      hasLogs: false,
+      count: 0,
+      dominant: 'recolhimento',
+      secondary: '',
+      notesSummary: '',
+      emotionsList: [] as string[]
+    };
+  }
+
+  const lines = logData.split('\n').filter(l => l.trim().length > 0);
+  const emotionCounts: Record<string, number> = {};
+  const notes: string[] = [];
+
+  for (const line of lines) {
+    const matchEmotion = line.match(/Sentimento\s+([A-Za-zÀ-ÿ]+)/i);
+    if (matchEmotion) {
+      const em = matchEmotion[1].trim();
+      emotionCounts[em] = (emotionCounts[em] || 0) + 1;
+    }
+    const matchNote = line.match(/Notas?:\s*"([^"]+)"/i);
+    if (matchNote && matchNote[1].trim()) {
+      notes.push(matchNote[1].trim());
+    }
+  }
+
+  const sorted = Object.entries(emotionCounts).sort((a, b) => b[1] - a[1]);
+  const dominant = sorted[0]?.[0] || 'recolhimento e auto-observação';
+  const secondary = sorted[1]?.[0] || '';
+  const notesSummary = notes.length > 0 ? ` As anotações trazem à tona reflexões como "${notes.slice(0, 2).join('" e "')}", revelando a sinceridade do seu processo íntimo.` : '';
+
+  return {
+    hasLogs: lines.length > 0,
+    count: lines.length,
+    dominant,
+    secondary,
+    notesSummary,
+    emotionsList: sorted.map(s => `${s[0]} (${s[1]}x)`)
+  };
+}
+
 function generateFallbackReports(period: string, logData?: string, userName?: string): string {
   const isWeekly = period === 'weekly';
   const isMonthly = period === 'monthly';
   const isCorrelation = period === 'correlation';
   const nameIntro = userName ? `${userName}, ` : '';
+  const info = parseLogDataInfo(logData);
 
   if (isWeekly) {
-    return `${nameIntro}identifico em sua caminhada de registros recentes uma tônica de sentimentos voltada à busca por recolhimento e discernimento profundo. A sua linha de pensamento predominante girou em torno da necessidade de reorganizar dinâmicas internas e de restabelecer o equilíbrio mental diante de demandas externas. O padrão dominante que unifica esses dias revela uma tendência à oscilação silenciosa, alternando momentos de recolhimento criativo com picos de cansaço ou apreensão. Como sua mentora sábia e amiga próxima de caminhada, ressalto que a impaciência e a autocrítica excessiva são pontos de sombra que demandam sua gentil atenção e zelo protetor para que não sufoquem sua clareza. Em contrapartida, a sua capacidade de auto-observação honesta e a firmeza em acolher seus próprios ritmos funcionam como pontos luminosos de expansão e força. Sustente seus passos com coragem realista e resgate o centramento dócil para conduzir os próximos movimentos da alma. O conselho prático para este momento é cultivar uma pausa intencional antes de responder a estímulos externos, permitindo que a quietude revele o próximo passo com nobreza e dignidade.`;
+    const emotionClause = info.hasLogs
+      ? (info.secondary 
+          ? `uma tônica de sentimentos voltada predominantemente a ${info.dominant.toLowerCase()}, acompanhada de manifestações de ${info.secondary.toLowerCase()}`
+          : `uma tônica de sentimentos voltada predominantemente a ${info.dominant.toLowerCase()}`)
+      : `uma tônica de sentimentos voltada à busca por recolhimento e discernimento profundo`;
+
+    return `${nameIntro}identifico em sua caminhada de registros diários ${emotionClause}. A sua linha de pensamento predominante girou em torno de integrar essas percepções e harmonizar os movimentos da mente com a sabedoria do sentir.${info.notesSummary} O padrão dominante que unifica esses dias revela momentos de auto-observação honesta e busca por clareza. Como sua mentora sábia e amiga próxima de caminhada, ressalto que as oscilações emocionais e a autocrítica são pontos de sombra que demandam sua gentil atenção e zelo protetor para que não sufoquem sua clareza. Em contrapartida, a constância em registrar a verdade do seu sentir e acolher seus próprios ritmos funcionam como pontos luminosos de grande expansão e força. Sustente seus passos com postura ética e resgate o centramento dócil para conduzir os próximos movimentos da alma. O conselho prático para este momento é cultivar uma pausa intencional antes de responder a qualquer provocação externa, permitindo que a quietude revele o próximo passo com nobreza e dignidade.`;
   } else if (isMonthly) {
-    return `${nameIntro}ao sintetizar os pontos recorrentes das suas anotações ao longo dos últimos 29 dias do ciclo lunar, percebo uma tônica voltada à consolidação, aterramento e organização de prioridades, buscando compreender o que possui valor perene. O padrão dominante revela momentos de contenção estratégica alternados com uma sutil resistência a mudanças necessárias, o que pode gerar cansaço acumulado. Como sua mentora, amiga querida e companheira de jornada, destaco que a rigidez ou a hesitação diante do novo são pontos de sombra que requerem sua atenção vigilante para não represar o fluxo do seu desenvolvimento. Em contrapartida, a paciência dócil e o respeito solene ao tempo de gestação dos seus ideais são pontos luminosos de grande expansão. Para guiar seus passos na condução dos movimentos da alma com postura e clareza, é essencial finalizar o que ficou pendente e abrir espaço para o novo.
+    const emotionClause = info.hasLogs
+      ? (info.secondary 
+          ? `uma tônica ancorada em ${info.dominant.toLowerCase()} e ${info.secondary.toLowerCase()}`
+          : `uma tônica ancorada em ${info.dominant.toLowerCase()}`)
+      : `uma tônica voltada à consolidação, aterramento e organização de prioridades`;
+
+    return `${nameIntro}ao sintetizar os pontos recorrentes das suas anotações ao longo dos últimos 28 dias do ciclo lunar, percebo ${emotionClause}, estruturando sua caminhada de maturação e centramento.${info.notesSummary} O padrão dominante revela momentos de colheita sincera alternados com períodos em que a mente pede paciência para assimilar as transformações necessárias. Como sua mentora, amiga querida e companheira de jornada, destaco que a pressa ou a rigidez diante dos desdobramentos da vida são sombras que requerem sua atenção vigilante para não represar o fluxo do seu desenvolvimento. Em contrapartida, a constância em observar-se com afeto e o respeito solene ao tempo de gestação dos seus ideais são pontos luminosos de grande expansão. Para guiar seus passos na condução dos movimentos da alma com postura e clareza, finalize o que ficou pendente e abra espaço para o novo florescer.
 
 Lista de Tarefas:
-- Iniciado: Mapeamento dos ritmos internos e reconhecimento de oscilações emocionais.
-- Dar continuidade: Prática diária de auto-observação e escrita de registros de clareza.
-- Finalizado: Integração das marés do ciclo anterior e encerramento de dinâmicas internas desgastantes.`;
+- Iniciado: Reconhecimento consciente dos padrões de ${info.dominant.toLowerCase()} e escuta atenta das marés internas.
+- Dar continuidade: Prática diária de escrita de astromemórias e sustentação da clareza mental.
+- Finalizado: Integração das oscilações passadas e encerramento de dinâmicas internas de autocobrança.`;
   } else if (isCorrelation) {
-    return `${nameIntro}as suas mandalas revelam uma correspondência íntima entre as fases lunares e sua energia emocional interna ao longo dos últimos três ciclos de 29 dias. Na fase de Lua Nova, o sentimento prioritário identificado é o acolhimento reflexivo, convidando ao recolhimento e plantio de intenções. Na fase Crescente, sobressai o ânimo renovador e o entusiasmo para estruturar novos passos. Na fase Cheia, destaca-se a sensibilidade expandida e a expressividade, elevando as emoções ao seu ponto mais alto. E na fase Minguante, o desapego e a síntese tornam-se prioritários para encerrar o ciclo com sabedoria. Use essa correspondência direta como um mapa pessoal de autoconhecimento, aprendendo a respeitar os momentos em que a alma pede para agir com coragem e quando é o tempo de simplesmente fluir e descansar.`;
+    const emotionContext = info.hasLogs
+      ? ` Os registros apontam que sentimentos como ${info.dominant.toLowerCase()}${info.secondary ? ` e ${info.secondary.toLowerCase()}` : ''} dialogam diretamente com as oscilações de luz do céu.`
+      : '';
+    return `${nameIntro}as suas mandalas revelam uma correspondência íntima entre as fases lunares e sua energia emocional interna ao longo dos ciclos registrados.${emotionContext} Na fase de Lua Nova, o sentimento prioritário identificado é o acolhimento reflexivo, convidando ao recolhimento e plantio de intenções. Na fase Crescente, sobressai o ânimo renovador e o entusiasmo para estruturar novos passos. Na fase Cheia, destaca-se a sensibilidade expandida e a expressividade, elevando as emoções ao seu ponto mais alto. E na fase Minguante, o desapego e a síntese tornam-se prioritários para encerrar o ciclo com sabedoria. Use essa correspondência direta como um mapa pessoal de autoconhecimento, aprendendo a respeitar os momentos em que a alma pede para agir com coragem e quando é o tempo de simplesmente fluir e descansar.`;
   } else {
     // Quarterly / Trimestral
-    return `${nameIntro}identifico na análise desta Estação da Alma, que compreende este último trimestre, eventos significativos e datas específicas onde os padrões emocionais reativos se tornaram evidentes. Em episódios de sobrecarga ou cansaço acumulado, sentimentos de ansiedade e frustração emergiram de forma mais marcante, resultando em oscilações bruscas e dispersão do foco. Como sua amiga próxima e mentora sábia nesta caminhada, lembro-lhe de que essas reatividades são sombras naturais que nos indicam onde a autonomia precisa ser reforçada com maturidade. Os sentimentos predominantes de busca por segurança e centramento mostram o seu desejo sincero de evolução. O conselho para lidar com essa reatividade e conduzir seu processo de transformação permanente é cultivar uma pausa intencional antes de responder a estímulos externos, usando a respiração profunda como alicerce para desarmar a reatividade, permitindo que a clareza mental guie suas decisões com nobreza e dignidade.`;
+    const emotionContext = info.hasLogs 
+      ? ` Em seus registros deste trimestre, sobressaíram sentimentos de ${info.dominant.toLowerCase()}${info.secondary ? ` e ${info.secondary.toLowerCase()}` : ''}, marcando momentos cruciais de tomada de consciência.` 
+      : '';
+    return `${nameIntro}identifico na análise desta Estação da Alma, que compreende este último trimestre, eventos significativos e datas específicas onde os padrões emocionais se tornaram evidentes.${emotionContext} Em episódios de sobrecarga ou cansaço acumulado, reações de hesitação e ansiedade emergiram de forma mais marcante, resultando em oscilações do foco. Como sua amiga próxima e mentora sábia nesta caminhada, lembro-lhe de que essas reatividades são sombras naturais que nos indicam onde a autonomia precisa ser reforçada com maturidade. Os sentimentos predominantes de busca por segurança e centramento mostram o seu desejo sincero de evolução. O conselho para lidar com essa reatividade e conduzir seu processo de transformação permanente é cultivar uma pausa intencional antes de responder a estímulos externos, usando a respiração profunda como alicerce para desarmar a reatividade, permitindo que a clareza mental guie suas decisões com nobreza e dignidade.`;
   }
 }
 
@@ -198,78 +343,71 @@ async function startServer() {
       }
       const ai = getAI();
 
-      const systemInstruction = `Você é o Oráculo Hekat (Hekat Astromemorias). Sua voz une de modo absoluto sobriedade estratégica, acolhimento lúcido e sabedoria empática. Suas orientações funcionam como uma bússola pragmática para a postura, ética e clareza mental do usuário diante dos grandes desafios reais da alma.
+      const systemInstruction = `Você é o Oráculo Hekat (Hekat Astromemorias). Sua voz une com absoluta maestria sobriedade estratégica, acolhimento lúcido e sabedoria empática. Suas orientações funcionam como uma bússola pragmática para a postura, ética e clareza mental do usuário diante dos desafios reais da alma.
 
-Siga rigorosamente as recomendações e diretrizes a seguir:
+Siga rigorosamente as seguintes diretrizes para o PAINEL ORÁCULO DIÁRIO:
 
-1. TÔNICA E ESTILO (EQUILÍBRIO ALQUÍMICO):
-   - Una sobriedade estratégica e acolhimento lúcido. O tom deve ser direto sem ser dogmático (evite comandos severos) e acolhedor sem ser beato (evite moralismos, pieguices ou condescendência).
-   - Tônica acolhedora e próxima, trazendo orientação sem extremos ou eloquências vazias.
-   - Mantenha um tom reflexivo com palavras simples e acolhedoras. Remova diretrizes de vocabulário rebuscado ou excessivamente complexo: use um tom dócil, acessível e claro, mantendo a profundidade e a sabedoria empática essenciais da voz de Hekat, sem hermetismo.
-   - Fluidez e Simplicidade: O texto deve fluir naturalmente como uma conversa sábia e profunda de uma mentora lúcida e acolhedora. Evite excesso de pontuações truncadas, dois-pontos desnecessários ou subtítulos disfarçados. Construa frases harmônicas e consistentes que se encadeiam com perfeição.
-   - Traga consistência ao texto de forma simples e prática. O texto é formatado em bloco contínuo para exibição com alinhamento justificado.
+1. PRINCÍPIO GERAL E TÔNICA DOS TEXTOS:
+   - Os textos devem ser acolhedores, simples e objetivos — como uma conversa próxima e cuidadosa.
+   - Evitar tom coloquial (gírias), extremismos, exageros dramáticos e vocabulário rebuscado.
+   - A orientação deve chegar com clareza e leveza, sem impor e sem comandos severos.
+   - Sabedoria Empática: As orientações soam como uma verdade simples e profunda, baseada na observação clara do momento, sem hermetismo ou lirismo romântico.
+   - Mistério Sutil: A linguagem mantém uma aura de sabedoria profunda, mas evita nomes técnicos (aspectos, elementos, nomes de casas astrológicas).
+   - Equilíbrio Alquímico: Una sobriedade estratégica e acolhimento lúcido. Seja acolhedor sem ser beato (sem moralismos ou docilidade excessiva).
 
-2. ABERTURA COM O NOME DO USUÁRIO:
-   - ${userName ? `Abra o texto chamando o usuário diretamente pelo nome "${userName}" logo no início exato para trazer confiança e proximidade (ex: "${userName}, ...").` : 'Abra o texto de forma acolhedora, próxima e direta, sem usar termos impessoais como "Viajante" ou "Visitante".'}
+2. ABERTURA:
+   - ${userName ? `Abrir o texto com o nome fornecido pelo usuário ("${userName}"), chamando-o diretamente logo na primeira frase (ex.: "${userName}, ..."), para transmitir confiança e proximidade desde a primeira frase.` : 'Abrir o texto de forma acolhedora, próxima e direta, transmitindo confiança imediata.'}
 
-3. SIMBOLOGIA ASTROLÓGICA DOS ELEMENTOS (SOL E LUA):
-   Identifique os elementos correspondentes aos signos do Sol e da Lua informados e harmonize a mensagem segundo as diretrizes específicas abaixo (NUNCA mencione os nomes dos elementos "Fogo", "Terra", "Ar" ou "Água" em si, apenas use sua simbologia e diretrizes descritas):
-   - FOGO (Áries, Leão, Sagitário) — Inspire a agir:
-     * Tônica: Vitalidade, Impulso e Revelação. Simbologia: A centelha da criação, o calor que expande e a luz que dissipa a dúvida.
-     * Diretriz: Verbos de ação e frases curtas e impactantes. Tom de coragem e entusiasmo.
-     * Palavras-chave a incorporar organicamente: faísca, irradiação, vontade, despertar, chama.
-   - TERRA (Touro, Virgem, Capricórnio) — Ensine a construir:
-     * Tônica: Estrutura, Presença e Manifestação. Simbologia: O solo que sustenta, a raiz que aprofunda e o tempo que matura a forma.
-     * Diretriz: Linguagem sensorial e objetiva. Tom de segurança, realismo e paciência.
-     * Palavras-chave a incorporar organicamente: alicerce, tangível, maturação, substância, colheita.
-   - AR (Gêmeos, Libra, Aquário) — Estimule a pensar/conectar:
-     * Tônica: Conexão, Perspectiva e Fluidez Mental. Simbologia: O sopro que transporta a informação, o espaço entre as coisas e a clareza mental.
-     * Diretriz: Metáforas sobre visão, troca, comunicação e movimento. Tom curioso, leve e analítico.
-     * Palavras-chave a incorporar organicamente: fluxo, sopro, síntese, aprendizado, percepção, palavras.
-   - ÁGUA (Câncer, Escorpião, Peixes) — Convide a sentir:
-     * Tônica: Profundidade, Memória e Dissolução. Simbologia: O oceano do inconsciente, sentimentos, a correnteza que molda a pedra e o espelho que reflete a alma.
-     * Diretriz: Linguagem poética, subjetiva e envolvente. Tom que evoca empatia e mistério.
-     * Palavras-chave a incorporar organicamente: maré, reflexo, emoção, sentimentos, intuição, mergulho, fluir.
+3. SOL E LUA NOS SIGNOS — SIMBOLOGIA DOS ELEMENTOS:
+   Considere a posição do Sol e da Lua nos signos astrológicos informados conforme a simbologia dos elementos (NUNCA cite os nomes dos elementos "Fogo", "Terra", "Ar" ou "Água" no texto):
+   - FOGO (Áries, Leão, Sagitário) — Inspire a agir.
+     * Tônica: vitalidade, impulso, revelação.
+     * Diretriz: frases curtas e diretas, com ânimo sereno e confiança — sem exaltação.
+     * Palavras-chave a incorporar naturalmente: faísca, irradiação, vontade, despertar, chama.
+   - TERRA (Touro, Virgem, Capricórnio) — Ensine a construir.
+     * Tônica: estrutura, presença, manifestação.
+     * Diretriz: linguagem objetiva e concreta, que transmita segurança, realismo e paciência.
+     * Palavras-chave a incorporar naturalmente: maturação, substância, colheita.
+   - AR (Gêmeos, Libra, Aquário) — Estimule a pensar e conectar.
+     * Tônica: conexão, perspectiva, fluidez mental.
+     * Diretriz: metáforas de visão, troca, comunicação e movimento; tom curioso, leve e analítico.
+     * Palavras-chave a incorporar naturalmente: fluxo, sopro, síntese, aprendizado, percepção, palavras.
+   - ÁGUA (Câncer, Escorpião, Peixes) — Acolha os sentimentos.
+     * Tônica: profundidade, memória, dissolução.
+     * Diretriz: linguagem poética e suave, que acolha a emoção sem dramatizar; tom de empatia e escuta.
+     * Palavras-chave a incorporar naturalmente: maré, reflexo, emoção, intuição, mergulho, fluir.
 
-4. QUALIDADE DOS ASPECTOS ASTROLÓGICOS (SEM CITAR NOMES TÉCNICOS):
-   Insira de forma orgânica e sutil a qualidade do aspecto astrológico ativo entre Sol e Lua sem jamais citar nomes técnicos como Conjunção, Oposição, Quadratura, Trígono ou Sextil:
-   - Conjunção: impulso, autenticidade, fusão em síntese das simbologias dos signos envolvidos.
-   - Oposição: dúvida, equilíbrio das polaridades, complementariedade.
-   - Quadratura: tensão emocional, conflitos, espera, paciência, emoção turva a razão.
+4. QUALIDADE DOS ASPECTOS (SEM CITÁ-LOS NO TEXTO):
+   Harmonize de forma sutil a relação entre Sol e Lua sem jamais citar termos técnicos como quadratura, trígono, oposição, etc.:
+   - Conjunção: impulso, autenticidade, fusão — síntese das simbologias dos signos envolvidos.
+   - Oposição: dúvida, equilíbrio por complementaridade.
+   - Quadratura: tensão emocional, conflitos, espera, paciência; a emoção que turva a razão.
    - Trígono: soluções, harmonia, fluidez, clareza, criatividade.
-   - Sextil / Semissextil: abertura para aprender e aplicar com simplicidade o que já foi assimilado com sabedoria prática.
+   - Sextil / Semissextil: abertura para aprender e aplicar com simplicidade o que já foi assimilado com maturidade prática.
 
 5. ARQUÉTIPOS ASTROLÓGICOS:
-   - Certifique-se de que os conceitos estão alinhados aos arquétipos dos signos (ex.: Gêmeos = dualidade, mente, comunicação; Touro = persistência, valor, matéria; Áries = iniciativa, coragem; etc.).
+   - Certificar-se de que os conceitos estão alinhados ao arquétipo de cada signo (Gêmeos = dualidade, mente, comunicação; Touro = persistência, valor, matéria; etc.).
 
-6. FINALIZAÇÃO COM CONSELHO DIÁRIO (SEM CITAR QUE É UM CONSELHO):
-   - Finalize o texto com um conselho a ser utilizado no dia, perfeitamente em sintonia com os aspectos astrológicos formados entre Sol e Lua.
-   - REGRA MANDATÓRIA: NUNCA cite que é um conselho! Jamais use expressões como "Conselho:", "Conselho prático:", "Dica:", "Orientação:" ou qualquer termo indicador. O conselho deve ser a última frase do parágrafo, integrada com total fluidez como um direcionamento de postura.
-   - NUNCA sugerir rotinas domésticas ou tarefas triviais do cotidiano (como arrumar mesa, beber água, organizar agendas, limpar gavetas, alongar ou rotinas operacionais). O conselho deve ser estritamente voltado a postura de vida, ética e clareza mental diante dos desafios da alma.
+6. TÔNICA GERAL E FLUIDEZ:
+   - Frases fluidas, com começo, meio e fim que conduzam o leitor com naturalidade.
+   - Trazer fluidez e simplicidade ao texto, mantendo consistência de forma prática e clara em toda a leitura.
 
-7. FORMATO E CONCISÃO:
-   - Máximo absoluto de 4 linhas. Conciso, denso em sabedoria, sem desperdício de palavras.
-   - Parágrafo único, contínuo, sem tópicos ou quebras artificiais.
+7. FECHAMENTO:
+   - Finalizar com um conselho para o dia (sem citar que é um conselho), em sintonia com os aspectos formados entre Sol e Lua.
+   - NUNCA usar palavras como "Conselho:", "Dica:", "Lembrete:". A orientação deve ser a frase conclusiva, integrada com total naturalidade.
+   - NUNCA sugerir rotinas domésticas ou tarefas triviais do cotidiano (como arrumar mesa, beber água, organizar agendas). O foco é postura, ética e clareza mental.
+
+8. FORMATAÇÃO E CONCISÃO:
+   - Concisão: Máximo de 4 linhas.
+   - Formatação no app: texto justificado em bloco contínuo (sem quebras de linha ou subtítulos).
    - Idioma: Português do Brasil.`;
 
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("AI generation timeout")), 4000)
-      );
+      const prompt = `Sol em ${sunSignName || 'Desconhecido'}, Lua em ${moonSignName || 'Desconhecido'}. Tônica: "${philosophicalPhrase || ''}". Aspecto Ativo: ${aspectName || ''} (${aspectDesc || ''}). Que diretriz de postura este momento exige?`;
+      const generatedText = await generateWithGemini(prompt, systemInstruction);
 
-      const response = await Promise.race([
-        ai.models.generateContent({
-          model: "gemini-3.8-flash",
-          contents: `Sol em ${sunSignName || 'Desconhecido'}, Lua em ${moonSignName || 'Desconhecido'}. Tônica: "${philosophicalPhrase || ''}". Aspecto Ativo: ${aspectName || ''} (${aspectDesc || ''}). Que diretriz de postura este momento exige?`,
-          config: {
-            systemInstruction,
-          }
-        }),
-        timeoutPromise
-      ]);
-
-      res.json({ text: response.text });
+      res.json({ text: generatedText });
     } catch (error) {
-      // Quietly use the elegant fallback to handle offline/quota limits gracefully without polluting logs
+      console.log("[Oráculo] Aplicando fallback reflexivo:", (error as any)?.message || error);
       const fallbackText = generateFallbackOracle(sunSignName, moonSignName, philosophicalPhrase, userName, aspectDesc);
       res.json({ text: fallbackText });
     }
@@ -361,24 +499,12 @@ Siga rigorosamente as recomendações e diretrizes a seguir:
         - Chame sempre a pessoa pelo nome "${userName}" abrindo o texto para trazer confiança e proximidade de forma dócil, calma e direta (ex: "Nome, ...").
         - Nunca use cabeçalhos ou títulos introduzindo os relatórios. Comece de forma direta, madura e limpa.`;
 
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("AI generation timeout")), 4000)
-      );
+      const contents = `Dados: \n${logData || 'Nenhum dado inserido ainda.'}\n${correlationData ? `Dados de Correlação: \n${correlationData}\n` : ''}\nTarefa: ${prompt}`;
+      const generatedText = await generateWithGemini(contents, systemInstruction);
 
-      const response = await Promise.race([
-        ai.models.generateContent({
-          model: "gemini-3.8-flash",
-          contents: `Dados: \n${logData || 'Nenhum dado inserido ainda.'}\n${correlationData ? `Dados de Correlação: \n${correlationData}\n` : ''}\nTarefa: ${prompt}`,
-          config: {
-            systemInstruction,
-          }
-        }),
-        timeoutPromise
-      ]);
-
-      res.json({ text: response.text });
+      res.json({ text: generatedText });
     } catch (error) {
-      // Quietly use the elegant fallback to handle offline/quota limits gracefully without polluting logs
+      console.log("[Relatórios] Aplicando fallback reflexivo:", (error as any)?.message || error);
       const fallbackText = generateFallbackReports(period, logData, userName);
       res.json({ text: fallbackText });
     }
