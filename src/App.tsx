@@ -358,60 +358,70 @@ interface WindowProps {
   toggleWindow: (id: string, action: 'open' | 'close' | 'minimize' | 'focus') => void;
   updateWindowPos: (id: string, x: number, y: number) => void;
   isMobile: boolean;
+  isTablet?: boolean;
 }
 
-const Window: FC<WindowProps> = ({ win, children, width = "450px", desktopRef, topZ, isNight, toggleWindow, updateWindowPos, isMobile }) => {
+const Window: FC<WindowProps> = ({ win, children, width = "480px", desktopRef: _desktopRef, topZ, isNight: _isNight, toggleWindow, updateWindowPos, isMobile, isTablet }) => {
   const controls = useDragControls();
   const isMobileDevice = isMobile;
+  const canDrag = !isMobileDevice && !isTablet;
 
-  const initialX = isMobileDevice ? 0 : win.pos.x;
-  const initialY = isMobileDevice ? 0 : win.pos.y + 15;
-  const animateX = isMobileDevice ? 0 : win.pos.x;
-  const animateY = isMobileDevice ? 0 : win.pos.y;
+  const initialX = win.pos.x;
+  const initialY = win.pos.y;
+  const animateX = win.pos.x;
+  const animateY = win.pos.y;
 
   return (
     <AnimatePresence>
       {win.isOpen && !win.isMinimized && (
         <motion.div
-          drag={!isMobileDevice}
+          drag={canDrag}
           dragControls={controls}
           dragListener={false}
           dragMomentum={false}
-          initial={{ opacity: 0, scale: 0.92, x: initialX, y: initialY }}
+          initial={{ opacity: 0, scale: 0.94, x: initialX, y: initialY + 12 }}
           animate={{ opacity: 1, scale: 1, x: animateX, y: animateY }}
           exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
           transition={{ 
             type: "spring", 
-            stiffness: 400, 
-            damping: 30,
-            mass: 1
+            stiffness: 420, 
+            damping: 32,
+            mass: 0.9
           }}
           onDragEnd={(_, info) => {
-            if (!isMobileDevice) {
+            if (canDrag) {
               updateWindowPos(win.id, win.pos.x + info.offset.x, win.pos.y + info.offset.y);
             }
           }}
           onPointerDown={() => toggleWindow(win.id, 'focus')}
           style={{ 
             zIndex: win.zIndex, 
-            width: isMobileDevice ? "100%" : `min(${width}, 95vw)`,
+            width: isMobileDevice ? "100%" : `min(${width}, 94vw)`,
             height: isMobileDevice ? "calc(100dvh - 56px - 64px)" : "auto",
+            maxHeight: isMobileDevice ? "none" : "calc(100dvh - 72px)",
+            position: 'absolute',
             left: 0,
-            top: isMobileDevice ? "56px" : 0,
-            position: 'absolute'
+            right: 0,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            top: isMobileDevice ? "56px" : "clamp(56px, calc((100dvh - 660px) / 2), 76px)",
           }}
-          className={`window-shadow glass overflow-hidden flex flex-col pointer-events-auto ${isMobileDevice ? 'rounded-t-[2rem] rounded-b-none border-x-0 border-b-0' : 'rounded-[2.5rem] border border-white/40'} ${win.zIndex >= topZ ? 'ring-2 ring-indigo-500/20 shadow-[0_40px_80px_-20px_rgba(79,70,229,0.3)]' : ''}`}
+          className={`window-shadow glass overflow-hidden flex flex-col pointer-events-auto ${
+            isMobileDevice 
+              ? 'rounded-t-[2rem] rounded-b-none border-x-0 border-b-0' 
+              : 'rounded-[2rem] sm:rounded-[2.5rem] border border-white/40'
+          } ${win.zIndex >= topZ ? 'ring-2 ring-indigo-500/20 shadow-[0_40px_80px_-20px_rgba(79,70,229,0.3)]' : ''}`}
         >
           {/* Title Bar */}
           <div 
             onPointerDown={(e) => {
               toggleWindow(win.id, 'focus');
-              if (!isMobileDevice) {
+              if (canDrag) {
                 controls.start(e);
               }
             }}
-            style={{ touchAction: isMobileDevice ? 'auto' : 'none' }}
-            className="bg-white/20 px-4 sm:px-6 py-2 sm:py-3 flex justify-between items-center cursor-move select-none border-b border-white/10 active:bg-white/40 transition-colors duration-1000 flex-shrink-0"
+            style={{ touchAction: canDrag ? 'none' : 'auto' }}
+            className={`bg-white/20 px-4 sm:px-6 py-2 sm:py-3 flex justify-between items-center ${canDrag ? 'cursor-move' : 'cursor-default'} select-none border-b border-white/10 active:bg-white/40 transition-colors duration-1000 flex-shrink-0`}
           >
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="bg-indigo-600 p-2 sm:p-1.5 rounded-lg text-white shadow-sm">
@@ -437,7 +447,7 @@ const Window: FC<WindowProps> = ({ win, children, width = "450px", desktopRef, t
           </div>
           {/* Content Area */}
           <div 
-            className={`p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar-h transition-colors duration-1000 bg-white/5 ${isMobileDevice ? 'h-auto max-h-none min-h-0' : 'max-h-[74dvh]'}`}
+            className={`p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar-h transition-colors duration-1000 bg-white/5 ${isMobileDevice ? 'h-auto max-h-none min-h-0' : 'max-h-[calc(100dvh-130px)]'}`}
             onPointerDown={() => {
               // Bring window to focus even when clicking content
               toggleWindow(win.id, 'focus');
@@ -884,14 +894,21 @@ export default function App() {
   const [now, setNow] = useState(new Date());
   const [mountError, setMountError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+    const checkScreen = () => {
+      const w = window.innerWidth;
+      setIsMobile(w < 768);
+      setIsTablet(w >= 768 && w <= 1180);
     };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    window.addEventListener('orientationchange', checkScreen);
+    return () => {
+      window.removeEventListener('resize', checkScreen);
+      window.removeEventListener('orientationchange', checkScreen);
+    };
   }, []);
 
   // Ticker para atualizar sincronia a cada minuto usando o offset do servidor
@@ -1187,7 +1204,7 @@ export default function App() {
                2. Destaque obrigatoriamente um sentimento prioritário identificado em cada uma das quatro fases lunares considerando os 3 últimos ciclos lunares de 29 dias.
                3. Use uma linguagem acolhedora, fraterna, dócil e sábia de uma mentora sábia (Hekat é do gênero feminino). Evite superlativos sintéticos.
                4. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${formattedName}" no início exato para trazer proximidade de forma natural (ex: "Nome, ...").
-               5. Formato: Um texto corrido, integrated e orgânico de forma fluida.`;
+               5. Formato: Um texto corrido, integrado e orgânico de forma fluida.`;
     } else {
       prompt = `Realize uma análise profunda desta 'Estação da Alma' (Relatório Trimestral).
                HISTÓRICO E CICLO ATUAL:\n${previousLogsData}\n${logData}\n
@@ -1323,7 +1340,6 @@ export default function App() {
   const [note, setNote] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
-  const [isDataSyncOpen, setIsDataSyncOpen] = useState(false);
   const [syncTab, setSyncTab] = useState<'transfer' | 'cloud'>('transfer');
   const [importInputText, setImportInputText] = useState('');
   const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
@@ -1818,67 +1834,38 @@ export default function App() {
 
   // Window System State
   const [windows, setWindows] = useState<WindowData[]>([
-    { id: 'mandala', title: 'Mandala Lunar', icon: 'CalendarDays', isOpen: true, isMinimized: false, zIndex: 105, pos: { x: 0, y: 56 } },
-    { id: 'journal', title: 'Astromemorias', icon: 'MessageCircle', isOpen: false, isMinimized: false, zIndex: 104, pos: { x: 0, y: 56 } },
-    { id: 'oraculo', title: 'Oráculo Diário', icon: 'Sparkles', isOpen: false, isMinimized: false, zIndex: 103, pos: { x: 0, y: 56 } },
-    { id: 'calendar', title: 'Calendário do Ciclo', icon: 'CalendarHeart', isOpen: false, isMinimized: false, zIndex: 100, pos: { x: 0, y: 56 } },
-    { id: 'reports', title: 'Relatórios', icon: 'FileBarChart', isOpen: false, isMinimized: false, zIndex: 101, pos: { x: 0, y: 56 } },
-    { id: 'history', title: 'Histórico', icon: 'History', isOpen: false, isMinimized: false, zIndex: 102, pos: { x: 0, y: 56 } },
-    { id: 'guide', title: 'Informativo App', icon: 'Info', isOpen: false, isMinimized: false, zIndex: 106, pos: { x: 0, y: 56 } },
+    { id: 'mandala', title: 'Mandala Lunar', icon: 'CalendarDays', isOpen: true, isMinimized: false, zIndex: 105, pos: { x: 0, y: 0 } },
+    { id: 'journal', title: 'Astromemorias', icon: 'MessageCircle', isOpen: false, isMinimized: false, zIndex: 104, pos: { x: 0, y: 0 } },
+    { id: 'oraculo', title: 'Oráculo Diário', icon: 'Sparkles', isOpen: false, isMinimized: false, zIndex: 103, pos: { x: 0, y: 0 } },
+    { id: 'calendar', title: 'Calendário do Ciclo', icon: 'CalendarHeart', isOpen: false, isMinimized: false, zIndex: 100, pos: { x: 0, y: 0 } },
+    { id: 'reports', title: 'Relatórios', icon: 'FileBarChart', isOpen: false, isMinimized: false, zIndex: 101, pos: { x: 0, y: 0 } },
+    { id: 'history', title: 'Histórico', icon: 'History', isOpen: false, isMinimized: false, zIndex: 102, pos: { x: 0, y: 0 } },
+    { id: 'guide', title: 'Informativo App', icon: 'Info', isOpen: false, isMinimized: false, zIndex: 106, pos: { x: 0, y: 0 } },
+    { id: 'backup', title: 'Resgate & Backup', icon: 'ArrowDownUp', isOpen: false, isMinimized: false, zIndex: 102, pos: { x: 0, y: 0 } },
   ]);
 
   // Helper to center a window in the viewport
-  const getWindowCenter = (id: string) => {
-    if (desktopRef.current) {
-      const dw = desktopRef.current.offsetWidth;
-      const dh = desktopRef.current.offsetHeight;
-      const isMobile = dw < 768;
-      
-      if (isMobile) {
-        return { x: 0, y: 56 };
-      }
-      
-      const ww = id === 'history' || id === 'calendar' ? 600 : id === 'mandala' ? 420 : 500;
-      const actualW = Math.min(ww, dw * 0.95);
-      const topOffset = 56;
-      
-      return { x: Math.max(0, (dw - actualW) / 2), y: topOffset };
-    }
-    return { x: 0, y: 56 };
+  const getWindowCenter = (_id: string) => {
+    return { x: 0, y: 0 };
   };
 
-  // Center all open windows when user logs in or app is ready with a smooth slide effect, and adjust on resize
+  // Keep windows centered on screen resize or orientation change
   useEffect(() => {
-    let timer: any = null;
-    if (currentUser && !isAuthLoading) {
-      timer = setTimeout(() => {
-        setWindows(prev => prev.map(w => {
-          if (w.isOpen && !w.isMinimized) {
-            return { ...w, pos: getWindowCenter(w.id) };
-          }
-          return w;
-        }));
-      }, 300);
-    }
-
     const handleResize = () => {
-      setWindows(prev => prev.map(w => {
-        if (w.isOpen && !w.isMinimized) {
-          return { ...w, pos: getWindowCenter(w.id) };
-        }
-        return w;
-      }));
+      setWindows(prev => prev.map(w => ({
+        ...w,
+        pos: { x: 0, y: 0 }
+      })));
     };
 
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
 
     return () => {
-      if (timer) clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
     };
-  }, [currentUser, isAuthLoading]);
+  }, []);
 
   const chartData = useMemo(() => {
     return Array.from({ length: 29 }, (_, i) => {
@@ -2634,13 +2621,6 @@ export default function App() {
               ))}
               <div className="h-4 w-[1px] bg-white/10 mx-0.5 sm:mx-1.5 flex-shrink-0" />
               <button 
-                onClick={() => { setIsDataSyncOpen(true); setSyncStatus({ type: null, message: '' }); }}
-                className="p-2 px-2.5 sm:p-2 sm:px-3 text-indigo-300 hover:text-indigo-200 transition-all hover:bg-indigo-500/10 rounded-xl flex-shrink-0 cursor-pointer active:scale-90"
-                title="Sincronizar & Resgatar Dados do Celular"
-              >
-                <ArrowDownUp size={18} />
-              </button>
-              <button 
                 onClick={() => setIsResetOpen(true)}
                 className="p-2 px-2.5 sm:p-2 sm:px-3 text-indigo-300 hover:text-indigo-200 transition-all hover:bg-indigo-500/10 rounded-xl flex-shrink-0 cursor-pointer active:scale-90"
                 title="Formatar Ciclo"
@@ -2726,7 +2706,7 @@ export default function App() {
 
       {/* Windows Layer */}
       <div className="absolute inset-0 z-[1000] pointer-events-none">
-        <div className="relative w-full h-full p-0 sm:p-4">
+        <div className="relative w-full h-full p-0">
           {windows.map(win => {
             const Component = win.id === 'mandala' ? (
               <div className="flex flex-col items-center">
@@ -2817,15 +2797,6 @@ export default function App() {
                       <ChevronRight size={12} />
                     </button>
                   </div>
-
-                  <button
-                    onClick={() => { setIsDataSyncOpen(true); setSyncStatus({ type: null, message: '' }); }}
-                    className="flex items-center gap-1.5 px-2.5 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 hover:text-white rounded-xl border border-indigo-500/30 text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-sm"
-                    title="Resgatar ou transferir anotações entre celular e computador"
-                  >
-                    <ArrowDownUp size={12} className="text-amber-400" />
-                    <span>Resgatar / Backup</span>
-                  </button>
                 </div>
 
                 <svg viewBox="-25 -25 400 400" className="w-full max-w-[350px] aspect-square drop-shadow-2xl">
@@ -3363,7 +3334,7 @@ export default function App() {
             ) : win.id === 'calendar' ? (
               <div className="space-y-4">
                 <div className="text-center mb-1">
-                  <h2 className="text-xl font-serif italic font-medium text-[#4169E1]">Calendário do Ciclo</h2>
+                  <h2 className="text-xl font-serif italic font-medium text-[#4169E1]">Calendário do Ciclo Lunar - Dia 1 Lua Nova</h2>
                   <p className="text-[10px] text-indigo-300/70 font-medium">Mapeamento de sentimentos e eventos significativos do ciclo atual</p>
                 </div>
 
@@ -3707,7 +3678,173 @@ export default function App() {
                   </button>
                 </div>
               </div>
+            ) : win.id === 'backup' ? (
+              <div className="space-y-4">
+                <div className="text-center space-y-1 pb-1 border-b border-white/10">
+                  <h3 className="text-sm font-black text-[#BF8A10] uppercase tracking-wider">Resgate e Migração de Astromemórias</h3>
+                  <p className="text-slate-300/80 text-[11px] leading-relaxed">
+                    Faça backup de suas memórias para transferir entre dispositivos ou sincronize com sua conta.
+                  </p>
+                </div>
+
+                {/* Status do Dispositivo */}
+                <div className="p-3 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-indigo-300/70 tracking-wider block">Neste dispositivo</span>
+                    <span className="font-extrabold text-white text-sm">
+                      {allLogs.length} astromemória(s) salva(s)
+                    </span>
+                    {allLogs.length > 0 && (
+                      <span className="text-[10px] text-indigo-400 block mt-0.5">
+                        Ciclos: {[...new Set(allLogs.map(l => l.cycleId))].sort((a, b) => Number(a) - Number(b)).join(', ')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-indigo-300/70 tracking-wider block">Conta / Modo</span>
+                    <span className="font-bold text-amber-300 text-xs">
+                      {currentUser?.uid === 'guest_user' ? 'Modo Visitante (Local)' : (currentUser?.email || 'Conectado')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Seletor de Abas: Manual vs Nuvem */}
+                <div className="flex bg-white/10 p-1 rounded-2xl border border-white/5">
+                  <button
+                    onClick={() => setSyncTab('transfer')}
+                    className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${syncTab === 'transfer' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    Arquivo / Código
+                  </button>
+                  <button
+                    onClick={() => setSyncTab('cloud')}
+                    className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${syncTab === 'cloud' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    Nuvem Google
+                  </button>
+                </div>
+
+                {syncTab === 'transfer' ? (
+                  <div className="space-y-4">
+                    {/* Passo 1: Exportar */}
+                    <div className="p-4 rounded-2xl bg-indigo-950/40 border border-white/10 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[#BF8A10] font-black uppercase text-[11px] tracking-wider">
+                          <Download size={14} />
+                          <span>1. Gerar Cópia de Segurança</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-indigo-300/70 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                          {allLogs.length} gravadas
+                        </span>
+                      </div>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        Copie o código das suas memórias ou baixe o arquivo .json para salvar em segurança ou transferir para outro aparelho:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={handleCopyBackup}
+                          className="flex-1 py-2.5 px-3 bg-indigo-600/80 hover:bg-indigo-600 active:scale-95 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
+                        >
+                          {hasCopied ? <Check size={14} className="text-emerald-300" /> : <Copy size={14} />}
+                          <span>{hasCopied ? "Copiado com Sucesso!" : "Copiar Astromemórias"}</span>
+                        </button>
+                        <button
+                          onClick={handleDownloadBackup}
+                          className="py-2.5 px-3 bg-white/10 hover:bg-white/15 active:scale-95 text-indigo-200 hover:text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-white/5"
+                        >
+                          <Download size={14} />
+                          <span>Baixar .json</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Passo 2: Importar */}
+                    <div className="p-4 rounded-2xl bg-indigo-950/40 border border-white/10 space-y-2.5">
+                      <div className="flex items-center gap-2 text-[#BF8A10] font-black uppercase text-[11px] tracking-wider">
+                        <Upload size={14} />
+                        <span>2. Restaurar ou Importar Memórias</span>
+                      </div>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        Cole o código copiado do outro aparelho ou carregue o arquivo .json baixado para integrar suas memórias imediatamente:
+                      </p>
+                      <textarea
+                        value={importInputText}
+                        onChange={(e) => setImportInputText(e.target.value)}
+                        placeholder="Cole aqui o código de backup gerado no celular ou tablet..."
+                        className="w-full h-20 p-2.5 rounded-xl bg-black/40 border border-white/10 text-slate-100 text-[11px] placeholder:text-slate-500 font-mono outline-none focus:border-indigo-500 transition-colors resize-none"
+                      />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={() => handleImportLogs(importInputText)}
+                          disabled={!importInputText.trim()}
+                          className="flex-1 py-2.5 px-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-slate-950 font-black text-[11px] uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
+                        >
+                          Restaurar & Integrar Dados
+                        </button>
+                        <label className="py-2.5 px-3 bg-white/10 hover:bg-white/15 text-indigo-200 hover:text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-white/5">
+                          <FileText size={14} />
+                          <span>Subir Arquivo</span>
+                          <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Conteúdo Aba Nuvem */
+                  <div className="space-y-4 text-xs">
+                    <div className="p-4 rounded-2xl bg-indigo-950/40 border border-white/10 space-y-3">
+                      <div className="flex items-center gap-2 text-[#BF8A10] font-black uppercase text-[11px] tracking-wider">
+                        <ShieldCheck size={16} className="text-emerald-400" />
+                        <span>Sincronização em Nuvem via Google</span>
+                      </div>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        Ao conectar sua conta Google no celular, tablet e computador:
+                      </p>
+                      <ul className="list-disc list-inside text-slate-300/90 text-[11px] space-y-1.5 pl-1">
+                        <li>Todas as memórias anotadas em qualquer tela sobem de forma segura para a nuvem.</li>
+                        <li>Ao abrir o tablet ou computador e entrar com a mesma conta, tudo é sincronizado automaticamente.</li>
+                        <li>Você não precisa se preocupar com transferências manuais.</li>
+                      </ul>
+
+                      {currentUser?.uid === 'guest_user' || !currentUser ? (
+                        <div className="pt-2">
+                          <button
+                            onClick={handleLogin}
+                            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <LogIn size={16} />
+                            <span>Conectar com Google Agora</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-emerald-300 text-[11px] font-medium flex items-center gap-2">
+                          <Check size={16} className="text-emerald-400 shrink-0" />
+                          <span>Você está conectado com {currentUser?.email}. Seus dados sincronizam na nuvem.</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Mensagem de Feedback de Status */}
+                {syncStatus.type && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-3 rounded-xl text-xs font-bold ${syncStatus.type === 'success' ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-300' : 'bg-rose-950/60 border border-rose-500/40 text-rose-300'}`}
+                  >
+                    {syncStatus.message}
+                  </motion.div>
+                )}
+              </div>
             ) : null;
+
+            const windowWidth = 
+              win.id === 'history' || win.id === 'calendar' || win.id === 'reports' || win.id === 'backup' 
+                ? "620px" 
+                : win.id === 'mandala' 
+                  ? "430px" 
+                  : "520px";
 
             return (
               <Window 
@@ -3718,8 +3855,9 @@ export default function App() {
                 isNight={isNight}
                 toggleWindow={toggleWindow} 
                 updateWindowPos={updateWindowPos}
-                width={win.id === 'history' || win.id === 'calendar' ? "600px" : win.id === 'mandala' ? "420px" : "500px"}
+                width={windowWidth}
                 isMobile={isMobile}
+                isTablet={isTablet}
               >
                 {Component}
               </Window>
@@ -3753,7 +3891,7 @@ export default function App() {
                 <span className={`text-[8px] font-black uppercase tracking-wider mt-0.5 ${
                   isActive ? 'text-indigo-300' : 'text-slate-500'
                 }`}>
-                  {win.title === 'Mandala Lunar' ? 'Mandala' : win.title === 'Astromemorias' ? 'Diário' : win.title === 'Oráculo Diário' ? 'Oráculo' : win.title === 'Relatórios' ? 'Relatórios' : win.title === 'Histórico' ? 'Histórico' : win.title === 'Calendário do Ciclo' ? 'Calendário' : 'Informativo'}
+                  {win.title === 'Mandala Lunar' ? 'Mandala' : win.title === 'Astromemorias' ? 'Diário' : win.title === 'Oráculo Diário' ? 'Oráculo' : win.title === 'Relatórios' ? 'Relatórios' : win.title === 'Histórico' ? 'Histórico' : win.title === 'Calendário do Ciclo' ? 'Calendário' : win.title === 'Resgate & Backup' ? 'Resgate' : 'Informativo'}
                 </span>
               </button>
             );
@@ -3781,197 +3919,6 @@ export default function App() {
                 <button onClick={() => setIsResetOpen(false)} className="flex-1 py-4 rounded-2xl bg-slate-100 font-bold text-slate-600">Cancelar</button>
                 <button onClick={handleReset} className="flex-1 py-4 rounded-2xl bg-rose-500 text-white font-bold shadow-lg shadow-rose-200">Resetar</button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Data Sync & Recovery Modal */}
-      <AnimatePresence>
-        {isDataSyncOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[10500] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
-          >
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 10 }} 
-              animate={{ scale: 1, opacity: 1, y: 0 }} 
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-indigo-950/95 border border-indigo-500/30 p-6 sm:p-7 rounded-[2.5rem] shadow-2xl max-w-lg w-full text-slate-100 backdrop-blur-xl relative space-y-5 max-h-[90vh] overflow-y-auto"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-inner">
-                    <ArrowDownUp size={20} className="text-amber-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-black text-[#BF8A10] uppercase tracking-wider">
-                      Resgate & Backup de Dados
-                    </h3>
-                    <p className="text-[11px] text-indigo-300/80 font-medium">
-                      Sincronize suas anotações entre celular e computador
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => { setIsDataSyncOpen(false); setSyncStatus({ type: null, message: '' }); }}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-indigo-300 hover:text-white transition-colors cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Status do Dispositivo Atual */}
-              <div className="p-3.5 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-between gap-3 text-xs">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-indigo-300/70 tracking-wider block">Neste dispositivo</span>
-                  <span className="font-extrabold text-white text-sm">
-                    {allLogs.length} astromemória(s) salva(s)
-                  </span>
-                  {allLogs.length > 0 && (
-                    <span className="text-[10px] text-indigo-400 block mt-0.5">
-                      Ciclos presentes: {[...new Set(allLogs.map(l => l.cycleId))].sort((a, b) => Number(a) - Number(b)).join(', ')}
-                    </span>
-                  )}
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] uppercase font-bold text-indigo-300/70 tracking-wider block">Conta / Modo</span>
-                  <span className="font-bold text-amber-300 text-xs">
-                    {currentUser?.uid === 'guest_user' ? 'Modo Visitante (Local)' : (currentUser?.email || 'Conectado')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex rounded-xl bg-black/40 p-1 border border-white/10 text-xs font-bold">
-                <button
-                  onClick={() => setSyncTab('transfer')}
-                  className={`flex-1 py-2 rounded-lg transition-all text-center cursor-pointer ${syncTab === 'transfer' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-300/70 hover:text-white'}`}
-                >
-                  Transferir (Copiar / Colar)
-                </button>
-                <button
-                  onClick={() => setSyncTab('cloud')}
-                  className={`flex-1 py-2 rounded-lg transition-all text-center cursor-pointer ${syncTab === 'cloud' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-300/70 hover:text-white'}`}
-                >
-                  Nuvem (Conta Google)
-                </button>
-              </div>
-
-              {/* Conteúdo Aba Transfer */}
-              {syncTab === 'transfer' ? (
-                <div className="space-y-4 text-xs">
-                  {/* Passo 1: Exportar */}
-                  <div className="p-4 rounded-2xl bg-indigo-900/30 border border-indigo-500/20 space-y-3">
-                    <div className="flex items-center gap-2 text-[#BF8A10] font-black uppercase text-[11px] tracking-wider">
-                      <Download size={14} />
-                      <span>1. Para exportar deste aparelho</span>
-                    </div>
-                    <p className="text-slate-300 text-[11px] leading-relaxed">
-                      Se você está no celular com suas astromemórias anotadas, clique abaixo para copiar os dados ou baixar o arquivo:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={handleCopyBackup}
-                        className="flex-1 min-w-[130px] py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
-                      >
-                        {hasCopied ? <Check size={14} className="text-emerald-300" /> : <Copy size={14} />}
-                        <span>{hasCopied ? "Copiado com Sucesso!" : "Copiar Astromemórias"}</span>
-                      </button>
-                      <button
-                        onClick={handleDownloadBackup}
-                        className="py-2.5 px-3 bg-white/10 hover:bg-white/15 active:scale-95 text-indigo-200 hover:text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                      >
-                        <Download size={14} />
-                        <span>Baixar .json</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Passo 2: Importar */}
-                  <div className="p-4 rounded-2xl bg-indigo-900/30 border border-indigo-500/20 space-y-3">
-                    <div className="flex items-center gap-2 text-[#BF8A10] font-black uppercase text-[11px] tracking-wider">
-                      <Upload size={14} />
-                      <span>2. Para restaurar ou importar aqui</span>
-                    </div>
-                    <p className="text-slate-300 text-[11px] leading-relaxed">
-                      Cole aqui o código copiado do celular ou carregue o arquivo .json baixado para trazer suas memórias imediatamente:
-                    </p>
-                    <textarea
-                      value={importInputText}
-                      onChange={(e) => setImportInputText(e.target.value)}
-                      placeholder='Cole aqui o código de backup gerado no celular...'
-                      className="w-full h-20 p-2.5 rounded-xl bg-black/40 border border-white/10 text-slate-100 text-[11px] placeholder:text-slate-500 font-mono outline-none focus:border-indigo-500 transition-colors resize-none"
-                    />
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        onClick={() => handleImportLogs(importInputText)}
-                        disabled={!importInputText.trim()}
-                        className="flex-1 py-2.5 px-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-slate-950 font-black text-[11px] uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
-                      >
-                        Restaurar & Integrar Dados
-                      </button>
-                      <label className="py-2.5 px-3 bg-white/10 hover:bg-white/15 text-indigo-200 hover:text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer transition-all">
-                        <FileText size={14} />
-                        <span>Subir Arquivo</span>
-                        <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* Conteúdo Aba Nuvem */
-                <div className="space-y-4 text-xs">
-                  <div className="p-4 rounded-2xl bg-indigo-900/30 border border-indigo-500/20 space-y-3">
-                    <div className="flex items-center gap-2 text-[#BF8A10] font-black uppercase text-[11px] tracking-wider">
-                      <ShieldCheck size={16} className="text-emerald-400" />
-                      <span>Sincronização em Nuvem via Google</span>
-                    </div>
-                    <p className="text-slate-300 text-[11px] leading-relaxed">
-                      Ao conectar sua conta Google no celular e no computador:
-                    </p>
-                    <ul className="list-disc list-inside text-slate-300/90 text-[11px] space-y-1.5 pl-1">
-                      <li>Todas as memórias anotadas no celular sobem de forma segura para o banco na nuvem.</li>
-                      <li>Ao abrir o computador e entrar com a mesma conta, tudo é carregado automaticamente.</li>
-                      <li>Você não precisa se preocupar com backups manuais ao trocar de aparelho.</li>
-                    </ul>
-
-                    {currentUser?.uid === 'guest_user' ? (
-                      <div className="pt-2">
-                        <button
-                          onClick={() => {
-                            setIsDataSyncOpen(false);
-                            handleLogin();
-                          }}
-                          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-                        >
-                          <LogIn size={16} />
-                          <span>Conectar com Google Agora</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-emerald-300 text-[11px] font-medium flex items-center gap-2">
-                        <Check size={16} className="text-emerald-400 shrink-0" />
-                        <span>Você está conectado com {currentUser?.email}. Seus dados salvos sincronizam na nuvem.</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Mensagem de Feedback de Status */}
-              {syncStatus.type && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`p-3 rounded-xl text-xs font-bold ${syncStatus.type === 'success' ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-300' : 'bg-rose-950/60 border border-rose-500/40 text-rose-300'}`}
-                >
-                  {syncStatus.message}
-                </motion.div>
-              )}
             </motion.div>
           </motion.div>
         )}
