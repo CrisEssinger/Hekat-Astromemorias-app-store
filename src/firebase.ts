@@ -14,7 +14,7 @@ const resolvedConfig = {
   firestoreDatabaseId: (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || firebaseConfig.firestoreDatabaseId || "ai-studio-fcf53257-735c-47bf-b827-d142cabebb63"
 };
 
-console.log("Portal Hekat: Iniciando módulos do Firebase com parâmetros de segurança da versão 2.1.0-fix...");
+console.log("Portal Hekat: Iniciando módulos do Firebase com parâmetros de segurança da versão 2.2.0...");
 
 let app: any = null;
 try {

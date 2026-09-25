@@ -234,7 +234,7 @@ function parseLogDataInfo(logData?: string) {
   const notes: string[] = [];
 
   for (const line of lines) {
-    const matchEmotion = line.match(/Sentimento\s+([A-Za-zÀ-ÿ]+)/i);
+    const matchEmotion = line.match(/Sentimento\s+([A-Za-zÀ-ÿ\s]+?)(?:\s*\(|\s*,|$)/i) || line.match(/Sentimento\s+([A-Za-zÀ-ÿ]+)/i);
     if (matchEmotion) {
       const em = matchEmotion[1].trim();
       emotionCounts[em] = (emotionCounts[em] || 0) + 1;
@@ -289,10 +289,11 @@ Lista de Tarefas:
 - Dar continuidade: Prática diária de escrita de astromemórias e sustentação da clareza mental.
 - Finalizado: Integração das oscilações passadas e encerramento de dinâmicas internas de autocobrança.`;
   } else if (isCorrelation) {
+    const subtitle = `Sentimento Predominante nos Últimos 3 Ciclos: ${info.dominant}`;
     const emotionContext = info.hasLogs
       ? ` Os registros apontam que sentimentos como ${info.dominant.toLowerCase()}${info.secondary ? ` e ${info.secondary.toLowerCase()}` : ''} dialogam diretamente com as oscilações de luz do céu.`
       : '';
-    return `${nameIntro}as suas mandalas revelam uma correspondência íntima entre as fases lunares e sua energia emocional interna ao longo dos ciclos registrados.${emotionContext} Na fase de Lua Nova, o sentimento prioritário identificado é o acolhimento reflexivo, convidando ao recolhimento e plantio de intenções. Na fase Crescente, sobressai o ânimo renovador e o entusiasmo para estruturar novos passos. Na fase Cheia, destaca-se a sensibilidade expandida e a expressividade, elevando as emoções ao seu ponto mais alto. E na fase Minguante, o desapego e a síntese tornam-se prioritários para encerrar o ciclo com sabedoria. Use essa correspondência direta como um mapa pessoal de autoconhecimento, aprendendo a respeitar os momentos em que a alma pede para agir com coragem e quando é o tempo de simplesmente fluir e descansar.`;
+    return `${subtitle}\n\n${nameIntro}as suas mandalas revelam uma correspondência íntima entre as fases lunares e sua energia emocional interna ao longo dos ciclos registrados.${emotionContext} Na fase de Lua Nova, o sentimento prioritário identificado é o acolhimento reflexivo, convidando ao recolhimento e plantio de intenções. Na fase Crescente, sobressai o ânimo renovador e o entusiasmo para estruturar novos passos. Na fase Cheia, destaca-se a sensibilidade expandida e a expressividade, elevando as emoções ao seu ponto mais alto. E na fase Minguante, o desapego e a síntese tornam-se prioritários para encerrar o ciclo com sabedoria. Use essa correspondência direta como um mapa pessoal de autoconhecimento, aprendendo a respeitar os momentos em que a alma pede para agir com coragem e quando é o tempo de simplesmente fluir e descansar.`;
   } else {
     // Quarterly / Trimestral
     const emotionContext = info.hasLogs 
@@ -459,16 +460,20 @@ Siga rigorosamente as seguintes diretrizes para o PAINEL ORÁCULO DIÁRIO:
                  8. NÃO se restrinja a 4 ou 6 linhas. Desenvolva um texto reflexivo, consistente e profundo, seguido de forma espaçada pela lista de tarefas.
                  9. Formato: O texto de análise deve ser justificado, seguido pela seção da lista de tarefas estruturada de forma limpa e visível.`;
       } else if (period === 'correlation') {
+        const parsedInfo = parseLogDataInfo(logData);
+        const dominantSentiment = parsedInfo.dominant;
         prompt = `Realize uma análise de correlação entre as fases da lua e os padrões de sentimentos/dados inseridos pela usuária.
                  DADOS DE CORRELAÇÃO DOS ÚLTIMOS 3 CICLOS (de 29 dias cada):\n${correlationData || 'Nenhum dado acumulado disponível ainda.'}\n
                  HISTÓRICO INTEGRADO:\n${previousLogsData || ''}\n${logData || ''}
                  
                  TAREFA EXCLUSIVA:
-                 1. Faça uma correlação nítida e direta das fases da Lua (Nova, Crescente, Cheia, Minguante) com a repetição de padrões de sentimentos e dados inseridos pela usuária.
-                 2. Destaque obrigatoriamente um sentimento prioritário identificado em cada uma das quatro fases lunares considerando os 3 últimos ciclos lunares de 29 dias.
-                 3. Use uma linguagem acolhedora, fraterna, dócil e sábia de uma mentora sábia (Hekat é do gênero feminino). Evite superlativos sintéticos.
-                 4. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${userName}" no início exato para trazer proximidade de forma natural (ex: "Nome, ...").
-                 5. Formato: Um texto corrido, integrado e orgânico de forma fluida.`;
+                 1. A frase inicial do relatório deve ser obrigatoriamente um subtítulo dinâmico que apresente o sentimento predominante detectado nos 3 últimos ciclos lunares, exatamente no formato:
+                 "Sentimento Predominante nos Últimos 3 Ciclos: ${dominantSentiment}"
+                 2. Faça uma correlação nítida e direta das fases da Lua (Nova, Crescente, Cheia, Minguante) com a repetição de padrões de sentimentos e dados inseridos pela usuária.
+                 3. Destaque obrigatoriamente um sentimento prioritário identificado em cada uma das quatro fases lunares considerando os 3 últimos ciclos lunares de 29 dias.
+                 4. Use uma linguagem acolhedora, fraterna, dócil e sábia de uma mentora sábia (Hekat é do gênero feminino). Evite superlativos sintéticos.
+                 5. Logo após o subtítulo dinâmico na primeira linha isolada, inicie o texto chamando a usuária pelo nome "${userName}" para trazer proximidade de forma natural (ex: "${userName}, ...").
+                 6. Formato: O relatório deve iniciar com o subtítulo dinâmico na primeira linha, seguido pelo texto fluido, reflexivo e consistente.`;
       } else {
         prompt = `Realize uma análise profunda desta 'Estação da Alma' (Relatório Trimestral).
                  HISTÓRICO E CICLO ATUAL:\n${previousLogsData}\n${logData}\n
@@ -497,10 +502,15 @@ Siga rigorosamente as seguintes diretrizes para o PAINEL ORÁCULO DIÁRIO:
         - Para o RELATÓRIO SEMANAL e RELATÓRIO MENSAL (29 dias), RELATÓRIO TRIMESTRAL e CORRELAÇÃO LUNAR: Use os dados do respectivo período para definir o parecer analítico.
         - Não use frases como "ao olhar seus últimos sete dias", "ao olhar seus últimos vinte e nove dias" ou "ao avaliar seus sentimentos/registros".
         - Chame sempre a pessoa pelo nome "${userName}" abrindo o texto para trazer confiança e proximidade de forma dócil, calma e direta (ex: "Nome, ...").
-        - Nunca use cabeçalhos ou títulos introduzindo os relatórios. Comece de forma direta, madura e limpa.`;
+        - Para os relatórios em geral, nunca use cabeçalhos ou títulos genéricos, exceto na CORRELAÇÃO LUNAR onde a frase inicial deve ser exatamente o subtítulo dinâmico indicando o sentimento predominante nos 3 últimos ciclos lunares conforme a tarefa.`;
 
       const contents = `Dados: \n${logData || 'Nenhum dado inserido ainda.'}\n${correlationData ? `Dados de Correlação: \n${correlationData}\n` : ''}\nTarefa: ${prompt}`;
-      const generatedText = await generateWithGemini(contents, systemInstruction);
+      let generatedText = await generateWithGemini(contents, systemInstruction);
+
+      if (period === 'correlation' && generatedText && !generatedText.toLowerCase().includes('sentimento predominante')) {
+        const parsedInfo = parseLogDataInfo(logData);
+        generatedText = `Sentimento Predominante nos Últimos 3 Ciclos: ${parsedInfo.dominant}\n\n${generatedText}`;
+      }
 
       res.json({ text: generatedText });
     } catch (error) {

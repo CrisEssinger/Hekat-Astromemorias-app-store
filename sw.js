@@ -1,5 +1,5 @@
 // Service Worker minimalista e auto-atualizável para o PWA Hekat
-const CACHE_NAME = 'hekat-v2.1.0';
+const CACHE_NAME = 'hekat-v2.2.0';
 const ASSETS = [
   './',
   './index.html',
@@ -71,3 +71,20 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow('/');
+      }
+    })
+  );
+});
+

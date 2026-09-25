@@ -34,7 +34,7 @@ service cloud.firestore {
         && isValidUser(request.resource.data)
         && (request.resource.data.get('uid', request.auth.uid) == resource.data.get('uid', request.auth.uid))
         && (request.resource.data.get('email', request.auth.token.email).lower() == resource.data.get('email', request.auth.token.email).lower())
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'displayName', 'photoURL', 'lastActive', 'hasSeenGuide', 'isPremium', 'uid', 'email', 'createdAt', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'displayName', 'photoURL', 'lastActive', 'hasSeenGuide', 'isPremium', 'uid', 'email', 'createdAt', 'updatedAt', 'reminderSettings'])
         && (request.resource.data.get('lastActive', request.time) == request.time || request.resource.data.get('lastActive', request.time) == resource.data.get('lastActive', request.time))
         && (request.resource.data.get('updatedAt', request.time) == request.time || request.resource.data.get('updatedAt', request.time) == resource.data.get('updatedAt', request.time));
     }

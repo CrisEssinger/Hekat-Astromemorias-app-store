@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef, ReactNode, RefObject, FC, ChangeEvent } from 'react';
 /**
  * Hekat OS - Oráculo de Astromemórias
- * Versão: 2.1.0-fix
- * Meta: Estabilidade de 17/05/2026 restores
+ * Versão: 2.2.0-mobile
+ * Meta: Sincronização Mobile & Lembretes Diários
  */
 import { 
   Moon, 
@@ -84,7 +84,12 @@ import {
   Upload,
   Download,
   Copy,
-  FileText
+  FileText,
+  Bell,
+  BellRing,
+  Volume2,
+  VolumeX,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'motion/react';
 import { 
@@ -254,7 +259,12 @@ const ICON_MAP: Record<string, any> = {
   Trophy,
   PartyPopper,
   Target,
-  BatteryLow
+  BatteryLow,
+  Bell,
+  BellRing,
+  Volume2,
+  VolumeX,
+  CheckCircle2
 };
 
 const LucideIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
@@ -616,6 +626,91 @@ interface WindowData {
   pos: { x: number, y: number };
 }
 
+interface ReminderSettings {
+  enabled: boolean;
+  time: string; // HH:MM
+  sound: boolean;
+  lastNotifiedDate: string | null;
+}
+
+// Síntese sonora harmônica celestial (Solfeggio 528Hz & sobretons) via Web Audio API nativo
+const playCelestialChime = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    const startTime = ctx.currentTime;
+    const harmonicTones = [
+      { freq: 528, delay: 0, dur: 2.3, gain: 0.14 },
+      { freq: 792, delay: 0.12, dur: 2.1, gain: 0.11 },
+      { freq: 1056, delay: 0.24, dur: 2.5, gain: 0.08 }
+    ];
+    harmonicTones.forEach(({ freq, delay, dur, gain: vol }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime + delay);
+      gain.gain.setValueAtTime(0.0001, startTime + delay);
+      gain.gain.exponentialRampToValueAtTime(vol, startTime + delay + 0.035);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + delay + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startTime + delay);
+      osc.stop(startTime + delay + dur + 0.1);
+    });
+  } catch (e) {
+    console.warn("Portal Hekat: Sinal sonoro celestial não pôde ser executado:", e);
+  }
+};
+
+// Despacho de notificações do sistema operacional (Web Notification e PWA Service Worker)
+const sendSystemNotification = (title: string, body: string, onOpen?: () => void) => {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification(title, {
+          body,
+          icon: 'https://ciadoceu.com.br/wp-content/uploads/2026/05/logo_hekat.png.png',
+          badge: 'https://ciadoceu.com.br/wp-content/uploads/2026/05/logo_hekat.png.png',
+          tag: 'hekat-daily-reminder',
+          renotify: true,
+          silent: false
+        } as any);
+      }).catch(() => {
+        const notif = new Notification(title, {
+          body,
+          icon: 'https://ciadoceu.com.br/wp-content/uploads/2026/05/logo_hekat.png.png'
+        });
+        if (onOpen) {
+          notif.onclick = () => {
+            window.focus();
+            onOpen();
+          };
+        }
+      });
+    } else {
+      const notif = new Notification(title, {
+        body,
+        icon: 'https://ciadoceu.com.br/wp-content/uploads/2026/05/logo_hekat.png.png'
+      });
+      if (onOpen) {
+        notif.onclick = () => {
+          window.focus();
+          onOpen();
+        };
+      }
+    }
+  } catch (e) {
+    console.warn("Portal Hekat: Notificação de sistema não pôde ser disparada:", e);
+  }
+};
+
 const MiniMandala = ({ logs, lunarData, size = 180, isNight = true, solarOffset = 0, angleStep = (2 * Math.PI) / 29 }: { logs: Record<number, LogEntry>, lunarData: any, size?: number, isNight?: boolean, solarOffset?: number, angleStep?: number }) => {
   const radius = (size / 350) * 140;
   const centerX = size / 2;
@@ -812,7 +907,7 @@ function parseClientLogData(logData?: string) {
   const notes: string[] = [];
 
   for (const line of lines) {
-    const matchEmotion = line.match(/Sentimento\s+([A-Za-zÀ-ÿ]+)/i);
+    const matchEmotion = line.match(/Sentimento\s+([A-Za-zÀ-ÿ\s]+?)(?:\s*\(|\s*,|$)/i) || line.match(/Sentimento\s+([A-Za-zÀ-ÿ]+)/i);
     if (matchEmotion) {
       const em = matchEmotion[1].trim();
       emotionCounts[em] = (emotionCounts[em] || 0) + 1;
@@ -871,10 +966,11 @@ Lista de Tarefas:
 - Dar continuidade: Prática diária de escrita de astromemórias e sustentação da clareza mental.
 - Finalizado: Integração das oscilações passadas e encerramento de dinâmicas internas de autocobrança.`;
   } else if (isCorrelation) {
+    const subtitle = `Sentimento Predominante nos Últimos 3 Ciclos: ${info.dominant}`;
     const emotionContext = info.hasLogs
       ? ` Os registros apontam que sentimentos como ${info.dominant.toLowerCase()}${info.secondary ? ` e ${info.secondary.toLowerCase()}` : ''} dialogam diretamente com as oscilações de luz do céu.`
       : '';
-    return `${nameIntro}as suas mandalas revelam uma correspondência íntima entre as fases lunares e sua energia emocional interna ao longo dos ciclos registrados.${emotionContext} Na fase de Lua Nova, o sentimento prioritário identificado é o acolhimento reflexivo, convidando ao recolhimento e plantio de intenções. Na fase Crescente, sobressai o ânimo renovador e o entusiasmo para estruturar novos passos. Na fase Cheia, destaca-se a sensibilidade expandida e a expressividade, elevando as emoções ao seu ponto mais alto. E na fase Minguante, o desapego e a síntese tornam-se prioritários para encerrar o ciclo com sabedoria. Use essa correspondência direta como um mapa pessoal de autoconhecimento, aprendendo a respeitar os momentos em que a alma pede para agir com coragem e quando é o tempo de simplesmente fluir e descansar.`;
+    return `${subtitle}\n\n${nameIntro}as suas mandalas revelam uma correspondência íntima entre as fases lunares e sua energia emocional interna ao longo dos ciclos registrados.${emotionContext} Na fase de Lua Nova, o sentimento prioritário identificado é o acolhimento reflexivo, convidando ao recolhimento e plantio de intenções. Na fase Crescente, sobressai o ânimo renovador e o entusiasmo para estruturar novos passos. Na fase Cheia, destaca-se a sensibilidade expandida e a expressividade, elevando as emoções ao seu ponto mais alto. E na fase Minguante, o desapego e a síntese tornam-se prioritários para encerrar o ciclo com sabedoria. Use essa correspondência direta como um mapa pessoal de autoconhecimento, aprendendo a respeitar os momentos em que a alma pede para agir com coragem e quando é o tempo de simplesmente fluir e descansar.`;
   } else {
     // Quarterly / Trimestral
     const emotionContext = info.hasLogs 
@@ -882,6 +978,20 @@ Lista de Tarefas:
       : '';
     return `${nameIntro}identifico na análise desta Estação da Alma, que compreende este último trimestre, eventos significativos e datas específicas onde os padrões emocionais se tornaram evidentes.${emotionContext} Em episódios de sobrecarga ou cansaço acumulado, reações de hesitação e ansiedade emergiram de forma mais marcante, resultando em oscilações do foco. Como sua amiga próxima e mentora sábia nesta caminhada, lembro-lhe de que essas reatividades são sombras naturais que nos indicam onde a autonomia precisa ser reforçada com maturidade. Os sentimentos predominantes de busca por segurança e centramento mostram o seu desejo sincero de evolução. O conselho para lidar com essa reatividade e conduzir seu processo de transformação permanente é cultivar uma pausa intencional antes de responder a estímulos externos, usando a respiração profunda como alicerce para desarmar a reatividade, permitindo que a clareza mental guie suas decisões com nobreza e dignidade.`;
   }
+};
+
+const getLogDate = (log: LogEntry): Date => {
+  if (log.timestamp?.toDate) return log.timestamp.toDate();
+  if (log.timestamp instanceof Date) return log.timestamp;
+  if (typeof log.timestamp === 'string' || typeof log.timestamp === 'number') {
+    const d = new Date(log.timestamp);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (log.date) {
+    const d = new Date(log.date);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return new Date();
 };
 
 export default function App() {
@@ -1032,6 +1142,39 @@ export default function App() {
     return mandalaMap;
   }, [allLogs, viewingCycleId, lunarData.cycleId]);
 
+  // Consolidação dos registros dos últimos 3 ciclos lunares para o relatório de Correlação Lunar
+  const correlationConsolidatedLogData = useMemo(() => {
+    const currentCycle = viewingCycleId || lunarData.cycleId || 1;
+    const cycleIds = Array.from(new Set<number>(allLogs.map(l => Number(l.cycleId)).filter(c => !isNaN(c) && c > 0))).sort((a, b) => a - b);
+    const targetCycles = cycleIds.length > 0 
+      ? Array.from(new Set<number>([...cycleIds.filter(c => c <= currentCycle).slice(-3), currentCycle]))
+      : [currentCycle];
+
+    const sortedDescLogs = [...allLogs].sort((a, b) => {
+      const dateA = getLogDate(a).getTime();
+      const dateB = getLogDate(b).getTime();
+      if (Math.abs(dateB - dateA) > 60000) return dateB - dateA;
+      if (b.cycleId !== a.cycleId) return b.cycleId - a.cycleId;
+      return b.lunarDay - a.lunarDay;
+    });
+
+    const correlationLogs = sortedDescLogs.filter(l => targetCycles.includes(l.cycleId));
+    const finalLogs = (correlationLogs.length > 0 ? correlationLogs.slice(0, 87) : sortedDescLogs.slice(0, 87)).reverse();
+
+    const formatLine = (log: LogEntry) => {
+      const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || log.emotionId || 'Neutro';
+      const dateStr = log.date || getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Anotações: "${log.note}"` : ''}`;
+    };
+
+    return finalLogs.map(formatLine).join('\n');
+  }, [allLogs, viewingCycleId, lunarData.cycleId]);
+
+  // Síntese de dados e sentimento predominante dos últimos 3 ciclos usando o padrão parseClientLogData
+  const correlationSummary = useMemo(() => {
+    return parseClientLogData(correlationConsolidatedLogData);
+  }, [correlationConsolidatedLogData]);
+
   // Sincronizar ciclo de visualização com o atual ao carregar app
   useEffect(() => {
     if (viewingCycleId === null && lunarData.cycleId) {
@@ -1123,9 +1266,8 @@ export default function App() {
       const finalQuarterlyLogs = sortedDescLogs.slice(0, 90).reverse();
       logData = finalQuarterlyLogs.map(formatLogLine).join('\n');
     } else {
-      // correlation: use last 3 cycles (87 entries)
-      const finalCorrelationLogs = sortedDescLogs.slice(0, 87).reverse();
-      logData = finalCorrelationLogs.map(formatLogLine).join('\n');
+      // correlation: use consolidated logs of the last 3 cycles
+      logData = correlationConsolidatedLogData;
     }
 
     // Contexto de meses anteriores para continuidade e padrões
@@ -1195,16 +1337,19 @@ export default function App() {
                8. NÃO se restrinja a 4 ou 6 linhas. Desenvolva um texto reflexivo, consistente e profundo, seguido de forma espaçada pela lista de tarefas.
                9. Formato: O texto de análise deve ser justificado, seguido pela seção da lista de tarefas estruturada de forma limpa e visível.`;
     } else if (period === 'correlation') {
+      const dominantSentiment = correlationSummary.dominant;
       prompt = `Realize uma análise de correlação entre as fases da lua e os padrões de sentimentos/dados inseridos pela usuária.
                DADOS DE CORRELAÇÃO DOS ÚLTIMOS 3 CICLOS (de 29 dias cada):\n${correlationData || 'Nenhum dado acumulado disponível ainda.'}\n
                HISTÓRICO INTEGRADO:\n${previousLogsData || ''}\n${logData || ''}
                
                TAREFA EXCLUSIVA:
-               1. Faça uma correlação nítida e direta das fases da Lua (Nova, Crescente, Cheia, Minguante) com a repetição de padrões de sentimentos e dados inseridos pela usuária.
-               2. Destaque obrigatoriamente um sentimento prioritário identificado em cada uma das quatro fases lunares considerando os 3 últimos ciclos lunares de 29 dias.
-               3. Use uma linguagem acolhedora, fraterna, dócil e sábia de uma mentora sábia (Hekat é do gênero feminino). Evite superlativos sintéticos.
-               4. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${formattedName}" no início exato para trazer proximidade de forma natural (ex: "Nome, ...").
-               5. Formato: Um texto corrido, integrado e orgânico de forma fluida.`;
+               1. A frase inicial do relatório deve ser obrigatoriamente um subtítulo dinâmico que apresente o sentimento predominante detectado nos 3 últimos ciclos lunares, exatamente no formato:
+               "Sentimento Predominante nos Últimos 3 Ciclos: ${dominantSentiment}"
+               2. Faça uma correlação nítida e direta das fases da Lua (Nova, Crescente, Cheia, Minguante) com a repetição de padrões de sentimentos e dados inseridos pela usuária.
+               3. Destaque obrigatoriamente um sentimento prioritário identificado em cada uma das quatro fases lunares considerando os 3 últimos ciclos lunares de 29 dias.
+               4. Use uma linguagem acolhedora, fraterna, dócil e sábia de uma mentora sábia (Hekat é do gênero feminino). Evite superlativos sintéticos.
+               5. Logo após o subtítulo dinâmico na primeira linha isolada, inicie o texto chamando a usuária pelo nome "${formattedName}" para trazer proximidade de forma natural (ex: "${formattedName}, ...").
+               6. Formato: O relatório deve iniciar com o subtítulo dinâmico na primeira linha, seguido pelo texto fluido, reflexivo e consistente.`;
     } else {
       prompt = `Realize uma análise profunda desta 'Estação da Alma' (Relatório Trimestral).
                HISTÓRICO E CICLO ATUAL:\n${previousLogsData}\n${logData}\n
@@ -1241,7 +1386,11 @@ export default function App() {
       }
 
       const data = await response.json();
-      const text = data.text;
+      let text = data.text;
+
+      if (period === 'correlation' && text && !text.toLowerCase().includes('sentimento predominante')) {
+        text = `Sentimento Predominante nos Últimos 3 Ciclos: ${correlationSummary.dominant}\n\n${text}`;
+      }
       
       console.log(`Relatório ${period} recebido:`, text);
       const updatedReport = { 
@@ -1422,6 +1571,186 @@ export default function App() {
   const [feedback, setFeedback] = useState("");
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+
+  // Sistema de Lembretes Diários
+  const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(() => {
+    try {
+      const saved = localStorage.getItem('hekat_reminder_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          enabled: parsed.enabled ?? true,
+          time: parsed.time || '20:00',
+          sound: parsed.sound ?? true,
+          lastNotifiedDate: parsed.lastNotifiedDate || null
+        };
+      }
+    } catch (e) {
+      console.warn("Erro ao carregar lembretes locais:", e);
+    }
+    return {
+      enabled: true,
+      time: '20:00',
+      sound: true,
+      lastNotifiedDate: null
+    };
+  });
+
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const [showInAppReminder, setShowInAppReminder] = useState(false);
+  const [snoozeUntil, setSnoozeUntil] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    } else {
+      setNotificationPermission('unsupported');
+    }
+  }, []);
+
+  // Sincronizar configurações salvas no perfil da usuária
+  useEffect(() => {
+    if (userData && (userData as any).reminderSettings) {
+      const cloudSettings = (userData as any).reminderSettings as ReminderSettings;
+      setReminderSettings(prev => {
+        const merged = { ...prev, ...cloudSettings };
+        try {
+          localStorage.setItem('hekat_reminder_settings', JSON.stringify(merged));
+        } catch (_) {}
+        return merged;
+      });
+    }
+  }, [userData]);
+
+  const updateReminderSettings = (newSettings: Partial<ReminderSettings>) => {
+    setReminderSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      try {
+        localStorage.setItem('hekat_reminder_settings', JSON.stringify(updated));
+      } catch (e) {
+        console.warn("Erro ao salvar localStorage:", e);
+      }
+      if (currentUser && currentUser.uid !== 'guest_user' && db) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        setDoc(userRef, { reminderSettings: updated }, { merge: true }).catch(err => {
+          console.warn("Erro ao sincronizar lembretes no Firestore:", err);
+        });
+      }
+      return updated;
+    });
+  };
+
+  const requestNotificationPermission = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      return 'unsupported';
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      setNotificationPermission(perm);
+      return perm;
+    } catch (e) {
+      console.error("Erro ao solicitar permissão de notificações:", e);
+      return Notification.permission;
+    }
+  };
+
+  // Verificação de registro de hoje
+  const hasLoggedToday = useMemo(() => {
+    const curCycle = lunarData.cycleId;
+    const curDay = lunarData.day;
+    return allLogs.some(l => {
+      const isCycleDayMatch = Number(l.cycleId) === Number(curCycle) && Number(l.lunarDay) === Number(curDay);
+      if (isCycleDayMatch) return true;
+      if (l.date && (l.date === todayCalendarDate || l.date.startsWith(todayCalendarDate))) return true;
+      return false;
+    });
+  }, [allLogs, lunarData.cycleId, lunarData.day, todayCalendarDate]);
+
+  const isTodayLogged = useMemo(() => {
+    return Boolean(hasLoggedToday || (lunarData.cycleId && logs[lunarData.day]));
+  }, [hasLoggedToday, logs, lunarData.day, lunarData.cycleId]);
+
+  const todayLogEntry = useMemo(() => {
+    const curCycle = lunarData.cycleId;
+    const curDay = lunarData.day;
+    return allLogs.find(l => {
+      if (Number(l.cycleId) === Number(curCycle) && Number(l.lunarDay) === Number(curDay)) return true;
+      if (l.date && (l.date === todayCalendarDate || l.date.startsWith(todayCalendarDate))) return true;
+      return false;
+    }) || (lunarData.day ? logs[lunarData.day] : null);
+  }, [allLogs, lunarData.cycleId, lunarData.day, logs, todayCalendarDate]);
+
+  const handleOpenJournalForToday = () => {
+    setSelectedDay(lunarData.day);
+    if (lunarData.cycleId) {
+      setViewingCycleId(lunarData.cycleId);
+    }
+    setShowInAppReminder(false);
+    toggleWindow('journal', 'open');
+  };
+
+  const handleSnooze = () => {
+    setSnoozeUntil(Date.now() + 30 * 60 * 1000); // 30 minutos de soneca
+    setShowInAppReminder(false);
+  };
+
+  const handleDismissToday = () => {
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    updateReminderSettings({ lastNotifiedDate: todayKey });
+    setShowInAppReminder(false);
+  };
+
+  const triggerTestReminder = () => {
+    if (reminderSettings.sound) {
+      playCelestialChime();
+    }
+    setShowInAppReminder(true);
+    sendSystemNotification(
+      "Hekat Astromemórias 🌙 (Teste de Lembrete)",
+      `Lembrete diário ativo! Este aviso tocará pontualmente às ${reminderSettings.time} quando você ainda não tiver registrado o sentir do Dia Lunar ${lunarData.day}.`,
+      () => {
+        handleOpenJournalForToday();
+      }
+    );
+  };
+
+  // Monitor contínuo a cada minuto para disparo do lembrete diário no mesmo horário
+  useEffect(() => {
+    if (!reminderSettings.enabled) return;
+
+    // Se a usuária já fez o registro hoje, recolhe o aviso e não notifica
+    if (isTodayLogged) {
+      if (showInAppReminder) setShowInAppReminder(false);
+      return;
+    }
+
+    const currentHour = String(now.getHours()).padStart(2, '0');
+    const currentMin = String(now.getMinutes()).padStart(2, '0');
+    const currentTimeStr = `${currentHour}:${currentMin}`;
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    // Já disparou hoje?
+    if (reminderSettings.lastNotifiedDate === todayKey) return;
+
+    // Em modo soneca?
+    if (snoozeUntil && Date.now() < snoozeUntil) return;
+
+    // Se atingiu ou passou do horário programado
+    if (currentTimeStr >= reminderSettings.time) {
+      setShowInAppReminder(true);
+      if (reminderSettings.sound) {
+        playCelestialChime();
+      }
+      sendSystemNotification(
+        "Hekat Astromemórias 🌙",
+        `Hora do seu registro diário: você ainda não anotou suas astromemórias do Dia Lunar ${lunarData.day}. Reserve um instante para escutar seu sentir.`,
+        () => {
+          handleOpenJournalForToday();
+        }
+      );
+      updateReminderSettings({ lastNotifiedDate: todayKey });
+    }
+  }, [now, reminderSettings, isTodayLogged, snoozeUntil, lunarData.day]);
 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -1840,6 +2169,7 @@ export default function App() {
     { id: 'calendar', title: 'Calendário do Ciclo', icon: 'CalendarHeart', isOpen: false, isMinimized: false, zIndex: 100, pos: { x: 0, y: 0 } },
     { id: 'reports', title: 'Relatórios', icon: 'FileBarChart', isOpen: false, isMinimized: false, zIndex: 101, pos: { x: 0, y: 0 } },
     { id: 'history', title: 'Histórico', icon: 'History', isOpen: false, isMinimized: false, zIndex: 102, pos: { x: 0, y: 0 } },
+    { id: 'reminders', title: 'Lembretes Diários', icon: 'Bell', isOpen: false, isMinimized: false, zIndex: 101, pos: { x: 0, y: 0 } },
     { id: 'guide', title: 'Informativo App', icon: 'Info', isOpen: false, isMinimized: false, zIndex: 106, pos: { x: 0, y: 0 } },
     { id: 'backup', title: 'Resgate & Backup', icon: 'ArrowDownUp', isOpen: false, isMinimized: false, zIndex: 102, pos: { x: 0, y: 0 } },
   ]);
@@ -2655,6 +2985,35 @@ export default function App() {
                   <span className="tabular-nums bg-white/5 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md sm:rounded-lg border border-white/5 text-indigo-300/80 leading-none hidden xs:inline-block">{now.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}</span>
               </div>
 
+              {/* Botão de Lembretes Diários */}
+              <button 
+                onClick={() => toggleWindow('reminders', 'open')}
+                className={`relative flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border transition-all cursor-pointer active:scale-95 group shrink-0 ${
+                  reminderSettings.enabled
+                    ? isTodayLogged
+                      ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/20'
+                      : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
+                    : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300/60 border-white/5'
+                }`}
+                title={
+                  reminderSettings.enabled
+                    ? isTodayLogged
+                      ? `Lembrete diário ativo (${reminderSettings.time}) • Astromemória de hoje já gravada ✨`
+                      : `Lembrete diário programado para às ${reminderSettings.time} • Registro de hoje pendente 🌙`
+                    : 'Configurar Lembretes Diários'
+                }
+              >
+                <div className="relative flex items-center">
+                  <Bell size={13} className={reminderSettings.enabled && !isTodayLogged ? 'animate-bounce text-amber-400' : ''} />
+                  {reminderSettings.enabled && !isTodayLogged && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse" />
+                  )}
+                </div>
+                <span className="text-[10px] font-bold hidden sm:inline">
+                  {reminderSettings.enabled ? reminderSettings.time : 'Lembretes'}
+                </span>
+              </button>
+
               {currentUser ? (
                 <button 
                   onClick={logout}
@@ -3093,7 +3452,13 @@ export default function App() {
                             <div>
                               <h3 className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#4169E1]">{item.title}</h3>
                               <p className="text-[8px] sm:text-[9px] text-indigo-300 font-bold uppercase">
-                                {item.id === 'weekly' ? 'Análise de Dados 7 dias' : item.id === 'monthly' ? 'Análise de Dados 28 dias' : item.id === 'correlation' ? 'Ritmo Ciclos & Fases' : 'Análise de Dados 90 dias'}
+                                {item.id === 'weekly' 
+                                  ? 'Análise de Dados 7 dias' 
+                                  : item.id === 'monthly' 
+                                  ? 'Análise de Dados 28 dias' 
+                                  : item.id === 'correlation' 
+                                  ? (correlationSummary.hasLogs ? `Ritmo 3 Ciclos • Predominante: ${correlationSummary.dominant}` : 'Ritmo Ciclos & Fases') 
+                                  : 'Análise de Dados 90 dias'}
                               </p>
                             </div>
                           </div>
@@ -3135,13 +3500,42 @@ export default function App() {
                                   </div>
                                 </div>
                               )}
-                              <motion.p 
+                              <motion.div 
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="text-[11px] sm:text-[13px] leading-relaxed text-white font-medium italic text-justify whitespace-pre-line"
                               >
-                                {reports[item.id as keyof typeof reports].text}
-                              </motion.p>
+                                {item.id === 'correlation' ? (
+                                  (() => {
+                                    const rawText = reports.correlation.text || "";
+                                    const dominantSentiment = correlationSummary.dominant;
+                                    const defaultSubtitle = `Sentimento Predominante nos Últimos 3 Ciclos: ${dominantSentiment}`;
+                                    const hasSubtitle = rawText.toLowerCase().includes("sentimento predominante");
+                                    const fullText = hasSubtitle ? rawText : `${defaultSubtitle}\n\n${rawText}`;
+                                    const paragraphs = fullText.split(/\n\s*\n/);
+                                    const isFirstParagraphSubtitle = paragraphs[0]?.toLowerCase().includes("sentimento predominante");
+
+                                    if (isFirstParagraphSubtitle) {
+                                      return (
+                                        <div className="space-y-3">
+                                          <div className="not-italic font-black text-indigo-200 text-xs sm:text-sm tracking-wide pb-2 border-b border-indigo-500/20 flex flex-wrap items-center justify-between gap-2">
+                                            <span>{paragraphs[0]}</span>
+                                            {correlationSummary.hasLogs && (
+                                              <span className="text-[8px] sm:text-[9px] text-indigo-300 font-semibold uppercase tracking-wider bg-indigo-900/40 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                                                {correlationSummary.count} {correlationSummary.count === 1 ? 'registro' : 'registros'}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <p className="whitespace-pre-line">{paragraphs.slice(1).join("\n\n")}</p>
+                                        </div>
+                                      );
+                                    }
+                                    return <p className="whitespace-pre-line">{fullText}</p>;
+                                  })()
+                                ) : (
+                                  <p className="whitespace-pre-line">{reports[item.id as keyof typeof reports].text}</p>
+                                )}
+                              </motion.div>
                             </div>
                           ) : (
                             <div className="flex flex-col items-center justify-center h-full opacity-30 text-indigo-900">
@@ -3202,6 +3596,13 @@ export default function App() {
                         >
                           <strong className="text-white group-hover:text-[#4169E1] transition-colors">• Histórico:</strong>{' '}
                           <span className="text-sm text-indigo-100/80 leading-relaxed font-medium">Sua linha do tempo e arquivos de dados. Acompanhe a curva de marés de suas flutuações de energia e o arquivo completo de todos seus registros passados.</span>
+                        </button>
+                        <button 
+                          onClick={() => toggleWindow('reminders', 'open')}
+                          className="w-full text-justify p-3.5 rounded-2xl border border-transparent bg-indigo-950/20 hover:bg-indigo-900/40 hover:border-indigo-500/30 transition-all duration-300 group cursor-pointer block"
+                        >
+                          <strong className="text-white group-hover:text-[#4169E1] transition-colors">• Lembretes Diários:</strong>{' '}
+                          <span className="text-sm text-indigo-100/80 leading-relaxed font-medium">Avisos no mesmo horário para manter sua constância de auto-observação, notificando você caso ainda não tenha anotado suas astromemórias no dia.</span>
                         </button>
                         <button 
                           onClick={() => toggleWindow('guide', 'open')}
@@ -3677,6 +4078,20 @@ export default function App() {
                       {showSuccess ? "Memória Gravada ✨" : "Gravar Sentimento"}
                   </button>
                 </div>
+
+                {/* Status Rápido do Lembrete Diário */}
+                <div className="pt-1 flex items-center justify-between px-3.5 py-2.5 bg-indigo-950/40 rounded-2xl border border-white/5 text-[10px] text-indigo-300/80">
+                  <div className="flex items-center gap-2">
+                    <Bell size={12} className={reminderSettings.enabled ? 'text-amber-400' : 'text-slate-500'} />
+                    <span>Lembrete Diário: <strong className="text-white">{reminderSettings.enabled ? `Ativo às ${reminderSettings.time}` : 'Desativado'}</strong></span>
+                  </div>
+                  <button 
+                    onClick={() => toggleWindow('reminders', 'open')}
+                    className="text-[#4169E1] hover:text-indigo-200 font-bold uppercase tracking-wider text-[9px] cursor-pointer"
+                  >
+                    Configurar
+                  </button>
+                </div>
               </div>
             ) : win.id === 'backup' ? (
               <div className="space-y-4">
@@ -3837,6 +4252,226 @@ export default function App() {
                   </motion.div>
                 )}
               </div>
+            ) : win.id === 'reminders' ? (
+              <div className="space-y-4">
+                <div className="text-center space-y-1 pb-1 border-b border-white/10">
+                  <div className="flex items-center justify-center gap-2">
+                    <BellRing size={20} className="text-amber-400" />
+                    <h3 className="text-sm font-black text-[#BF8A10] uppercase tracking-wider">Lembretes Diários de Astromemórias</h3>
+                  </div>
+                  <p className="text-slate-300/80 text-[11px] leading-relaxed max-w-md mx-auto">
+                    Receba um aviso no mesmo horário todos os dias para manter a constância do seu sentir, caso ainda não tenha registrado.
+                  </p>
+                </div>
+
+                {/* Card de Status do Dia Atual */}
+                {isTodayLogged ? (
+                  <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+                        <span className="text-xs font-black uppercase tracking-wider text-emerald-300">
+                          Astromemória de Hoje Concluída ✨
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Dia Lunar {lunarData.day}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-100/90 leading-relaxed">
+                      Seu registro diário está em dia. O próximo lembrete soará amanhã pontualmente às {reminderSettings.time}.
+                    </p>
+                    {todayLogEntry && (
+                      <div className="mt-2 pt-2 border-t border-emerald-500/20 flex items-center justify-between text-xs">
+                        <span className="text-[11px] font-medium text-slate-200">
+                          Sentimento gravado: <strong className="text-emerald-300">{EMOTIONS.find(e => e.id === todayLogEntry.emotionId)?.name || 'Registrado'}</strong> (Intensidade {todayLogEntry.intensity}/5)
+                        </span>
+                        <button
+                          onClick={() => {
+                            setSelectedDay(lunarData.day);
+                            toggleWindow('journal', 'open');
+                          }}
+                          className="text-[10px] text-emerald-300 hover:text-white font-bold uppercase tracking-wider underline cursor-pointer"
+                        >
+                          Ver no Diário
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-amber-200 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BellRing size={18} className="text-amber-400 animate-pulse shrink-0" />
+                        <span className="text-xs font-black uppercase tracking-wider text-amber-300">
+                          Registro de Hoje Pendente 🌙
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        Dia Lunar {lunarData.day}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-100/90 leading-relaxed">
+                      {now.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) >= reminderSettings.time
+                        ? `O horário programado das ${reminderSettings.time} já chegou hoje. Reserve um instante para escutar o seu sentir.`
+                        : `O seu lembrete diário soará hoje pontualmente às ${reminderSettings.time}. Você também pode registrar agora mesmo.`}
+                    </p>
+                    <button
+                      onClick={handleOpenJournalForToday}
+                      className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <MessageCircle size={15} />
+                      <span>Anotar Astromemória de Hoje</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Configurações Principais */}
+                <div className="space-y-3 bg-black/25 p-4 rounded-2xl border border-white/5">
+                  {/* Ativar/Desativar */}
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div>
+                      <span className="text-xs font-bold text-white block">Ativar Lembretes Diários</span>
+                      <span className="text-[10px] text-slate-400 block">Notifica você todos os dias no mesmo horário caso não tenha registrado</span>
+                    </div>
+                    <button
+                      onClick={() => updateReminderSettings({ enabled: !reminderSettings.enabled })}
+                      className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer p-0.5 ${
+                        reminderSettings.enabled ? 'bg-indigo-600' : 'bg-slate-700'
+                      }`}
+                    >
+                      <motion.div
+                        layout
+                        className={`w-5.5 h-5.5 rounded-full bg-white shadow-md transform ${
+                          reminderSettings.enabled ? 'translate-x-5.5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Seletor de Horário */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Clock size={14} className="text-indigo-400" /> Horário Diário
+                      </span>
+                      <input
+                        type="time"
+                        value={reminderSettings.time}
+                        onChange={(e) => updateReminderSettings({ time: e.target.value })}
+                        className="bg-indigo-950/60 border border-white/15 px-3 py-1.5 rounded-xl text-white text-sm font-black tracking-widest focus:outline-none focus:border-amber-400/50 cursor-pointer text-center"
+                      />
+                    </div>
+                    {/* Botões rápidos de horários */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {[
+                        { time: '08:00', label: '08:00 Despertar' },
+                        { time: '13:00', label: '13:00 Meio-dia' },
+                        { time: '19:00', label: '19:00 Crepúsculo' },
+                        { time: '20:00', label: '20:00 Noite' },
+                        { time: '21:00', label: '21:00 Serenidade' },
+                        { time: '22:00', label: '22:00 Recolhimento' }
+                      ].map((slot) => (
+                        <button
+                          key={slot.time}
+                          onClick={() => updateReminderSettings({ time: slot.time })}
+                          className={`text-[9.5px] px-2.5 py-1 rounded-lg border font-bold transition-all cursor-pointer ${
+                            reminderSettings.time === slot.time
+                              ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
+                              : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'
+                          }`}
+                        >
+                          {slot.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Som Celestial */}
+                  <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                    <div>
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        {reminderSettings.sound ? <Volume2 size={14} className="text-indigo-400" /> : <VolumeX size={14} className="text-slate-500" />}
+                        Sinal Sonoro Celestial
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">Sinos harmônicos na frequência regenerativa 528Hz</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={playCelestialChime}
+                        className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-[10px] font-bold text-indigo-300 border border-white/10 cursor-pointer active:scale-95"
+                        title="Ouvir amostra do som"
+                      >
+                        Ouvir Som
+                      </button>
+                      <button
+                        onClick={() => updateReminderSettings({ sound: !reminderSettings.sound })}
+                        className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer p-0.5 ${
+                          reminderSettings.sound ? 'bg-indigo-600' : 'bg-slate-700'
+                        }`}
+                      >
+                        <motion.div
+                          layout
+                          className={`w-5 h-5 rounded-full bg-white shadow-md transform ${
+                            reminderSettings.sound ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notificações no Dispositivo (Web / Celular) */}
+                <div className="p-3.5 rounded-2xl bg-indigo-950/30 border border-white/5 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-amber-400" /> Avisos no Dispositivo
+                    </span>
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                      notificationPermission === 'granted'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : notificationPermission === 'denied'
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}>
+                      {notificationPermission === 'granted' ? 'Ativo no Navegador' : notificationPermission === 'denied' ? 'Bloqueado' : 'Aguardando Permissão'}
+                    </span>
+                  </div>
+
+                  {notificationPermission === 'granted' ? (
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      Seu navegador está autorizado a emitir lembretes no horário selecionado, mesmo se você estiver em outra aba ou aplicativo.
+                    </p>
+                  ) : notificationPermission === 'denied' ? (
+                    <p className="text-[10px] text-rose-300/80 leading-relaxed">
+                      As notificações foram bloqueadas nas permissões do seu navegador. Você pode reativá-las nas configurações do site no cadeado da barra de endereço. O app continuará exibindo avisos visuais na tela.
+                    </p>
+                  ) : (
+                    <div className="pt-1 flex flex-col sm:flex-row items-center justify-between gap-2">
+                      <p className="text-[10px] text-slate-300 leading-relaxed">
+                        Autorize o envio de notificações para receber o lembrete diário no seu aparelho.
+                      </p>
+                      <button
+                        onClick={requestNotificationPermission}
+                        className="py-1.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-indigo-950 font-black text-[10px] uppercase tracking-wider transition-all shadow-md shrink-0 cursor-pointer active:scale-95"
+                      >
+                        Autorizar no Aparelho
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Botão de Teste */}
+                  <div className="pt-2 border-t border-white/5 flex justify-end">
+                    <button
+                      onClick={triggerTestReminder}
+                      className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-indigo-200 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      title="Simular disparo de lembrete agora"
+                    >
+                      <Bell size={12} /> Testar Lembrete Agora
+                    </button>
+                  </div>
+                </div>
+              </div>
             ) : null;
 
             const windowWidth = 
@@ -3891,7 +4526,7 @@ export default function App() {
                 <span className={`text-[8px] font-black uppercase tracking-wider mt-0.5 ${
                   isActive ? 'text-indigo-300' : 'text-slate-500'
                 }`}>
-                  {win.title === 'Mandala Lunar' ? 'Mandala' : win.title === 'Astromemorias' ? 'Diário' : win.title === 'Oráculo Diário' ? 'Oráculo' : win.title === 'Relatórios' ? 'Relatórios' : win.title === 'Histórico' ? 'Histórico' : win.title === 'Calendário do Ciclo' ? 'Calendário' : win.title === 'Resgate & Backup' ? 'Resgate' : 'Informativo'}
+                  {win.title === 'Mandala Lunar' ? 'Mandala' : win.title === 'Astromemorias' ? 'Diário' : win.title === 'Oráculo Diário' ? 'Oráculo' : win.title === 'Relatórios' ? 'Relatórios' : win.title === 'Histórico' ? 'Histórico' : win.title === 'Calendário do Ciclo' ? 'Calendário' : win.title === 'Lembretes Diários' ? 'Lembretes' : win.title === 'Resgate & Backup' ? 'Resgate' : 'Informativo'}
                 </span>
               </button>
             );
@@ -3984,6 +4619,59 @@ export default function App() {
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating In-App Daily Reminder Alert */}
+      <AnimatePresence>
+        {showInAppReminder && !isTodayLogged && (
+          <motion.div
+            initial={{ opacity: 0, y: 35, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 35, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className={`fixed ${isMobile ? 'bottom-20 left-3 right-3' : 'bottom-6 right-6 max-w-md w-full'} z-[3000] pointer-events-auto p-4 sm:p-5 rounded-3xl bg-slate-950/95 border border-amber-500/40 shadow-[0_15px_40px_rgba(0,0,0,0.85),0_0_25px_rgba(251,191,36,0.18)] backdrop-blur-2xl`}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                <BellRing size={20} className="animate-bounce" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Lembrete Diário</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-slate-300 font-bold">Dia {lunarData.day}</span>
+                  </div>
+                  <button
+                    onClick={handleDismissToday}
+                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                    title="Dispensar por hoje"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <h4 className="text-sm font-serif italic text-white font-medium mt-1">Hora do seu registro de astromemórias</h4>
+                <p className="text-xs text-indigo-200/80 leading-relaxed mt-1">
+                  Você ainda não registrou o seu sentir sob o ritmo de hoje. Reserve um instante para escutar e anotar suas marés internas.
+                </p>
+                <div className="flex items-center gap-2 mt-3 pt-1">
+                  <button
+                    onClick={handleOpenJournalForToday}
+                    className="flex-1 py-2.5 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <MessageCircle size={14} /> Registrar Agora
+                  </button>
+                  <button
+                    onClick={handleSnooze}
+                    className="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-indigo-200 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 shrink-0"
+                    title="Lembrar novamente em 30 minutos"
+                  >
+                    Soneca (30m)
+                  </button>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

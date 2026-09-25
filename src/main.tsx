@@ -18,3 +18,12 @@ if (!rootElement) {
   );
   console.log("Portal Hekat: Renderização chamada.");
 }
+
+// Registrar Service Worker para notificações em segundo plano e cache PWA
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('Portal Hekat: Registro de ServiceWorker amortecido:', err);
+    });
+  });
+}

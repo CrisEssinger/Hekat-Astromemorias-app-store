@@ -10,6 +10,7 @@
         "email": { "type": "string", "description": "Endereço de e-mail." },
         "photoURL": { "type": "string", "description": "URL da foto de perfil." },
         "name": { "type": "string", "description": "Nome ou apelido personalizado definido pelo usuário." },
+        "reminderSettings": { "type": "object", "description": "Configurações de lembretes diários para registro de astromemórias." },
         "createdAt": { "type": "string", "format": "date-time", "description": "Data de criação do perfil." },
         "lastActive": { "type": "string", "format": "date-time", "description": "Última atividade no app." }
       },
