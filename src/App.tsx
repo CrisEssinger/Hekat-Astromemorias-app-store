@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, ReactNode, RefObject, FC, ChangeEvent } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, ReactNode, RefObject, FC, ChangeEvent } from 'react';
 /**
  * Hekat OS - Oráculo de Astromemórias
  * Versão: 2.2.0-mobile
@@ -2786,7 +2786,7 @@ export default function App() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          className={`h-screen w-screen flex flex-col items-center justify-center ${isNight ? 'night-bg text-white' : 'day-bg text-slate-900'} overflow-hidden p-6 text-center z-[5000]`}
+          className={`h-screen w-screen flex flex-col items-center justify-center ${isNight ? 'night-bg text-white' : 'day-bg text-slate-900'} overflow-hidden p-4 sm:p-6 text-center z-[5000]`}
         >
           {isNight && <StarField />}
            <div className="w-full max-w-sm flex flex-col items-center relative z-10">
@@ -2797,13 +2797,13 @@ export default function App() {
                className="w-full flex flex-col items-center"
              >
               {/* Central Logo Container */}
-              <div className="relative mb-12">
+              <div className="relative mb-8 sm:mb-12">
                 <motion.div 
                   animate={{ 
                     boxShadow: ["0 0 20px rgba(65,105,225,0.2)", "0 0 50px rgba(65,105,225,0.4)", "0 0 20px rgba(65,105,225,0.2)"]
                   }}
                   transition={{ duration: 4, repeat: Infinity }}
-                  className="w-48 h-48 sm:w-56 sm:h-56 bg-white rounded-full flex items-center justify-center overflow-hidden relative border-4 border-[#BF8A10]/20 p-0"
+                  className="w-44 h-44 sm:w-56 sm:h-56 bg-white rounded-full flex items-center justify-center overflow-hidden relative border-4 border-[#BF8A10]/20 p-0"
                 >
                     <img 
                       src="https://ciadoceu.com.br/wp-content/uploads/2026/05/logo_hekat.png.png" 
@@ -2823,16 +2823,18 @@ export default function App() {
               </div>
 
               {/* Textual Branding */}
-              <div className="space-y-2 mb-12">
+              <div className="space-y-2 mb-8 sm:mb-12">
                 <h1 className="text-5xl sm:text-6xl font-black text-[#BF8A10] tracking-tighter">Hekat</h1>
                 <h2 className="text-sm sm:text-base font-bold text-[#BF8A10] uppercase tracking-[0.4em]">ASTROMEMORIAS</h2>
                 <div className="w-12 h-0.5 bg-[#BF8A10]/30 mx-auto mt-4" />
               </div>
               
-              <div className="max-w-[280px] mb-12">
-                <p className={`${isNight ? 'text-indigo-200/70' : 'text-[#888888]'} text-[13px] sm:text-sm leading-relaxed font-medium`}>
-                  Sintonize suas emoções com os ciclos lunares e reconheça seu padrão emocional.
-                </p>
+              <div className="max-w-md w-full mb-8 sm:mb-10 text-center px-1">
+                <div className={`${isNight ? 'text-indigo-200/80' : 'text-[#888888]'} text-[10.5px] min-[360px]:text-[11.5px] min-[390px]:text-[12.5px] sm:text-sm leading-relaxed font-medium text-center space-y-1 tracking-tight sm:tracking-normal whitespace-nowrap`}>
+                  <p>Anote suas emoções e acompanhe os ciclo lunares.</p>
+                  <p>Reconheça seu padrão emocional cíclico mensal.</p>
+                  <p>Descubra como se equilibrar, dias críticos e dias positivos.</p>
+                </div>
               </div>
 
               <div className="w-full space-y-4">
@@ -4503,8 +4505,8 @@ export default function App() {
 
       {/* Mobile Bottom Tab Bar */}
       {isMobile && (
-        <nav className={`fixed bottom-0 left-0 right-0 h-16 flex items-center justify-around z-[1500] border-t pointer-events-auto transition-colors duration-1000 ${
-          isNight ? 'glass bg-slate-950/80 border-white/5 shadow-[0_-8px_24px_rgba(0,0,0,0.6)]' : 'glass bg-white/85 border-indigo-100 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]'
+        <nav className={`fixed bottom-0 left-0 right-0 h-16 flex items-center gap-1 px-2 z-[1500] border-t pointer-events-auto transition-colors duration-1000 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x ${
+          isNight ? 'glass bg-slate-950/90 border-white/10 shadow-[0_-8px_24px_rgba(0,0,0,0.6)]' : 'glass bg-white/90 border-indigo-100 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]'
         }`}>
           {windows.filter(win => win.id !== 'guide').map(win => {
             const isActive = win.isOpen && !win.isMinimized;
@@ -4514,19 +4516,27 @@ export default function App() {
                 onClick={() => {
                   toggleWindow(win.id, isActive ? 'minimize' : 'focus');
                 }}
-                className="flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all active:scale-90"
+                className="flex flex-col items-center justify-center min-w-[58px] shrink-0 h-14 rounded-2xl transition-all active:scale-90"
               >
                 <div className={`p-1.5 rounded-xl transition-all ${
                   isActive 
-                    ? 'bg-indigo-600/20 text-indigo-300 scale-110' 
+                    ? 'bg-indigo-600/20 text-indigo-300 scale-110 shadow-sm' 
                     : 'text-slate-400 hover:text-indigo-300'
                 }`}>
                   <LucideIcon name={win.icon} size={20} />
                 </div>
-                <span className={`text-[8px] font-black uppercase tracking-wider mt-0.5 ${
+                <span className={`text-[8px] font-black uppercase tracking-wider mt-0.5 truncate max-w-[54px] ${
                   isActive ? 'text-indigo-300' : 'text-slate-500'
                 }`}>
-                  {win.title === 'Mandala Lunar' ? 'Mandala' : win.title === 'Astromemorias' ? 'Diário' : win.title === 'Oráculo Diário' ? 'Oráculo' : win.title === 'Relatórios' ? 'Relatórios' : win.title === 'Histórico' ? 'Histórico' : win.title === 'Calendário do Ciclo' ? 'Calendário' : win.title === 'Lembretes Diários' ? 'Lembretes' : win.title === 'Resgate & Backup' ? 'Resgate' : 'Informativo'}
+                  {win.title === 'Mandala Lunar' ? 'Mandala' 
+                    : win.title === 'Astromemorias' ? 'Diário' 
+                    : win.title === 'Oráculo Diário' ? 'Oráculo' 
+                    : win.title === 'Relatórios' ? 'Relatórios' 
+                    : win.title === 'Histórico' ? 'Histórico' 
+                    : win.title === 'Calendário do Ciclo' ? 'Calendário' 
+                    : win.title === 'Lembretes Diários' ? 'Lembretes' 
+                    : win.title === 'Resgate & Backup' ? 'Resgate' 
+                    : 'Informativo'}
                 </span>
               </button>
             );

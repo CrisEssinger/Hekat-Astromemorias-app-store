@@ -32,10 +32,11 @@ function getAI() {
 // Resilient helper to call Gemini with fast model order, staggered parallel fallback and optimal latency
 async function generateWithGemini(contents: string, systemInstruction?: string): Promise<string> {
   const ai = getAI();
-  // Fast, responsive models prioritized first
+  // Fast, modern, responsive models prioritized
   const models = [
-    "gemini-3-flash-preview",
+    "gemini-3.8-flash",
     "gemini-3.1-flash-lite",
+    "gemini-3-flash-preview",
     "gemini-3.5-flash-lite",
     "gemini-3.5-flash"
   ];
