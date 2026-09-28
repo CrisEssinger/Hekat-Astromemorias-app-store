@@ -2829,11 +2829,13 @@ export default function App() {
                 <div className="w-12 h-0.5 bg-[#BF8A10]/30 mx-auto mt-4" />
               </div>
               
-              <div className="max-w-md w-full mb-8 sm:mb-10 text-center px-1">
-                <div className={`${isNight ? 'text-indigo-200/80' : 'text-[#888888]'} text-[10.5px] min-[360px]:text-[11.5px] min-[390px]:text-[12.5px] sm:text-sm leading-relaxed font-medium text-center space-y-1 tracking-tight sm:tracking-normal whitespace-nowrap`}>
-                  <p>Anote suas emoções e acompanhe os ciclo lunares.</p>
-                  <p>Reconheça seu padrão emocional cíclico mensal.</p>
-                  <p>Descubra como se equilibrar, dias críticos e dias positivos.</p>
+              <div className="max-w-md w-full mb-6 sm:mb-10 text-center px-2">
+                <div className={`${isNight ? 'text-indigo-200/80' : 'text-[#888888]'} text-[11px] sm:text-[13px] leading-relaxed font-medium text-center space-y-1.5`}>
+                  <p>Anote suas emoções acompanhando os ciclos lunares.</p>
+                  <p>Descubra seu padrão cíclico emocional.</p>
+                  <p>Reconheça suas reações comportamentais inconscientes.</p>
+                  <p>Aprenda como se equilibrar pelo autoconhecimento.</p>
+                  <p>Identifique períodos para agir, dias críticos e dias positivos.</p>
                 </div>
               </div>
 
