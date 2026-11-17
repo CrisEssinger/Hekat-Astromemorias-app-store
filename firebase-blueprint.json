@@ -11,6 +11,7 @@
         "photoURL": { "type": "string", "description": "URL da foto de perfil." },
         "name": { "type": "string", "description": "Nome ou apelido personalizado definido pelo usuário." },
         "reminderSettings": { "type": "object", "description": "Configurações de lembretes diários para registro de astromemórias." },
+        "firstCycleLunationIndex": { "type": "number", "description": "Índice da lunação astronômica em que o usuário iniciou o Ciclo 1." },
         "createdAt": { "type": "string", "format": "date-time", "description": "Data de criação do perfil." },
         "lastActive": { "type": "string", "format": "date-time", "description": "Última atividade no app." }
       },

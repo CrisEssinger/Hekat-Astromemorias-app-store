@@ -494,7 +494,7 @@ const getSaoPauloDateParts = (d: Date) => {
   return { year, month, day };
 };
 
-const getLunarData = (date: Date = new Date()) => {
+const getLunarData = (date: Date = new Date(), firstCycleLunationIndex: number | null = null) => {
   // Garantir que a data recebida seja um objeto válido, se não usar d1 hoje
   const now = (date && !isNaN(date.getTime())) ? date : new Date();
   
@@ -554,9 +554,12 @@ const getLunarData = (date: Date = new Date()) => {
   const diffInDays = isNaN(diffInMs) ? 0 : diffInMs / (1000 * 60 * 60 * 24);
   
   const LUNAR_MONTH = 29.53059;
-  const cycleId = isNaN(diffInDays) ? 1 : Math.floor(diffInDays / LUNAR_MONTH) + 2;
-  const cycleStartDate = new Date(referenceDate.getTime() + Math.floor(diffInDays / LUNAR_MONTH) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
-  const cycleEndDate = new Date(referenceDate.getTime() + (Math.floor(diffInDays / LUNAR_MONTH) + 1) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
+  const lunationIndex = isNaN(diffInDays) ? 0 : Math.floor(diffInDays / LUNAR_MONTH);
+  const cycleId = firstCycleLunationIndex !== null && !isNaN(firstCycleLunationIndex)
+    ? Math.max(1, lunationIndex - firstCycleLunationIndex + 1)
+    : 1;
+  const cycleStartDate = new Date(referenceDate.getTime() + lunationIndex * LUNAR_MONTH * 24 * 60 * 60 * 1000);
+  const cycleEndDate = new Date(referenceDate.getTime() + (lunationIndex + 1) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
 
   // Sincronização do Calendário com o fuso brasileiro (America/Sao_Paulo)
   const startParts = getSaoPauloDateParts(cycleStartDate);
@@ -576,6 +579,7 @@ const getLunarData = (date: Date = new Date()) => {
   return {
     day: mandalaDay,
     cycleId: cycleId,
+    lunationIndex,
     illumination: isNaN(illumination) ? 0 : illumination * 100,
     cycleRange: `${formatDate(cycleStartDate)} a ${formatDate(cycleEndDate)}`,
     getSignForDay: (day: number) => {
@@ -1029,11 +1033,24 @@ export default function App() {
     return () => clearInterval(ticker);
   }, []);
 
-  const baseLunarData = useMemo(() => getLunarData(now), [now]);
+  const [firstCycleLunationIndex, setFirstCycleLunationIndex] = useState<number | null>(() => {
+    try {
+      const saved = localStorage.getItem('hekat_first_lunation_index');
+      if (saved !== null) {
+        const parsed = Number(saved);
+        if (!isNaN(parsed)) return parsed;
+      }
+    } catch {}
+    return null;
+  });
+
+  const baseLunarData = useMemo(() => getLunarData(now, firstCycleLunationIndex), [now, firstCycleLunationIndex]);
   const todayCalendarDate = useMemo(() => now.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }), [now]);
   
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
+  const [logsLoaded, setLogsLoaded] = useState(false);
   const [viewingCycleId, setViewingCycleId] = useState<number | null>(null);
+  const hasManuallyChangedCycleRef = useRef(false);
 
   // States for real Swiss Ephemeris data from server
   const [realAstronomyData, setRealAstronomyData] = useState<{
@@ -1177,19 +1194,100 @@ export default function App() {
 
   // Sincronizar ciclo de visualização com o atual ao carregar app
   useEffect(() => {
-    if (viewingCycleId === null && lunarData.cycleId) {
+    if ((viewingCycleId === null || !hasManuallyChangedCycleRef.current) && lunarData.cycleId) {
       setViewingCycleId(lunarData.cycleId);
     }
   }, [lunarData.cycleId]);
   
   // Firebase State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<{ isPremium?: boolean } | null>(null);
+  const [userData, setUserData] = useState<{
+    name?: string;
+    isPremium?: boolean;
+    hasSeenGuide?: boolean;
+    uid?: string;
+    firstCycleLunationIndex?: number;
+    reminderSettings?: ReminderSettings;
+  } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
     console.log("Hekat App mounted successfully. Auth state:", { isAuthLoading, currentUserId: currentUser?.uid });
   }, [isAuthLoading, currentUser]);
+
+  // Definir/Sincronizar o Ciclo 1 do usuário no primeiro acesso (mantendo compatibilidade com históricos antigos)
+  useEffect(() => {
+    if (!currentUser || !logsLoaded) return;
+
+    if (currentUser.uid === 'guest_user') {
+      try {
+        const saved = localStorage.getItem('hekat_first_lunation_index');
+        if (saved !== null && !isNaN(Number(saved))) {
+          const parsed = Number(saved);
+          if (firstCycleLunationIndex !== parsed) {
+            setFirstCycleLunationIndex(parsed);
+          }
+          return;
+        }
+        const hasLegacyMultiCycle = allLogs.some(l => Number(l.cycleId) > 1);
+        const resolved = hasLegacyMultiCycle ? -1 : baseLunarData.lunationIndex;
+        localStorage.setItem('hekat_first_lunation_index', String(resolved));
+        setFirstCycleLunationIndex(resolved);
+      } catch (e) {
+        console.warn("Erro ao configurar ciclo inicial do visitante:", e);
+      }
+      return;
+    }
+
+    if (isAuthLoading || !userData) return;
+
+    if (typeof userData.firstCycleLunationIndex === 'number' && !isNaN(userData.firstCycleLunationIndex)) {
+      const savedIdx = userData.firstCycleLunationIndex;
+      if (firstCycleLunationIndex !== savedIdx) {
+        setFirstCycleLunationIndex(savedIdx);
+      }
+      try {
+        localStorage.setItem(`hekat_first_lunation_index_${currentUser.uid}`, String(savedIdx));
+      } catch {}
+      return;
+    }
+
+    let resolved: number | null = null;
+    try {
+      const cached = localStorage.getItem(`hekat_first_lunation_index_${currentUser.uid}`);
+      if (cached !== null && !isNaN(Number(cached))) {
+        resolved = Number(cached);
+      }
+    } catch {}
+
+    if (resolved === null) {
+      const hasLegacyMultiCycle = allLogs.some(l => Number(l.cycleId) > 1);
+      resolved = hasLegacyMultiCycle ? -1 : baseLunarData.lunationIndex;
+    }
+
+    setFirstCycleLunationIndex(resolved);
+    try {
+      localStorage.setItem(`hekat_first_lunation_index_${currentUser.uid}`, String(resolved));
+    } catch {}
+
+    if (db) {
+      const userRef = doc(db, 'users', currentUser.uid);
+      if (!userData.uid) {
+        setDoc(userRef, {
+          uid: currentUser.uid,
+          email: currentUser.email,
+          displayName: currentUser.displayName || null,
+          photoURL: currentUser.photoURL || null,
+          firstCycleLunationIndex: resolved,
+          createdAt: serverTimestamp(),
+          lastActive: serverTimestamp()
+        }).catch(err => console.warn("Erro ao registrar ciclo inicial no Firestore:", err));
+      } else {
+        setDoc(userRef, { firstCycleLunationIndex: resolved, updatedAt: serverTimestamp() }, { merge: true })
+          .catch(err => console.warn("Erro ao atualizar ciclo inicial no Firestore:", err));
+      }
+    }
+  }, [currentUser, isAuthLoading, userData, logsLoaded, allLogs, baseLunarData.lunationIndex, firstCycleLunationIndex]);
 
   // Migração de Dados (Ajuste de Numeração de Ciclos)
   const migrationInProgress = useRef(false);
@@ -1205,6 +1303,7 @@ export default function App() {
   useEffect(() => {
     if (lunarData.day === 1 && lunarData.cycleId) {
       // Sintonizar a visualização com o ciclo atual para apresentar a mandala vazia para o ciclo que se inicia
+      hasManuallyChangedCycleRef.current = false;
       setViewingCycleId(lunarData.cycleId);
       console.log(`[Hekat] Novo ciclo lunar detectado (Ciclo ${lunarData.cycleId}). Apresentando Mandala Vazia. Histórico do ciclo anterior totalmente preservado no Firestore.`);
     }
@@ -1902,33 +2001,25 @@ export default function App() {
       sessionStorage.setItem(`hekat_started_${currentUser.uid}`, 'true');
       const isFirstEver = !userData.hasSeenGuide;
 
-      // No celular, não abrimos outras janelas automaticamente, mantendo só a mandala lunar
-      if (isMobile) {
-        if (isFirstEver && db) {
-          const userRef = doc(db, 'users', currentUser.uid);
-          setDoc(userRef, { hasSeenGuide: true, uid: currentUser.uid, email: currentUser.email, updatedAt: serverTimestamp() }, { merge: true }).catch(e => console.error("Erro ao persistir guia:", e));
-        }
-        return;
-      }
+      // Iniciar sempre na tela da Mandala Lunar (inclusive no primeiro acesso)
+      toggleWindow('mandala', 'open');
 
-      const timer = setTimeout(() => {
-        if (isFirstEver) {
-          toggleWindow('guide', 'open');
-          if (db) {
-            const userRef = doc(db, 'users', currentUser.uid);
-            setDoc(userRef, { hasSeenGuide: true, uid: currentUser.uid, email: currentUser.email, updatedAt: serverTimestamp() }, { merge: true }).catch(e => console.error("Erro ao persistir guia:", e));
-          }
-        } else {
-          toggleWindow('mandala', 'open');
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
+      if (isFirstEver && currentUser.uid !== 'guest_user' && db) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        setDoc(userRef, { hasSeenGuide: true, uid: currentUser.uid, email: currentUser.email, updatedAt: serverTimestamp() }, { merge: true }).catch(e => console.error("Erro ao persistir guia:", e));
+      }
+      if (isMobile) return;
     }
   }, [currentUser, isAuthLoading, userData]);
 
   // Sync Logs with Firebase
   useEffect(() => {
-    if (!currentUser) { setAllLogs([]); return; }
+    if (!currentUser) {
+      setAllLogs([]);
+      setLogsLoaded(false);
+      return;
+    }
+    setLogsLoaded(false);
     if (currentUser.uid === 'guest_user') {
       const localLogs = localStorage.getItem('hekat_guest_logs');
       if (localLogs) {
@@ -1936,14 +2027,17 @@ export default function App() {
           setAllLogs(JSON.parse(localLogs));
         } catch (e) {
           console.error("Erro ao carregar logs locais do visitante:", e);
+          setAllLogs([]);
         }
       } else {
         setAllLogs([]);
       }
+      setLogsLoaded(true);
       return;
     }
     if (!db) {
       console.warn("Hekat: Firestore is not initialized. Operating in local-only mode.");
+      setLogsLoaded(true);
       return;
     }
 
@@ -2009,11 +2103,13 @@ export default function App() {
         });
       });
       setAllLogs(logsArray);
+      setLogsLoaded(true);
     }, (error) => {
+      setLogsLoaded(true);
       handleFirestoreError(error, OperationType.LIST, `users/${currentUser.uid}/logs`);
     });
     return () => unsubscribe();
-  }, [currentUser, lunarData.cycleId]);
+  }, [currentUser]);
 
   // Sync Reports with Firebase
   useEffect(() => {
@@ -2842,6 +2938,7 @@ export default function App() {
               <div className="w-full space-y-4">
                 <button 
                   onClick={() => {
+                    hasManuallyChangedCycleRef.current = false;
                     const guestUser = {
                       uid: 'guest_user',
                       displayName: '',
@@ -2854,6 +2951,9 @@ export default function App() {
                       isPremium: true,
                       hasSeenGuide: true
                     });
+                    setSelectedDay(lunarData.day);
+                    setViewingCycleId(lunarData.cycleId);
+                    toggleWindow('mandala', 'open');
                   }}
                   className="w-full group relative flex items-center justify-center gap-3 px-8 py-5 bg-[#BF8A10] hover:bg-[#a6770d] text-[#0d0d0d] text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-[#BF8A10]/20 transition-all active:scale-95 overflow-hidden"
                 >
@@ -3105,6 +3205,7 @@ export default function App() {
                           ) : (
                             <button 
                               onClick={() => {
+                                hasManuallyChangedCycleRef.current = false;
                                 setSelectedDay(lunarData.day);
                                 setViewingCycleId(lunarData.cycleId);
                               }} 
@@ -3135,8 +3236,12 @@ export default function App() {
                 <div className="flex items-center justify-between gap-2 w-full max-w-[350px] mb-3">
                   <div className="flex items-center gap-1.5 bg-indigo-950/40 p-1 rounded-xl border border-white/10 shadow-lg backdrop-blur-sm">
                     <button 
-                      onClick={() => setViewingCycleId(prev => Math.max(1, (prev || lunarData.cycleId) - 1))}
-                      className="p-1 hover:bg-white/10 rounded-lg text-indigo-300 transition-colors active:scale-90"
+                      onClick={() => {
+                        hasManuallyChangedCycleRef.current = true;
+                        setViewingCycleId(prev => Math.max(1, (prev || lunarData.cycleId) - 1));
+                      }}
+                      disabled={(viewingCycleId || lunarData.cycleId) <= 1}
+                      className="p-1 hover:bg-white/10 rounded-lg text-indigo-300 transition-colors disabled:opacity-20 active:scale-90"
                       title="Ciclo anterior"
                     >
                       <ChevronLeft size={12} />
@@ -3152,7 +3257,10 @@ export default function App() {
                       )}
                     </div>
                     <button 
-                      onClick={() => setViewingCycleId(prev => Math.min(lunarData.cycleId, (prev || lunarData.cycleId) + 1))}
+                      onClick={() => {
+                        hasManuallyChangedCycleRef.current = true;
+                        setViewingCycleId(prev => Math.min(lunarData.cycleId, (prev || lunarData.cycleId) + 1));
+                      }}
                       disabled={(viewingCycleId || lunarData.cycleId) >= lunarData.cycleId}
                       className="p-1 hover:bg-white/10 rounded-lg text-indigo-300 transition-colors disabled:opacity-20 active:scale-90"
                       title="Próximo ciclo"
@@ -3277,8 +3385,12 @@ export default function App() {
                 <div className="flex items-center justify-between bg-indigo-950/40 p-3 rounded-2xl border border-white/10 shadow-xl backdrop-blur-sm">
                   <div className="flex items-center gap-2">
                     <button 
-                      onClick={() => setViewingCycleId(prev => Math.max(1, (prev || lunarData.cycleId) - 1))}
-                      className="p-2 hover:bg-white/10 rounded-xl text-indigo-300 transition-colors active:scale-90"
+                      onClick={() => {
+                        hasManuallyChangedCycleRef.current = true;
+                        setViewingCycleId(prev => Math.max(1, (prev || lunarData.cycleId) - 1));
+                      }}
+                      disabled={(viewingCycleId || lunarData.cycleId) <= 1}
+                      className="p-2 hover:bg-white/10 rounded-xl text-indigo-300 transition-colors disabled:opacity-20 active:scale-90"
                     >
                       <ChevronLeft size={18} />
                     </button>
@@ -3293,7 +3405,10 @@ export default function App() {
                       )}
                     </div>
                     <button 
-                      onClick={() => setViewingCycleId(prev => Math.min(lunarData.cycleId, (prev || lunarData.cycleId) + 1))}
+                      onClick={() => {
+                        hasManuallyChangedCycleRef.current = true;
+                        setViewingCycleId(prev => Math.min(lunarData.cycleId, (prev || lunarData.cycleId) + 1));
+                      }}
                       disabled={(viewingCycleId || lunarData.cycleId) >= lunarData.cycleId}
                       className="p-2 hover:bg-white/10 rounded-xl text-indigo-300 transition-colors disabled:opacity-20 active:scale-90"
                     >
@@ -3335,24 +3450,28 @@ export default function App() {
                 <div className="bg-indigo-950/20 p-6 rounded-[2.5rem] border border-white/5 transition-all duration-1000">
                   <div className="flex items-center gap-2 mb-6">
                     <History size={16} className="text-[#4169E1]" />
-                    <h3 className="text-[10px] font-black uppercase text-[#4169E1] tracking-[0.2em]">Jornada de Memória: Ciclos 1 a 6</h3>
+                    <h3 className="text-[10px] font-black uppercase text-[#4169E1] tracking-[0.2em]">Jornada de Memória: Ciclos 1 a {Math.max(6, lunarData.cycleId)}</h3>
                   </div>
                   <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                    {[1, 2, 3, 4, 5, 6].map(cycleId => {
+                    {Array.from({ length: Math.max(6, lunarData.cycleId) }, (_, i) => i + 1).map(cycleId => {
                       const cycleLogs: Record<number, LogEntry> = {};
                       allLogs.filter(l => l.cycleId === cycleId).forEach(l => cycleLogs[l.lunarDay] = l);
                       const hasData = Object.keys(cycleLogs).length > 0;
                       
                       const referenceDate = new Date(Date.UTC(2026, 4, 16, 0, 0, 0)); // 16 de Maio de 2026
                       const LUNAR_MONTH = 29.53059;
-                      const cycleStart = new Date(referenceDate.getTime() + (cycleId - 2) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
+                      const originLunation = firstCycleLunationIndex !== null ? firstCycleLunationIndex : baseLunarData.lunationIndex;
+                      const cycleStart = new Date(referenceDate.getTime() + (originLunation + cycleId - 1) * LUNAR_MONTH * 24 * 60 * 60 * 1000);
                       const sunSignFloatAtStart = getLunarData(cycleStart).sunSignFloat;
                       const cycleSolarOffset = sunSignFloatAtStart * ((2 * Math.PI) / 12);
 
                       return (
                         <button 
                           key={`trilogy-${cycleId}`}
-                          onClick={() => setViewingCycleId(cycleId)}
+                          onClick={() => {
+                            hasManuallyChangedCycleRef.current = true;
+                            setViewingCycleId(cycleId);
+                          }}
                           className={`relative p-3 rounded-[2rem] border transition-all duration-700 flex flex-col items-center gap-3 overflow-hidden
                             ${viewingCycleId === cycleId 
                               ? 'bg-gradient-to-b from-indigo-500/20 to-transparent border-indigo-500 shadow-[0_20px_40px_rgba(79,70,229,0.2)] scale-105 z-10' 
@@ -3753,14 +3872,21 @@ export default function App() {
                   </div>
                   <div className="flex gap-1">
                     <button 
-                      onClick={() => setViewingCycleId(prev => Math.max(1, (prev || lunarData.cycleId) - 1))}
-                      className="p-1.5 bg-indigo-600 rounded-lg text-white hover:bg-indigo-500 transition-colors active:scale-95 cursor-pointer"
+                      onClick={() => {
+                        hasManuallyChangedCycleRef.current = true;
+                        setViewingCycleId(prev => Math.max(1, (prev || lunarData.cycleId) - 1));
+                      }}
+                      disabled={(viewingCycleId || lunarData.cycleId) <= 1}
+                      className="p-1.5 bg-indigo-600 rounded-lg text-white hover:bg-indigo-500 transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                       title="Ciclo Anterior"
                     >
                       <ChevronLeft size={14} />
                     </button>
                     <button 
-                      onClick={() => setViewingCycleId(prev => Math.min(lunarData.cycleId, (prev || lunarData.cycleId) + 1))}
+                      onClick={() => {
+                        hasManuallyChangedCycleRef.current = true;
+                        setViewingCycleId(prev => Math.min(lunarData.cycleId, (prev || lunarData.cycleId) + 1));
+                      }}
                       disabled={(viewingCycleId || lunarData.cycleId) >= lunarData.cycleId}
                       className="p-1.5 bg-indigo-600 rounded-lg text-white hover:bg-indigo-500 transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                       title="Próximo Ciclo"

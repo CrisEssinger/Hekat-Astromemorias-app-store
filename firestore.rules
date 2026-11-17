@@ -12,7 +12,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\-]+$');
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     match /users/{userId} {
@@ -21,9 +21,10 @@ service cloud.firestore {
       function isValidUser(data) {
         return data.uid == request.auth.uid
           && (data.email == null || data.email == request.auth.token.email || data.email.lower() == request.auth.token.email.lower())
-          && (!data.keys().contains('displayName') || data.displayName == null || (data.displayName is string && data.displayName.size() <= 500))
-          && (!data.keys().contains('photoURL') || data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 5000))
-          && (!data.keys().contains('name') || data.name == null || (data.name is string && data.name.size() <= 500));
+          && (!('displayName' in data) || data.displayName == null || (data.displayName is string && data.displayName.size() <= 500))
+          && (!('photoURL' in data) || data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 5000))
+          && (!('name' in data) || data.name == null || (data.name is string && data.name.size() <= 500))
+          && (!('firstCycleLunationIndex' in data) || (data.firstCycleLunationIndex is int && data.firstCycleLunationIndex >= -1 && data.firstCycleLunationIndex <= 10000));
       }
       allow create: if isOwner(userId)
         && isValidUser(request.resource.data)
@@ -34,7 +35,7 @@ service cloud.firestore {
         && isValidUser(request.resource.data)
         && (request.resource.data.get('uid', request.auth.uid) == resource.data.get('uid', request.auth.uid))
         && (request.resource.data.get('email', request.auth.token.email).lower() == resource.data.get('email', request.auth.token.email).lower())
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'displayName', 'photoURL', 'lastActive', 'hasSeenGuide', 'isPremium', 'uid', 'email', 'createdAt', 'updatedAt', 'reminderSettings'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'displayName', 'photoURL', 'lastActive', 'hasSeenGuide', 'isPremium', 'uid', 'email', 'createdAt', 'updatedAt', 'reminderSettings', 'firstCycleLunationIndex'])
         && (request.resource.data.get('lastActive', request.time) == request.time || request.resource.data.get('lastActive', request.time) == resource.data.get('lastActive', request.time))
         && (request.resource.data.get('updatedAt', request.time) == request.time || request.resource.data.get('updatedAt', request.time) == resource.data.get('updatedAt', request.time));
     }
@@ -44,11 +45,11 @@ service cloud.firestore {
 
       function isValidLog(data) {
         return data.userId == request.auth.uid
-          && (data.emotionId is string && data.emotionId.size() <= 100 || !data.keys().contains('emotionId'))
-          && (data.intensity is number && data.intensity >= 1 && data.intensity <= 5 || !data.keys().contains('intensity'))
-          && (data.lunarDay is number && data.lunarDay >= 1 && data.lunarDay <= 31 || !data.keys().contains('lunarDay'))
-          && (data.note is string && data.note.size() <= 3000 || !data.keys().contains('note'))
-          && (data.cycleId is number || !data.keys().contains('cycleId'));
+          && ((data.emotionId is string && data.emotionId.size() <= 100) || !('emotionId' in data))
+          && ((data.intensity is number && data.intensity >= 1 && data.intensity <= 5) || !('intensity' in data))
+          && ((data.lunarDay is number && data.lunarDay >= 1 && data.lunarDay <= 31) || !('lunarDay' in data))
+          && ((data.note is string && data.note.size() <= 3000) || !('note' in data))
+          && (data.cycleId is number || !('cycleId' in data));
       }
       allow create: if isOwner(userId)
         && isValidId(logId)
