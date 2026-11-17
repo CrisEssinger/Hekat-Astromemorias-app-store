@@ -49,6 +49,7 @@ export const signInWithGoogle = async () => {
     throw new Error("O mecanismo de Autenticação do Firebase não está ativo no portal neste instante.");
   }
   const googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;

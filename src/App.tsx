@@ -1033,16 +1033,7 @@ export default function App() {
     return () => clearInterval(ticker);
   }, []);
 
-  const [firstCycleLunationIndex, setFirstCycleLunationIndex] = useState<number | null>(() => {
-    try {
-      const saved = localStorage.getItem('hekat_first_lunation_index');
-      if (saved !== null) {
-        const parsed = Number(saved);
-        if (!isNaN(parsed)) return parsed;
-      }
-    } catch {}
-    return null;
-  });
+  const [firstCycleLunationIndex, setFirstCycleLunationIndex] = useState<number | null>(null);
 
   const baseLunarData = useMemo(() => getLunarData(now, firstCycleLunationIndex), [now, firstCycleLunationIndex]);
   const todayCalendarDate = useMemo(() => now.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }), [now]);
@@ -1201,6 +1192,8 @@ export default function App() {
   
   // Firebase State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const activeUserUidRef = useRef<string | null>(null);
+  activeUserUidRef.current = currentUser?.uid ?? null;
   const [userData, setUserData] = useState<{
     name?: string;
     isPremium?: boolean;
@@ -1325,6 +1318,8 @@ export default function App() {
   const [isUpdatingAllReports, setIsUpdatingAllReports] = useState(false);
 
   const generateReport = async (period: 'weekly' | 'monthly' | 'quarterly' | 'correlation') => {
+    const requestUid = currentUser?.uid ?? null;
+    if (!requestUid || !logsLoaded) return;
     setIsReportLoading(period);
     
     // Helper para obter a data correta de cada log
@@ -1491,6 +1486,7 @@ export default function App() {
         text = `Sentimento Predominante nos Últimos 3 Ciclos: ${correlationSummary.dominant}\n\n${text}`;
       }
       
+      if (activeUserUidRef.current !== requestUid) return;
       console.log(`Relatório ${period} recebido:`, text);
       const updatedReport = { 
         text: text || "Os astros não revelaram nada hoje.",
@@ -1499,28 +1495,28 @@ export default function App() {
       };
 
       setReports(prev => {
+        if (activeUserUidRef.current !== requestUid) return prev;
         const updated = { 
           ...prev, 
           [period]: updatedReport
         };
 
-        if (currentUser) {
-          if (currentUser.uid === 'guest_user') {
-            localStorage.setItem(`hekat_guest_report_${period}`, JSON.stringify(updatedReport));
-          } else if (db) {
-            const reportDocRef = doc(db, 'users', currentUser.uid, 'reports', period);
-            setDoc(reportDocRef, {
-              text: text || "Os astros não revelaram nada hoje.",
-              logs: { ...logs },
-              meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
-              updatedAt: serverTimestamp()
-            }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
-          }
+        if (requestUid === 'guest_user') {
+          localStorage.setItem(`hekat_guest_report_${period}`, JSON.stringify(updatedReport));
+        } else if (db) {
+          const reportDocRef = doc(db, 'users', requestUid, 'reports', period);
+          setDoc(reportDocRef, {
+            text: text || "Os astros não revelaram nada hoje.",
+            logs: { ...logs },
+            meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
+            updatedAt: serverTimestamp()
+          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${requestUid}/reports/${period}`));
         }
 
         return updated;
       });
     } catch (error: any) {
+      if (activeUserUidRef.current !== requestUid) return;
       console.error(`Erro ao gerar relatório ${period}:`, error);
       
       const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
@@ -1533,23 +1529,22 @@ export default function App() {
       };
       
       setReports(prev => {
+        if (activeUserUidRef.current !== requestUid) return prev;
         const updated = { 
           ...prev, 
           [period]: fallbackReport
         };
 
-        if (currentUser) {
-          if (currentUser.uid === 'guest_user') {
-            localStorage.setItem(`hekat_guest_report_${period}`, JSON.stringify(fallbackReport));
-          } else if (db) {
-            const reportDocRef = doc(db, 'users', currentUser.uid, 'reports', period);
-            setDoc(reportDocRef, {
-              text: fallbackText,
-              logs: { ...logs },
-              meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
-              updatedAt: serverTimestamp()
-            }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/reports/${period}`));
-          }
+        if (requestUid === 'guest_user') {
+          localStorage.setItem(`hekat_guest_report_${period}`, JSON.stringify(fallbackReport));
+        } else if (db) {
+          const reportDocRef = doc(db, 'users', requestUid, 'reports', period);
+          setDoc(reportDocRef, {
+            text: fallbackText,
+            logs: { ...logs },
+            meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
+            updatedAt: serverTimestamp()
+          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${requestUid}/reports/${period}`));
         }
 
         return updated;
@@ -1560,10 +1555,12 @@ export default function App() {
   };
 
   const updateAllReports = async () => {
-    if (isUpdatingAllReports || isReportLoading) return;
+    const requestUid = currentUser?.uid ?? null;
+    if (!requestUid || !logsLoaded || isUpdatingAllReports || isReportLoading) return;
     setIsUpdatingAllReports(true);
     try {
       for (const p of ['weekly', 'monthly', 'quarterly', 'correlation'] as const) {
+        if (activeUserUidRef.current !== requestUid) break;
         await generateReport(p);
       }
     } catch (e) {
@@ -1671,29 +1668,15 @@ export default function App() {
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
-  // Sistema de Lembretes Diários
-  const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(() => {
-    try {
-      const saved = localStorage.getItem('hekat_reminder_settings');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          enabled: parsed.enabled ?? true,
-          time: parsed.time || '20:00',
-          sound: parsed.sound ?? true,
-          lastNotifiedDate: parsed.lastNotifiedDate || null
-        };
-      }
-    } catch (e) {
-      console.warn("Erro ao carregar lembretes locais:", e);
-    }
-    return {
-      enabled: true,
-      time: '20:00',
-      sound: true,
-      lastNotifiedDate: null
-    };
-  });
+  const DEFAULT_REMINDER_SETTINGS: ReminderSettings = {
+    enabled: true,
+    time: '20:00',
+    sound: true,
+    lastNotifiedDate: null
+  };
+
+  // Sistema de Lembretes Diários (isolado por usuário)
+  const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(DEFAULT_REMINDER_SETTINGS);
 
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [showInAppReminder, setShowInAppReminder] = useState(false);
@@ -1707,33 +1690,65 @@ export default function App() {
     }
   }, []);
 
+  // Sincronizar ref do usuário ativo e isolar cache/lembretes por conta
+  useEffect(() => {
+    activeUserUidRef.current = currentUser?.uid ?? null;
+    oracleCache.current = {};
+
+    if (!currentUser) {
+      setReminderSettings(DEFAULT_REMINDER_SETTINGS);
+      return;
+    }
+
+    try {
+      const scopedKey = `hekat_reminder_settings_${currentUser.uid}`;
+      const saved = localStorage.getItem(scopedKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setReminderSettings({
+          enabled: parsed.enabled ?? true,
+          time: parsed.time || '20:00',
+          sound: parsed.sound ?? true,
+          lastNotifiedDate: parsed.lastNotifiedDate || null
+        });
+      } else {
+        setReminderSettings(DEFAULT_REMINDER_SETTINGS);
+      }
+    } catch (e) {
+      console.warn("Erro ao carregar lembretes locais:", e);
+      setReminderSettings(DEFAULT_REMINDER_SETTINGS);
+    }
+  }, [currentUser?.uid]);
+
   // Sincronizar configurações salvas no perfil da usuária
   useEffect(() => {
-    if (userData && (userData as any).reminderSettings) {
+    if (currentUser && userData && (userData as any).reminderSettings) {
       const cloudSettings = (userData as any).reminderSettings as ReminderSettings;
       setReminderSettings(prev => {
         const merged = { ...prev, ...cloudSettings };
         try {
-          localStorage.setItem('hekat_reminder_settings', JSON.stringify(merged));
+          localStorage.setItem(`hekat_reminder_settings_${currentUser.uid}`, JSON.stringify(merged));
         } catch (_) {}
         return merged;
       });
     }
-  }, [userData]);
+  }, [userData, currentUser?.uid]);
 
   const updateReminderSettings = (newSettings: Partial<ReminderSettings>) => {
     setReminderSettings(prev => {
       const updated = { ...prev, ...newSettings };
-      try {
-        localStorage.setItem('hekat_reminder_settings', JSON.stringify(updated));
-      } catch (e) {
-        console.warn("Erro ao salvar localStorage:", e);
-      }
-      if (currentUser && currentUser.uid !== 'guest_user' && db) {
-        const userRef = doc(db, 'users', currentUser.uid);
-        setDoc(userRef, { reminderSettings: updated }, { merge: true }).catch(err => {
-          console.warn("Erro ao sincronizar lembretes no Firestore:", err);
-        });
+      if (currentUser) {
+        try {
+          localStorage.setItem(`hekat_reminder_settings_${currentUser.uid}`, JSON.stringify(updated));
+        } catch (e) {
+          console.warn("Erro ao salvar localStorage:", e);
+        }
+        if (currentUser.uid !== 'guest_user' && db) {
+          const userRef = doc(db, 'users', currentUser.uid);
+          setDoc(userRef, { reminderSettings: updated }, { merge: true }).catch(err => {
+            console.warn("Erro ao sincronizar lembretes no Firestore:", err);
+          });
+        }
       }
       return updated;
     });
@@ -1875,6 +1890,48 @@ export default function App() {
     }
   };
 
+  const handleLogout = async () => {
+    const uidToClear = currentUser?.uid;
+    try {
+      if (uidToClear && uidToClear !== 'guest_user') {
+        await logout();
+      }
+    } catch (err) {
+      console.error("Erro ao sair do portal:", err);
+    } finally {
+      if (uidToClear) {
+        try {
+          sessionStorage.removeItem(`hekat_started_${uidToClear}`);
+        } catch {}
+      }
+      hasManuallyChangedCycleRef.current = false;
+      activeUserUidRef.current = null;
+      oracleCache.current = {};
+      setOracleText("Invocando a sabedoria dos astros...");
+      setShowNameModal(false);
+      setIsLoggingIn(false);
+      setLoginError(null);
+      setFeedback("");
+      setImportInputText("");
+      setSyncStatus({ type: null, message: '' });
+      setAllLogs([]);
+      setLogsLoaded(false);
+      setIsReportLoading(null);
+      setIsUpdatingAllReports(false);
+      setReports({
+        weekly: { text: null, logs: null, meta: null },
+        monthly: { text: null, logs: null, meta: null },
+        quarterly: { text: null, logs: null, meta: null },
+        correlation: { text: null, logs: null, meta: null }
+      });
+      setUserData(null);
+      setCurrentUser(null);
+      setViewingCycleId(null);
+      setFirstCycleLunationIndex(null);
+      toggleWindow('mandala', 'open');
+    }
+  };
+
   const handleSendFeedback = async () => {
     if (!feedback.trim() || !currentUser) return;
     if (!db) {
@@ -1911,6 +1968,11 @@ export default function App() {
 
     const unsubscribeAuth = subscribeToAuthChanges((user) => {
       clearTimeout(safetyTimer);
+      activeUserUidRef.current = user?.uid ?? null;
+      setUserData(null);
+      setAllLogs([]);
+      setLogsLoaded(false);
+      setFirstCycleLunationIndex(null);
       setCurrentUser(user);
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
@@ -1935,13 +1997,16 @@ export default function App() {
           setIsAuthLoading(false);
           return;
         }
+        setIsAuthLoading(true);
         const userRef = doc(db, 'users', user.uid);
         unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
+          if (activeUserUidRef.current !== user.uid) return;
           const data = docSnap.exists() ? (docSnap.data() as any) : null;
           setUserData(data || { isPremium: false });
           setIsLoggingIn(false);
           setIsAuthLoading(false);
         }, (error) => {
+          if (activeUserUidRef.current !== user.uid) return;
           // Fallback if snapshots fail
           setUserData({ isPremium: false });
           setIsLoggingIn(false);
@@ -2012,14 +2077,13 @@ export default function App() {
     }
   }, [currentUser, isAuthLoading, userData]);
 
-  // Sync Logs with Firebase
+  // Sync Logs with Firebase (strictly isolated per authenticated user; never auto-migrate local guest notes)
   useEffect(() => {
+    setAllLogs([]);
+    setLogsLoaded(false);
     if (!currentUser) {
-      setAllLogs([]);
-      setLogsLoaded(false);
       return;
     }
-    setLogsLoaded(false);
     if (currentUser.uid === 'guest_user') {
       const localLogs = localStorage.getItem('hekat_guest_logs');
       if (localLogs) {
@@ -2041,38 +2105,12 @@ export default function App() {
       return;
     }
 
-    // Se o usuário possuía registros locais de visitante neste navegador, sincronizar com a nuvem
-    const guestLogsStr = localStorage.getItem('hekat_guest_logs');
-    if (guestLogsStr) {
-      try {
-        const guestLogs = JSON.parse(guestLogsStr);
-        if (Array.isArray(guestLogs) && guestLogs.length > 0) {
-          console.log(`Hekat: Migrando ${guestLogs.length} memórias locais do visitante para a nuvem de ${currentUser.uid}...`);
-          guestLogs.forEach(async (log: any) => {
-            if (log.lunarDay && log.emotionId) {
-              const cId = Number(log.cycleId) || 1;
-              const logId = `cycle_${cId}_day_${log.lunarDay}`;
-              const docRef = doc(db, 'users', currentUser.uid, 'logs', logId);
-              await setDoc(docRef, {
-                emotionId: log.emotionId,
-                intensity: Number(log.intensity) || 3,
-                note: log.note || "",
-                cycleId: cId,
-                lunarDay: Number(log.lunarDay),
-                userId: currentUser.uid,
-                date: serverTimestamp()
-              }, { merge: true }).catch(err => console.warn("Hekat auto-migration warning:", err));
-            }
-          });
-        }
-      } catch (e) {
-        console.error("Erro ao migrar memórias locais:", e);
-      }
-    }
-
-    const logsRef = collection(db, 'users', currentUser.uid, 'logs');
+    const targetUid = currentUser.uid;
+    let isCancelled = false;
+    const logsRef = collection(db, 'users', targetUid, 'logs');
     const q = query(logsRef, orderBy("date", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (isCancelled || activeUserUidRef.current !== targetUid) return;
       const logsArray: LogEntry[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -2105,21 +2143,25 @@ export default function App() {
       setAllLogs(logsArray);
       setLogsLoaded(true);
     }, (error) => {
+      if (isCancelled || activeUserUidRef.current !== targetUid) return;
       setLogsLoaded(true);
-      handleFirestoreError(error, OperationType.LIST, `users/${currentUser.uid}/logs`);
+      handleFirestoreError(error, OperationType.LIST, `users/${targetUid}/logs`);
     });
-    return () => unsubscribe();
+    return () => {
+      isCancelled = true;
+      unsubscribe();
+    };
   }, [currentUser]);
 
   // Sync Reports with Firebase
   useEffect(() => {
+    setReports({ 
+      weekly: { text: null, logs: null, meta: null }, 
+      monthly: { text: null, logs: null, meta: null }, 
+      quarterly: { text: null, logs: null, meta: null },
+      correlation: { text: null, logs: null, meta: null }
+    });
     if (!currentUser) { 
-      setReports({ 
-        weekly: { text: null, logs: null, meta: null }, 
-        monthly: { text: null, logs: null, meta: null }, 
-        quarterly: { text: null, logs: null, meta: null },
-        correlation: { text: null, logs: null, meta: null }
-      }); 
       return; 
     }
     if (currentUser.uid === 'guest_user') {
@@ -2147,8 +2189,11 @@ export default function App() {
       console.warn("Hekat: Firestore is not initialized for reports.");
       return;
     }
-    const reportsRef = collection(db, 'users', currentUser.uid, 'reports');
+    const targetUid = currentUser.uid;
+    let isCancelled = false;
+    const reportsRef = collection(db, 'users', targetUid, 'reports');
     const unsubscribe = onSnapshot(reportsRef, (snapshot) => {
+      if (isCancelled || activeUserUidRef.current !== targetUid) return;
       const updatedReports: any = {
         weekly: { text: null, logs: null, meta: null }, 
         monthly: { text: null, logs: null, meta: null }, 
@@ -2168,13 +2213,19 @@ export default function App() {
       });
       setReports(updatedReports);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, `users/${currentUser.uid}/reports`);
+      if (isCancelled || activeUserUidRef.current !== targetUid) return;
+      handleFirestoreError(error, OperationType.LIST, `users/${targetUid}/reports`);
     });
-    return () => unsubscribe();
+    return () => {
+      isCancelled = true;
+      unsubscribe();
+    };
   }, [currentUser]);
 
   // Oracle Fetch Logic with Ref Caching and Robust Error Detection
   useEffect(() => {
+    if (!currentUser) return;
+    const requestUid = currentUser.uid;
     let isMounted = true;
     const fetchOracle = async () => {
       const sunIdx = lunarData.sunSignIndex;
@@ -2184,7 +2235,7 @@ export default function App() {
 
       const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
       const formattedName = rawName ? rawName.trim() : '';
-      const cacheKey = `sun_${sunIdx}_moon_${moonIdx}_day_${selectedDay}_name_${formattedName}`;
+      const cacheKey = `uid_${requestUid}_sun_${sunIdx}_moon_${moonIdx}_day_${selectedDay}_name_${formattedName}`;
 
       if (oracleCache.current[cacheKey]) {
         setOracleText(oracleCache.current[cacheKey]);
@@ -2227,19 +2278,19 @@ export default function App() {
         }
 
         const data = await response.json();
-        if (!isMounted) return;
+        if (!isMounted || activeUserUidRef.current !== requestUid) return;
         const text = data.text;
         oracleCache.current[cacheKey] = text;
         setOracleText(text);
       } catch (error: any) {
-        if (!isMounted) return;
+        if (!isMounted || activeUserUidRef.current !== requestUid) return;
         console.error("Erro no Oráculo:", error);
         // Fallback para oráculo local garantindo que o usuário tenha orientação sob qualquer condição de rede móvel
         const fallback = getClientFallbackOracle(sun.name, moon.name, phrase, formattedName, aspect.desc);
         oracleCache.current[cacheKey] = fallback;
         setOracleText(fallback);
       } finally {
-        if (isMounted) setIsOracleLoading(false);
+        if (isMounted && activeUserUidRef.current === requestUid) setIsOracleLoading(false);
       }
     };
 
@@ -2248,7 +2299,7 @@ export default function App() {
       isMounted = false;
       clearTimeout(debounceTimer);
     };
-  }, [selectedDay, lunarData.sunSignIndex, Math.floor(lunarData.moonSignFloat) % 12, oracleTrigger, userData?.name, currentUser?.displayName]);
+  }, [selectedDay, lunarData.sunSignIndex, Math.floor(lunarData.moonSignFloat) % 12, oracleTrigger, userData?.name, currentUser?.displayName, currentUser?.uid]);
 
   const [topZ, setTopZ] = useState(100);
 
@@ -2348,7 +2399,8 @@ export default function App() {
   };
 
   const handleSave = async () => {
-    if (!currentEmotion) return;
+    if (!currentEmotion || !currentUser) return;
+    const saveUid = currentUser.uid;
     
     const activeCycleId = viewingCycleId || lunarData.cycleId;
     
@@ -2364,29 +2416,27 @@ export default function App() {
     const updatedLogs = [...allLogs.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === selectedDay)), newEntry];
     setAllLogs(updatedLogs);
     
-    if (currentUser) {
-      if (currentUser.uid === 'guest_user') {
-        localStorage.setItem('hekat_guest_logs', JSON.stringify(updatedLogs));
-      } else if (!db) {
-        console.warn("Hekat: Firestore is not initialized. Operating in local-only mode.");
-      } else {
-        // Id único baseado em ciclo e dia para permitir histórico
-        const logId = `cycle_${activeCycleId}_day_${selectedDay}`;
-        const logRef = doc(db, 'users', currentUser.uid, 'logs', logId);
-        
-        try {
-          await setDoc(logRef, {
-            emotionId: currentEmotion,
-            intensity,
-            note,
-            lunarDay: selectedDay,
-            cycleId: activeCycleId,
-            userId: currentUser.uid,
-            date: serverTimestamp()
-          });
-        } catch (error) {
-          console.error("Erro ao salvar no Firebase:", error);
-        }
+    if (saveUid === 'guest_user') {
+      localStorage.setItem('hekat_guest_logs', JSON.stringify(updatedLogs));
+    } else if (!db) {
+      console.warn("Hekat: Firestore is not initialized. Operating in local-only mode.");
+    } else {
+      // Id único baseado em ciclo e dia para permitir histórico
+      const logId = `cycle_${activeCycleId}_day_${selectedDay}`;
+      const logRef = doc(db, 'users', saveUid, 'logs', logId);
+      
+      try {
+        await setDoc(logRef, {
+          emotionId: currentEmotion,
+          intensity,
+          note,
+          lunarDay: selectedDay,
+          cycleId: activeCycleId,
+          userId: saveUid,
+          date: serverTimestamp()
+        });
+      } catch (error) {
+        console.error("Erro ao salvar no Firebase:", error);
       }
     }
 
@@ -2399,7 +2449,9 @@ export default function App() {
 
     // Atualizar análise semanal em segundo plano com o novo registro diário
     setTimeout(() => {
-      generateReport('weekly').catch(e => console.warn("Atualização automática semanal:", e));
+      if (activeUserUidRef.current === saveUid) {
+        generateReport('weekly').catch(e => console.warn("Atualização automática semanal:", e));
+      }
     }, 600);
   };
 
@@ -2939,6 +2991,21 @@ export default function App() {
                 <button 
                   onClick={() => {
                     hasManuallyChangedCycleRef.current = false;
+                    activeUserUidRef.current = 'guest_user';
+                    oracleCache.current = {};
+                    setOracleText("Invocando a sabedoria dos astros...");
+                    setFeedback("");
+                    setImportInputText("");
+                    setSyncStatus({ type: null, message: '' });
+                    setAllLogs([]);
+                    setLogsLoaded(false);
+                    setReports({
+                      weekly: { text: null, logs: null, meta: null },
+                      monthly: { text: null, logs: null, meta: null },
+                      quarterly: { text: null, logs: null, meta: null },
+                      correlation: { text: null, logs: null, meta: null }
+                    });
+                    setFirstCycleLunationIndex(null);
                     const guestUser = {
                       uid: 'guest_user',
                       displayName: '',
@@ -3120,8 +3187,8 @@ export default function App() {
 
               {currentUser ? (
                 <button 
-                  onClick={logout}
-                  className="flex items-center gap-1 bg-indigo-500/10 hover:bg-rose-500/20 text-indigo-300 hover:text-rose-300 p-1.5 sm:px-3 sm:py-2 rounded-xl border border-white/5 transition-all group shrink-0"
+                  onClick={handleLogout}
+                  className="flex items-center gap-1 bg-indigo-500/10 hover:bg-rose-500/20 text-indigo-300 hover:text-rose-300 p-1.5 sm:px-3 sm:py-2 rounded-xl border border-white/5 transition-all group shrink-0 cursor-pointer active:scale-95"
                   title="Sair do Portal"
                 >
                   <LogOut size={13} className="group-hover:rotate-12 transition-transform" />
