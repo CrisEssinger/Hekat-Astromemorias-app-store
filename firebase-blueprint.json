@@ -47,12 +47,14 @@
       "description": "Relatórios periódicos gerados pelo Oráculo Hekat (semanal, mensal, trimestral ou correlação).",
       "type": "object",
       "properties": {
+        "userId": { "type": "string", "description": "ID do usuário dono do relatório." },
+        "reportVersion": { "type": "number", "description": "Versão do esquema de isolamento do relatório." },
         "text": { "type": "string", "description": "O texto do relatório astrológico do Oráculo." },
         "logs": { "type": "object", "description": "Logs da mandala no momento do relatório." },
         "meta": { "type": "object", "description": "Metadados (solarOffset, lunarData) no momento da geração." },
         "updatedAt": { "type": "string", "format": "date-time", "description": "Data de atualização do relatório." }
       },
-      "required": ["text", "logs", "meta", "updatedAt"]
+      "required": ["userId", "reportVersion", "text", "logs", "meta", "updatedAt"]
     }
   },
   "firestore": {

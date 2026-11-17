@@ -1039,8 +1039,14 @@ export default function App() {
   const todayCalendarDate = useMemo(() => now.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }), [now]);
   
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
+  const allLogsRef = useRef<LogEntry[]>([]);
+  allLogsRef.current = allLogs;
   const [logsLoaded, setLogsLoaded] = useState(false);
+  const logsLoadedRef = useRef<boolean>(false);
+  logsLoadedRef.current = logsLoaded;
   const [viewingCycleId, setViewingCycleId] = useState<number | null>(null);
+  const viewingCycleIdRef = useRef<number | null>(null);
+  viewingCycleIdRef.current = viewingCycleId;
   const hasManuallyChangedCycleRef = useRef(false);
 
   // States for real Swiss Ephemeris data from server
@@ -1192,6 +1198,8 @@ export default function App() {
   
   // Firebase State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const currentUserRef = useRef<User | null>(null);
+  currentUserRef.current = currentUser;
   const activeUserUidRef = useRef<string | null>(null);
   activeUserUidRef.current = currentUser?.uid ?? null;
   const [userData, setUserData] = useState<{
@@ -1202,6 +1210,10 @@ export default function App() {
     firstCycleLunationIndex?: number;
     reminderSettings?: ReminderSettings;
   } | null>(null);
+  const userDataRef = useRef<typeof userData>(null);
+  userDataRef.current = userData;
+  const lunarDataRef = useRef(lunarData);
+  lunarDataRef.current = lunarData;
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
@@ -1317,13 +1329,37 @@ export default function App() {
   const [isReportLoading, setIsReportLoading] = useState<string | null>(null);
   const [isUpdatingAllReports, setIsUpdatingAllReports] = useState(false);
 
-  const generateReport = async (period: 'weekly' | 'monthly' | 'quarterly' | 'correlation') => {
-    const requestUid = currentUser?.uid ?? null;
-    if (!requestUid || !logsLoaded) return;
+  const generateReport = async (period: 'weekly' | 'monthly' | 'quarterly' | 'correlation', logsOverride?: LogEntry[]) => {
+    const requestUid = activeUserUidRef.current;
+    if (!requestUid || !logsLoadedRef.current) return;
+
+    const sourceLogs = logsOverride ?? allLogsRef.current;
+    if (!sourceLogs || sourceLogs.length === 0) return;
+
     setIsReportLoading(period);
-    
+
+    const currentLunarData = lunarDataRef.current;
+    const currentSolarOffset = currentLunarData.sunSignFloat * ((2 * Math.PI) / 12);
+    const activeCycleId = viewingCycleIdRef.current || currentLunarData.cycleId || 1;
+    const activeUserData = userDataRef.current;
+    const activeUser = currentUserRef.current;
+
+    const sanitizedCycleLogs: Record<number, LogEntry> = {};
+    sourceLogs.forEach(log => {
+      if (log.cycleId === activeCycleId) {
+        sanitizedCycleLogs[log.lunarDay] = {
+          emotionId: String(log.emotionId || ''),
+          intensity: Number(log.intensity) || 1,
+          note: String(log.note || ''),
+          cycleId: Number(log.cycleId) || activeCycleId,
+          lunarDay: Number(log.lunarDay) || 1,
+          date: String(log.date || '')
+        };
+      }
+    });
+
     // Helper para obter a data correta de cada log
-    const getLogDate = (log: LogEntry): Date => {
+    const getReportLogDate = (log: LogEntry): Date => {
       if (log.timestamp?.toDate) return log.timestamp.toDate();
       if (log.timestamp instanceof Date) return log.timestamp;
       if (typeof log.timestamp === 'string' || typeof log.timestamp === 'number') {
@@ -1334,9 +1370,9 @@ export default function App() {
     };
 
     // Ordenação decrescente: do mais recente para o mais antigo
-    const sortedDescLogs = [...allLogs].sort((a, b) => {
-      const dateA = getLogDate(a).getTime();
-      const dateB = getLogDate(b).getTime();
+    const sortedDescLogs = [...sourceLogs].sort((a, b) => {
+      const dateA = getReportLogDate(a).getTime();
+      const dateB = getReportLogDate(b).getTime();
       if (Math.abs(dateB - dateA) > 60000) return dateB - dateA;
       if (b.cycleId !== a.cycleId) return b.cycleId - a.cycleId;
       return b.lunarDay - a.lunarDay;
@@ -1344,12 +1380,23 @@ export default function App() {
 
     const formatLogLine = (log: LogEntry) => {
       const emotion = EMOTIONS.find(e => e.id === log.emotionId)?.name || log.emotionId || 'Neutro';
-      const dateStr = log.date || getLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      const dateStr = log.date || getReportLogDate(log).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
       return `Data: ${dateStr}, Dia Lunar ${log.lunarDay}, Ciclo ${log.cycleId}: Sentimento ${emotion} (Intensidade ${log.intensity}/5)${log.note ? `, Anotações: "${log.note}"` : ''}`;
     };
 
-    // Preparar dados atuais filtrando adequadamente por período
+    const buildCorrelationLogData = () => {
+      const cycleIds = Array.from(new Set<number>(sourceLogs.map(l => Number(l.cycleId)).filter(c => !isNaN(c) && c > 0))).sort((a, b) => a - b);
+      const targetCycles = cycleIds.length > 0
+        ? Array.from(new Set<number>([...cycleIds.filter(c => c <= activeCycleId).slice(-3), activeCycleId]))
+        : [activeCycleId];
+      const corrLogs = sortedDescLogs.filter(l => targetCycles.includes(l.cycleId));
+      const finalCorrLogs = (corrLogs.length > 0 ? corrLogs.slice(0, 87) : sortedDescLogs.slice(0, 87)).reverse();
+      return finalCorrLogs.map(formatLogLine).join('\n');
+    };
+
+    // Preparar dados atuais filtrando adequadamente por período exclusivamente das anotações do usuário
     let logData = "";
+    let correlationDominant = correlationSummary.dominant;
     if (period === 'weekly') {
       const finalWeeklyLogs = sortedDescLogs.slice(0, 7).reverse();
       logData = finalWeeklyLogs.map(formatLogLine).join('\n');
@@ -1360,14 +1407,14 @@ export default function App() {
       const finalQuarterlyLogs = sortedDescLogs.slice(0, 90).reverse();
       logData = finalQuarterlyLogs.map(formatLogLine).join('\n');
     } else {
-      // correlation: use consolidated logs of the last 3 cycles
-      logData = correlationConsolidatedLogData;
+      logData = buildCorrelationLogData();
+      correlationDominant = parseClientLogData(logData).dominant;
     }
 
     // Contexto de meses anteriores para continuidade e padrões
-    const previousLogsData = allLogs
-      .filter(log => log.cycleId < (viewingCycleId || lunarData.cycleId))
-      .slice(-40) // Ajustado para incluir notas sem exceder limites práticos
+    const previousLogsData = sourceLogs
+      .filter(log => log.cycleId < activeCycleId)
+      .slice(-40)
       .map(log => `Ciclo ${log.cycleId}, Dia ${log.lunarDay}: ${EMOTIONS.find(e => e.id === log.emotionId)?.name || log.emotionId} (${log.intensity})${log.note ? ` - Nota: ${log.note}` : ''}`)
       .join('\n');
 
@@ -1377,7 +1424,7 @@ export default function App() {
     };
 
     const phaseGroups: Record<string, Record<string, number>> = {};
-    allLogs.forEach(l => {
+    sourceLogs.forEach(l => {
       const phaseName = getPhaseName(l.lunarDay);
       const emotionName = EMOTIONS.find(e => e.id === l.emotionId)?.name || 'Outro';
       if (!phaseGroups[phaseName]) {
@@ -1392,72 +1439,52 @@ export default function App() {
       return `Na ${phaseName} acumulada dos meses: ${countsStr}`;
     }).join('\n');
 
-    const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
+    const rawName = activeUserData?.name || activeUser?.displayName || activeUser?.email?.split('@')[0] || '';
     const formattedName = rawName ? rawName.trim() : '';
 
-    let prompt = "";
-    if (period === 'weekly') {
-      prompt = `Realize a análise do Relatório Semanal com base nos registros dos últimos 7 dias.
-               DADOS DE CORREÇÃO (7 DIAS):
-               ${logData || 'Nenhum dado registrado nos últimos 7 dias.'}
-               
-               TAREFA EXCLUSIVA:
-               1. Use os dados inseridos pela usuária no período dos últimos 7 dias para definir a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
-               2. Una os dados das informações disponíveis para revelar um padrão dominante identificado nos registros.
-               3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia, amiga querida e mentora (Hekat é do gênero feminino), mantendo a sobriedade indispensável e evitando gírias, tons excessivamente informais ou superlativos sintéticos.
-               4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos sete dias" ou "ao avaliar seus sentimentos". Comece o texto chamando a usuária pelo nome "${formattedName}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
-               5. Destaque de forma nítida tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou oscilações) quanto os pontos positivos que geram expansão de consciência.
-               6. Finalize o relatório com um conselho prático e útil centrado em postura, ética e clareza mental para conduzir os movimentos da alma.
-               7. NÃO se restrinja a 4 linhas. Desenvolva um texto reflexivo, consistente e profundo.
-               8. Formato: O texto deve ser composto por um parágrafo único integralmente JUSTIFICADO (sem recuos de página, sem bullets, sem títulos, sem subseções, sem aspas externas desnecessárias).`;
-    } else if (period === 'monthly') {
-      prompt = `Realize a análise do Relatório Mensal com base nos registros dos últimos 29 dias do ciclo lunar.
-               DADOS DE CORTE (29 DIAS):
-               ${logData || 'Nenhum dado registrado neste ciclo lunar de 29 dias.'}
-               HISTÓRICO RECENTE:
-               ${previousLogsData || 'Primeiro ciclo registrado.'}
-               
-               TAREFA EXCLUSIVA:
-               1. Use os dados inseridos pela usuária no período dos últimos 29 dias para definir de forma nítida a tônica dos sentimentos e a linha de pensamento predominante do período, apresentando um parecer analítico estruturado de forma fluida.
-               2. Una os dados disponíveis para revelar os padrões de sentimentos dominantes identificados nos registros, comparando-os e conectando-os se houver histórico.
-               3. Use uma linguagem acolhedora e fraterna, aproximando-se com a postura de uma sábia, amiga querida e mentora (Hekat é do gênero feminino), mantendo a sobriedade indispensável e evitando gírias, tons informais ou superlativos sintéticos.
-               4. ATENÇÃO ABSOLUTA: É estritamente proibido usar a palavra ou variação de "ao olhar seus últimos vinte e nove dias", "ao olhar seu ciclo" ou "ao avaliar seus sentimentos/registros". Comece o texto chamando a usuária pelo nome "${formattedName}" no início exato para trazer proximidade confiável (ex: "Nome, ...").
-               5. Destaque tanto os pontos negativos que requerem atenção da usuária (vulnerabilidades, sombras ou resistências que a paralisam) quanto os pontos positivos que geram expansão de consciência.
-               6. Apresente uma síntese clara dos pontos recorrentes ao longo do período de 29 dias, ressaltando o que precisa ser finalizado.
-               7. Gere obrigatoriamente uma lista de tarefas estruturada e clara ao final, classificada exatamente nestas três classes de forma limpa:
-                  - Iniciado: [tarefas iniciadas no período]
-                  - Dar continuidade: [atividades ou processos para dar continuidade]
-                  - Finalizado: [processos ou tarefas finalizadas ou a finalizar neste ciclo]
-               8. NÃO se restrinja a 4 ou 6 linhas. Desenvolva um texto reflexivo, consistente e profundo, seguido de forma espaçada pela lista de tarefas.
-               9. Formato: O texto de análise deve ser justificado, seguido pela seção da lista de tarefas estruturada de forma limpa e visível.`;
-    } else if (period === 'correlation') {
-      const dominantSentiment = correlationSummary.dominant;
-      prompt = `Realize uma análise de correlação entre as fases da lua e os padrões de sentimentos/dados inseridos pela usuária.
-               DADOS DE CORRELAÇÃO DOS ÚLTIMOS 3 CICLOS (de 29 dias cada):\n${correlationData || 'Nenhum dado acumulado disponível ainda.'}\n
-               HISTÓRICO INTEGRADO:\n${previousLogsData || ''}\n${logData || ''}
-               
-               TAREFA EXCLUSIVA:
-               1. A frase inicial do relatório deve ser obrigatoriamente um subtítulo dinâmico que apresente o sentimento predominante detectado nos 3 últimos ciclos lunares, exatamente no formato:
-               "Sentimento Predominante nos Últimos 3 Ciclos: ${dominantSentiment}"
-               2. Faça uma correlação nítida e direta das fases da Lua (Nova, Crescente, Cheia, Minguante) com a repetição de padrões de sentimentos e dados inseridos pela usuária.
-               3. Destaque obrigatoriamente um sentimento prioritário identificado em cada uma das quatro fases lunares considerando os 3 últimos ciclos lunares de 29 dias.
-               4. Use uma linguagem acolhedora, fraterna, dócil e sábia de uma mentora sábia (Hekat é do gênero feminino). Evite superlativos sintéticos.
-               5. Logo após o subtítulo dinâmico na primeira linha isolada, inicie o texto chamando a usuária pelo nome "${formattedName}" para trazer proximidade de forma natural (ex: "${formattedName}, ...").
-               6. Formato: O relatório deve iniciar com o subtítulo dinâmico na primeira linha, seguido pelo texto fluido, reflexivo e consistente.`;
-    } else {
-      prompt = `Realize uma análise profunda desta 'Estação da Alma' (Relatório Trimestral).
-               HISTÓRICO E CICLO ATUAL:\n${previousLogsData}\n${logData}\n
-               
-               TAREFA EXCLUSIVA:
-               1. Analise o histórico dos últimos 90 dias (trimestre).
-               2. Identifique e pontue datas e eventos específicos mencionados nos registros que estejam relacionados com padrões emocionais reativos.
-               3. Ressalte com clareza quais foram os sentimentos predominantes detectados ao longo do trimestre.
-               4. Destaque tanto os pontos negativos que necessitam de sua atenção cuidadosa quanto os pontos positivos que propiciam a expansão de consciência.
-               5. Traga um conselho profundo e útil centrado em postura, ética e clareza mental para lidar com os sentimentos reativos e guiar seu processo de transformação permanente.
-               6. Use uma linguagem acolhedora, fraterna e sábia de sua mentora Hekat (gênero feminino). Evite superlativos sintéticos.
-               7. ATENÇÃO ABSOLUTA: Comece o texto chamando a usuária pelo nome "${formattedName}" no início exato. Não use variações de "ao olhar seu trimestre" ou "ao avaliar seus sentimentos".
-               8. Formato: Um texto corrido, reflexivo e consistente.`;
-    }
+    const persistReport = async (reportText: string) => {
+      if (activeUserUidRef.current !== requestUid) return;
+      const metaPayload = { solarOffset: currentSolarOffset, lunarData: serializeLunarData(currentLunarData) };
+      const reportPayload = {
+        text: reportText,
+        logs: sanitizedCycleLogs,
+        meta: metaPayload
+      };
+      const localStoredPayload = {
+        ...reportPayload,
+        reportVersion: 2
+      };
+
+      setReports(prev => {
+        if (activeUserUidRef.current !== requestUid) return prev;
+        return {
+          ...prev,
+          [period]: reportPayload
+        };
+      });
+
+      if (requestUid === 'guest_user') {
+        try {
+          localStorage.setItem(`hekat_guest_report_${period}`, JSON.stringify(localStoredPayload));
+        } catch (e) {
+          console.warn("Erro ao salvar relatório local do visitante:", e);
+        }
+      } else if (db) {
+        const reportDocRef = doc(db, 'users', requestUid, 'reports', period);
+        try {
+          await setDoc(reportDocRef, {
+            userId: requestUid,
+            reportVersion: 2,
+            text: reportText,
+            logs: sanitizedCycleLogs,
+            meta: metaPayload,
+            updatedAt: serverTimestamp()
+          });
+        } catch (err) {
+          console.error(`Erro ao salvar relatório ${period} no Firestore:`, err);
+        }
+      }
+    };
 
     try {
       console.log(`Gerando relatório ${period} com Gemini...`);
@@ -1483,80 +1510,28 @@ export default function App() {
       let text = data.text;
 
       if (period === 'correlation' && text && !text.toLowerCase().includes('sentimento predominante')) {
-        text = `Sentimento Predominante nos Últimos 3 Ciclos: ${correlationSummary.dominant}\n\n${text}`;
+        text = `Sentimento Predominante nos Últimos 3 Ciclos: ${correlationDominant}\n\n${text}`;
       }
-      
+
       if (activeUserUidRef.current !== requestUid) return;
       console.log(`Relatório ${period} recebido:`, text);
-      const updatedReport = { 
-        text: text || "Os astros não revelaram nada hoje.",
-        logs: { ...logs },
-        meta: { solarOffset, lunarData: serializeLunarData(lunarData) }
-      };
-
-      setReports(prev => {
-        if (activeUserUidRef.current !== requestUid) return prev;
-        const updated = { 
-          ...prev, 
-          [period]: updatedReport
-        };
-
-        if (requestUid === 'guest_user') {
-          localStorage.setItem(`hekat_guest_report_${period}`, JSON.stringify(updatedReport));
-        } else if (db) {
-          const reportDocRef = doc(db, 'users', requestUid, 'reports', period);
-          setDoc(reportDocRef, {
-            text: text || "Os astros não revelaram nada hoje.",
-            logs: { ...logs },
-            meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
-            updatedAt: serverTimestamp()
-          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${requestUid}/reports/${period}`));
-        }
-
-        return updated;
-      });
+      await persistReport(text || "Os astros não revelaram nada hoje.");
     } catch (error: any) {
       if (activeUserUidRef.current !== requestUid) return;
       console.error(`Erro ao gerar relatório ${period}:`, error);
-      
-      const rawName = userData?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
-      const formattedName = rawName ? rawName.trim() : '';
+
       const fallbackText = getClientFallbackReport(period, logData, formattedName);
-      const fallbackReport = { 
-        text: fallbackText,
-        logs: { ...logs },
-        meta: { solarOffset, lunarData: serializeLunarData(lunarData) }
-      };
-      
-      setReports(prev => {
-        if (activeUserUidRef.current !== requestUid) return prev;
-        const updated = { 
-          ...prev, 
-          [period]: fallbackReport
-        };
-
-        if (requestUid === 'guest_user') {
-          localStorage.setItem(`hekat_guest_report_${period}`, JSON.stringify(fallbackReport));
-        } else if (db) {
-          const reportDocRef = doc(db, 'users', requestUid, 'reports', period);
-          setDoc(reportDocRef, {
-            text: fallbackText,
-            logs: { ...logs },
-            meta: { solarOffset, lunarData: serializeLunarData(lunarData) },
-            updatedAt: serverTimestamp()
-          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${requestUid}/reports/${period}`));
-        }
-
-        return updated;
-      });
+      await persistReport(fallbackText);
     } finally {
-      setIsReportLoading(null);
+      if (activeUserUidRef.current === requestUid) {
+        setIsReportLoading(null);
+      }
     }
   };
 
   const updateAllReports = async () => {
-    const requestUid = currentUser?.uid ?? null;
-    if (!requestUid || !logsLoaded || isUpdatingAllReports || isReportLoading) return;
+    const requestUid = activeUserUidRef.current;
+    if (!requestUid || !logsLoadedRef.current || allLogsRef.current.length === 0 || isUpdatingAllReports || isReportLoading) return;
     setIsUpdatingAllReports(true);
     try {
       for (const p of ['weekly', 'monthly', 'quarterly', 'correlation'] as const) {
@@ -1566,7 +1541,34 @@ export default function App() {
     } catch (e) {
       console.error("Erro ao sincronizar todos os relatórios:", e);
     } finally {
-      setIsUpdatingAllReports(false);
+      if (activeUserUidRef.current === requestUid || !activeUserUidRef.current) {
+        setIsUpdatingAllReports(false);
+      }
+    }
+  };
+
+  const clearAllReports = async () => {
+    const requestUid = activeUserUidRef.current;
+    if (!requestUid || isUpdatingAllReports || isReportLoading) return;
+
+    setReports({
+      weekly: { text: null, logs: null, meta: null },
+      monthly: { text: null, logs: null, meta: null },
+      quarterly: { text: null, logs: null, meta: null },
+      correlation: { text: null, logs: null, meta: null }
+    });
+
+    const periods = ['weekly', 'monthly', 'quarterly', 'correlation'] as const;
+    if (requestUid === 'guest_user') {
+      periods.forEach(p => {
+        try {
+          localStorage.removeItem(`hekat_guest_report_${p}`);
+        } catch {}
+      });
+    } else if (db) {
+      await Promise.all(
+        periods.map(p => deleteDoc(doc(db, 'users', requestUid, 'reports', p)).catch(() => {}))
+      );
     }
   };
   const isNight = true;
@@ -1969,10 +1971,21 @@ export default function App() {
     const unsubscribeAuth = subscribeToAuthChanges((user) => {
       clearTimeout(safetyTimer);
       activeUserUidRef.current = user?.uid ?? null;
+      hasManuallyChangedCycleRef.current = false;
+      oracleCache.current = {};
       setUserData(null);
       setAllLogs([]);
       setLogsLoaded(false);
       setFirstCycleLunationIndex(null);
+      setViewingCycleId(null);
+      setIsReportLoading(null);
+      setIsUpdatingAllReports(false);
+      setReports({
+        weekly: { text: null, logs: null, meta: null },
+        monthly: { text: null, logs: null, meta: null },
+        quarterly: { text: null, logs: null, meta: null },
+        correlation: { text: null, logs: null, meta: null }
+      });
       setCurrentUser(user);
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
@@ -2171,15 +2184,39 @@ export default function App() {
         quarterly: { text: null, logs: null, meta: null },
         correlation: { text: null, logs: null, meta: null }
       };
+      let hasGuestLogs = false;
+      try {
+        const rawGuestLogs = localStorage.getItem('hekat_guest_logs');
+        if (rawGuestLogs) {
+          const parsedLogs = JSON.parse(rawGuestLogs);
+          hasGuestLogs = Array.isArray(parsedLogs) && parsedLogs.length > 0;
+        }
+      } catch {}
+
       const periods = ['weekly', 'monthly', 'quarterly', 'correlation'];
       periods.forEach(p => {
-        const saved = localStorage.getItem(`hekat_guest_report_${p}`);
-        if (saved) {
-          try {
-            updatedReports[p] = JSON.parse(saved);
-          } catch (e) {
-            console.error(`Erro ao analisar relatório local ${p}:`, e);
+        const storageKey = `hekat_guest_report_${p}`;
+        const saved = localStorage.getItem(storageKey);
+        if (!saved) return;
+        if (!hasGuestLogs) {
+          localStorage.removeItem(storageKey);
+          return;
+        }
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.reportVersion === 2) {
+            updatedReports[p] = {
+              text: parsed.text || null,
+              logs: parsed.logs || null,
+              meta: parsed.meta || null
+            };
+          } else {
+            // Remove relatórios legados gerados antes da limpeza/isolamento
+            localStorage.removeItem(storageKey);
           }
+        } catch (e) {
+          console.error(`Erro ao analisar relatório local ${p}:`, e);
+          localStorage.removeItem(storageKey);
         }
       });
       setReports(updatedReports);
@@ -2200,9 +2237,14 @@ export default function App() {
         quarterly: { text: null, logs: null, meta: null },
         correlation: { text: null, logs: null, meta: null }
       };
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const periodId = doc.id as 'weekly' | 'monthly' | 'quarterly' | 'correlation';
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        // Apaga automaticamente relatórios legados (sem reportVersion === 2) ou de outro usuário
+        if (data.reportVersion !== 2 || (data.userId && data.userId !== targetUid)) {
+          deleteDoc(docSnap.ref).catch(() => {});
+          return;
+        }
+        const periodId = docSnap.id as 'weekly' | 'monthly' | 'quarterly' | 'correlation';
         if (updatedReports[periodId]) {
           updatedReports[periodId] = {
             text: data.text || null,
@@ -2414,7 +2456,10 @@ export default function App() {
       date: todayCalendarDate 
     };
     const updatedLogs = [...allLogs.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === selectedDay)), newEntry];
+    allLogsRef.current = updatedLogs;
+    logsLoadedRef.current = true;
     setAllLogs(updatedLogs);
+    setLogsLoaded(true);
     
     if (saveUid === 'guest_user') {
       localStorage.setItem('hekat_guest_logs', JSON.stringify(updatedLogs));
@@ -2447,12 +2492,12 @@ export default function App() {
       toggleWindow('mandala', 'open');
     }, 1500);
 
-    // Atualizar análise semanal em segundo plano com o novo registro diário
+    // Atualizar análise semanal em segundo plano com as anotações atualizadas do próprio usuário
     setTimeout(() => {
       if (activeUserUidRef.current === saveUid) {
-        generateReport('weekly').catch(e => console.warn("Atualização automática semanal:", e));
+        generateReport('weekly', updatedLogs).catch(e => console.warn("Atualização automática semanal:", e));
       }
-    }, 600);
+    }, 300);
   };
 
   const handleReset = async () => {
@@ -2626,27 +2671,42 @@ export default function App() {
   };
 
   const handleDeleteLog = async (dayToDelete: number) => {
+    const deleteUid = currentUser?.uid ?? null;
+    if (!deleteUid) return;
     const activeCycleId = viewingCycleId || lunarData.cycleId;
     const logId = `cycle_${activeCycleId}_day_${dayToDelete}`;
 
-    // Atualização otimista do estado local
-    setAllLogs(prev => {
-      const updated = prev.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === dayToDelete));
-      if (currentUser && currentUser.uid === 'guest_user') {
-        localStorage.setItem('hekat_guest_logs', JSON.stringify(updated));
-      }
-      return updated;
-    });
+    const updated = allLogsRef.current.filter(l => !(l.cycleId === activeCycleId && l.lunarDay === dayToDelete));
+    allLogsRef.current = updated;
+    setAllLogs(updated);
 
-    if (currentUser) {
-      if (currentUser.uid !== 'guest_user' && db) {
-        const logRef = doc(db, "users", currentUser.uid, "logs", logId);
-        try {
-          await deleteDoc(logRef);
-        } catch (error) {
-          console.error("Erro ao deletar no Firebase:", error);
-          handleFirestoreError(error, OperationType.DELETE, `users/${currentUser.uid}/logs/${logId}`);
-        }
+    if (deleteUid === 'guest_user') {
+      localStorage.setItem('hekat_guest_logs', JSON.stringify(updated));
+    } else if (db) {
+      const logRef = doc(db, "users", deleteUid, "logs", logId);
+      try {
+        await deleteDoc(logRef);
+      } catch (error) {
+        console.error("Erro ao deletar no Firebase:", error);
+        handleFirestoreError(error, OperationType.DELETE, `users/${deleteUid}/logs/${logId}`);
+      }
+    }
+
+    if (updated.length === 0) {
+      setReports({
+        weekly: { text: null, logs: null, meta: null },
+        monthly: { text: null, logs: null, meta: null },
+        quarterly: { text: null, logs: null, meta: null },
+        correlation: { text: null, logs: null, meta: null }
+      });
+      if (deleteUid === 'guest_user') {
+        ['weekly', 'monthly', 'quarterly', 'correlation'].forEach(p => {
+          localStorage.removeItem(`hekat_guest_report_${p}`);
+        });
+      } else if (db) {
+        ['weekly', 'monthly', 'quarterly', 'correlation'].forEach(p => {
+          deleteDoc(doc(db, 'users', deleteUid, 'reports', p)).catch(() => {});
+        });
       }
     }
   };
@@ -3616,14 +3676,27 @@ export default function App() {
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={updateAllReports}
-                      disabled={isUpdatingAllReports || !!isReportLoading}
-                      className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg hover:shadow-indigo-500/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                    >
-                      <RotateCw size={14} className={isUpdatingAllReports ? "animate-spin" : ""} />
-                      <span>{isUpdatingAllReports ? "Atualizando Todos..." : "Atualizar Todos com Meus Registros"}</span>
-                    </button>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                      <button
+                        onClick={updateAllReports}
+                        disabled={!logsLoaded || allLogs.length === 0 || isUpdatingAllReports || !!isReportLoading}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg hover:shadow-indigo-500/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <RotateCw size={14} className={isUpdatingAllReports ? "animate-spin" : ""} />
+                        <span>{isUpdatingAllReports ? "Atualizando Todos..." : "Atualizar Todos com Meus Registros"}</span>
+                      </button>
+                      {(reports.weekly.text || reports.monthly.text || reports.quarterly.text || reports.correlation.text) && (
+                        <button
+                          onClick={clearAllReports}
+                          disabled={isUpdatingAllReports || !!isReportLoading}
+                          className="w-full sm:w-auto px-3.5 py-2.5 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 active:scale-95 text-rose-300 text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Apagar todas as mensagens dos relatórios gerados"
+                        >
+                          <Trash2 size={14} />
+                          <span>Apagar Relatórios</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:gap-4">
@@ -3654,17 +3727,24 @@ export default function App() {
                           </div>
                           <button 
                             onClick={() => generateReport(item.id as any)}
-                            disabled={!!isReportLoading || isUpdatingAllReports}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[10px] font-black uppercase tracking-wider shadow-md hover:shadow-indigo-500/20 transition-all disabled:opacity-50"
-                            title="Atualizar relatório com dados diários"
+                            disabled={!logsLoaded || allLogs.length === 0 || !!isReportLoading || isUpdatingAllReports}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[10px] font-black uppercase tracking-wider shadow-md hover:shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={allLogs.length === 0 ? "Registre uma anotação na Mandala Lunar primeiro" : "Atualizar relatório com suas anotações diárias"}
                           >
                             {isReportLoading === item.id ? <RotateCw className="animate-spin" size={12} /> : <Activity size={12} />}
-                            <span>{isReportLoading === item.id ? "Atualizando..." : (reports[item.id as keyof typeof reports].text ? "Atualizar" : "Gerar")}</span>
+                            <span>{isReportLoading === item.id ? "Atualizando..." : (allLogs.length > 0 && reports[item.id as keyof typeof reports].text ? "Atualizar" : "Gerar")}</span>
                           </button>
                         </div>
                         
                         <div className="min-h-[60px] sm:min-h-[80px] bg-indigo-950/5 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-indigo-950/5 relative overflow-hidden">
-                          {reports[item.id as keyof typeof reports].text ? (
+                          {allLogs.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full py-2 text-center text-indigo-300/60">
+                              <LucideIcon name={item.icon} size={20} className="mb-1.5 opacity-30" />
+                              <p className="text-[10px] sm:text-[11px] font-semibold">
+                                Registre ao menos uma anotação na Mandala Lunar para produzir seu relatório exclusivo.
+                              </p>
+                            </div>
+                          ) : reports[item.id as keyof typeof reports].text ? (
                             <div className="space-y-4">
                               {(item.id === 'monthly' || item.id === 'quarterly') && reports[item.id as keyof typeof reports].logs && (
                                 <div className="flex flex-col items-center justify-center py-4 bg-white/5 rounded-3xl border border-white/5 animate-in fade-in zoom-in duration-1000">
