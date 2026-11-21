@@ -156,80 +156,80 @@ export const LUNAR_PHASES = [
 ];
 
 export const PHILOSOPHICAL_QUOTES = [
-  "Ação com clareza. Busque o ponto de resolução e encaminhe o que for necessário com firmeza e presença.", // Áries
-  "Estabilidade prática. Valorize o que sustenta seus objetivos a longo prazo e mantenha o foco no real.", // Touro
-  "Mente flexível. Explore novas saídas e adapte sua estratégia conforme a realidade se movimenta hoje.", // Gêmeos
-  "Percepção intuitiva. Observe o seu entorno com atenção para proteger o que é essencial com suavidade.", // Câncer
-  "Integridade natural. Expresse sua autoridade através de atos coerentes, buscando o respeito pela postura.", // Leão
-  "Eficácia essencial. Refine seus processos para que a clareza nos detalhes traga resultados práticos reais.", // Virgem
-  "Harmonia técnica. Ajuste seus pesos com justiça para manter a ordem e a fluidez nos seus relacionamentos.", // Libra
-  "Renovação estratégica. Deixe fluir o que já não traz impacto para abrir espaço para novas etapas de vida.", // Escorpião
-  "Visão de horizonte. Mantenha o propósito maior em mente e caminhe com entusiasmo lúcido e pés no chão.", // Sagitário
-  "Resiliência e estrutura. Use a disciplina como ferramenta para consolidar seus passos e construir com firmeza.", // Capricórnio
-  "Perspectiva original. Pense fora dos moldes comuns para encontrar soluções autênticas que tragam inovação.", // Aquário
-  "Observação serena. Mantenha a clareza interior para discernir quando agir e quando apenas observar o fluxo." // Peixes
+  "Dê o primeiro passo com clareza. Direcione sua iniciativa ao que exige resolução prática hoje.", // Áries
+  "Valorize o que sustenta seus objetivos a longo prazo e mantenha constância no que é real.", // Touro
+  "Explore novas saídas através do diálogo e ajuste sua estratégia conforme o cenário se movimenta.", // Gêmeos
+  "Observe o seu entorno com atenção e proteja o que é essencial com presença tranquila.", // Câncer
+  "Expresse sua postura através de atitudes coerentes e generosas, firmando seu espaço com naturalidade.", // Leão
+  "Refine o que está em andamento com simplicidade para que o cuidado nos detalhes gere resultado real.", // Virgem
+  "Ajuste seus acordos com justiça e escuta para sustentar harmonia prática nas suas relações.", // Libra
+  "Faça os cortes necessários com lucidez para encerrar desgastes e abrir espaço para uma nova etapa.", // Escorpião
+  "Mantenha um objetivo maior em mente e dê passos honestos e realistas em direção ao que expande seu horizonte.", // Sagitário
+  "Use a disciplina como apoio para consolidar seus passos e construir bases seguras com paciência.", // Capricórnio
+  "Experimente um olhar diferente para encontrar soluções mais livres, criativas e úteis ao coletivo.", // Aquário
+  "Diminua o ruído externo para discernir com calma quando agir e quando deixar o fluxo assentar." // Peixes
 ];
 
 export const ZODIAC_PHRASES: Record<number, string[]> = {
-  0: [ // Áries
-    "Inicie com coragem pura. O impulso de criar novos caminhos nasce da ousadia de dar o primeiro passo sem garantias, apenas com a certeza do seu centro selvagem.",
-    "Direcione sua força com precisão. A energia de ação exige foco absoluto e discernimento para que o impulso inicial se transforme em realização real.",
-    "Consolide a conquista de forma sábia. A verdadeira coragem se manifesta na maturidade de finalizar os combates e assentar a força que abriu os horizontes."
+  0: [ // Áries (1-10° ação, 11-20° fixação, 21-30° assimilação e conclusão)
+    "Dê o primeiro passo no que você vinha adiando. Assuma a iniciativa hoje com decisão clara e sem esperar garantias externas.",
+    "Sustente o ritmo da iniciativa que você começou. Mantenha o foco na prioridade principal e evite dispersar sua energia em disputas secundárias.",
+    "Conclua o movimento aberto e reconheça o terreno conquistado. Feche pendências com objetividade antes de assumir novos desafios."
   ],
   1: [ // Touro
-    "Ancore sua presença na terra firme. O valor do seu tempo está na calma para deixar o solo fértil da alma sentir o silêncio.",
-    "Construa com paciência e persistência. Valorize as atitudes simples que sustentam a ordem material e o equilíbrio interno a longo prazo.",
-    "Usufrua da estabilidade conquistada. A abundância floresce quando você sabe acolher o valor das suas realizações cotidianas."
+    "Escolha hoje o que realmente merece o seu tempo e os seus recursos. Comece estruturando uma base sólida para o que precisa durar.",
+    "Mantenha a constância nas escolhas já feitas. Preserve sua estabilidade prática e avance passo a passo, sem ceder à pressa.",
+    "Consolide os resultados alcançados e valorize o que ganhou forma concreta. Encerre esta etapa protegendo a segurança que você construiu."
   ],
   2: [ // Gêmeos
-    "Abra as janelas da sua mente para o novo. Sintonize a curiosidade madura que convida a enxergar múltiplos caminhos ao seu redor.",
-    "Comunique-se com clareza e flexibilidade. O trabalho real está em traduzir ideias em pontes sinceras de conexão com o outro.",
-    "Sintetize a diversidade de ideias experimentadas. O verdadeiro conhecimento surge quando o excesso se desfaz em sabedoria interior."
+    "Abra uma conversa necessária ou busque uma nova informação hoje. Movimente suas ideias para enxergar saídas práticas diante do momento.",
+    "Organize os pontos levantados e dê direção clara às suas trocas. Fixe os acordos essenciais para evitar ruídos e mal-entendidos.",
+    "Sintetize o que você aprendeu nas conversas recentes e escolha a ideia mais viável. Conclua o diálogo transformando informação em decisão."
   ],
   3: [ // Câncer
-    "Acolha suas marés mais profundas. O convite é retornar ao seu centro interior, honrando a sensibilidade que dá sentido à existência.",
-    "Nutra suas bases e proteja suas raízes. Fortalecer seus laços íntimos exige afeto paciente e presença autêntica com o que é essencial.",
-    "Desapegue com suavidade do que já passou. A verdadeira segurança vem de saber que o centro que protege e acolhe caminha com você."
+    "Volte sua atenção para o que precisa de cuidado e proteção hoje. Fortaleça um vínculo importante com presença real e escuta sincera.",
+    "Sustente limites afetivos saudáveis no que você escolheu preservar. Cuide da sua estabilidade emocional antes de absorver demandas externas.",
+    "Acolha o que amadureceu nos seus vínculos e libere mágoas que já cumpriram seu papel. Encerre esta etapa em paz com o que é essencial."
   ],
   4: [ // Leão
-    "Permita que sua luz interna se revele sem timidez. O mundo precisa da sua expressão autêntica e da generosidade natural do seu coração.",
-    "Expresse sua força pessoal com nobreza e ética. A verdadeira autoridade se manifesta quando você lidera pelo exemplo e eleva quem está ao seu redor.",
-    "Aquiete o ego e irradie em silêncio absoluto. O seu valor dispensa holofotes quando a sua caminhada está sintonizada com a verdade."
+    "Posicione-se com firmeza e apresente sua ideia sem recuar. Assuma hoje o protagonismo no que depende diretamente da sua postura.",
+    "Sustente sua palavra com coerência e generosidade prática. Firme sua autoridade pelo exemplo constante, sem buscar aprovação externa.",
+    "Reconheça o valor do que você expressou e entregue o resultado com serenidade. Conclua esta fase mantendo sua dignidade com simplicidade."
   ],
   5: [ // Virgem
-    "Simplifique e organize seus processos. O discernimento começa na atitude humilde de observar onde a utilidade e o bom senso se fazem necessários.",
-    "Aperfeiçoe suas ações com amor aos detalhes. Dedicar-se ao presente com paciência constante transforma a rotina cotidiana em arte viva.",
-    "Entregue os resultados sem cobranças excessivas. Compreender que a ordem natural cuida do todo traz o repouso que clareia a mente."
+    "Identifique o ponto exato que precisa de ajuste hoje e aja sobre ele. Simplifique um processo para ganhar clareza e eficiência prática.",
+    "Mantenha a disciplina no método que você estabeleceu. Aplique atenção cuidadosa aos detalhes essenciais sem se perder em cobranças excessivas.",
+    "Revise o que foi aprimorado e dê o trabalho por concluído no ponto justo. Assimile o aprendizado prático e libere a exigência de perfeição."
   ],
   6: [ // Libra
-    "Busque a harmonia em suas interações. O convite deste início de jornada é encontrar a beleza no compartilhar e no equilíbrio sutil de dar e receber.",
-    "Pese suas escolhas com justiça e equilíbrio. O trabalho real reside em agir com diplomacia ética, mesmo diante de pontos de vista opostos.",
-    "Ancore o equilíbrio em seu próprio coração. A verdadeira união com as pessoas nasce do perfeito alinhamento das suas próprias forças internas."
+    "Promova um acordo justo onde houver impasse hoje. Escute o outro lado com clareza para construir um ponto de equilíbrio possível.",
+    "Sustente uma postura diplomática e firme nos compromissos assumidos. Mantenha a justiça nas suas decisões sem abrir mão dos seus princípios.",
+    "Finalize negociações abertas e confirme o que ficou harmonizado. Assimile a clareza trazida pela troca e siga com serenidade nas relações."
   ],
   7: [ // Escorpião
-    "Mergulhe com coragem em suas transformações. Acolha a força que queima as ilusões para revelar a verdade indestrutível sob as aparências.",
-    "Recicle as energias acumuladas e libere velhos pesos. O trabalho de desapego exige sinceridade profunda com o que precisa ir embora.",
-    "Sustente o poder silencioso que emerge do renascimento. A sabedoria definitiva vem de confiar na renovação constante da sua própria alma."
+    "Encare de frente o que precisa mudar hoje sem rodeios. Faça um corte lúcido em hábitos ou situações que drenam sua força.",
+    "Sustente a decisão de mudança mesmo diante de resistências internas. Mantenha firmeza e discrição enquanto a nova postura se fortalece.",
+    "Integre a força que nasceu dessa transformação e encerre definitivamente o ciclo antigo. Siga adiante mais leve, com clareza sobre seus limites."
   ],
   8: [ // Sagitário
-    "Trace horizontes amplos de possibilidades e confie. A alma e a mente expandem quando buscamos um sentido mais elevado para nossa caminhada.",
-    "Caminhe em direção aos seus valores com os pés no chão. Transforme suas grandes ideologias em passos honestos e atitudes práticas de vida.",
-    "Acolha os ensinamentos adquiridos no percurso. A verdadeira sabedoria não está no destino final, mas na generosidade de compartilhar o saber."
+    "Amplie sua visão hoje e dê um passo concreto em direção a um objetivo maior. Busque novos horizontes com confiança e pés no chão.",
+    "Transforme o entusiasmo inicial em ações coerentes com seus valores. Fixe metas realistas para manter o rumo sem prometer além do possível.",
+    "Reúna os aprendizados do caminho e transforme a experiência em critério prático. Encerre esta etapa compartilhando sua clareza com sobriedade."
   ],
   9: [ // Capricórnio
-    "Assuma a responsabilidade pelo seu próprio destino. O topo da montanha convida à maturidade e ao autoexame realista para estruturar o amanhã.",
-    "Persistar com resiliência diante de cada desafio. A solidez de caráter exige consistência ética e respeito ao tempo natural de maturação.",
-    "Ajuda a sustentar o que é perene e seguro. O legado de uma vida reside nas fundações integras que servem de apoio para todos."
+    "Assuma a responsabilidade pelo próximo passo decisivo hoje. Defina um plano objetivo e comece pelo que sustenta seus objetivos de longo prazo.",
+    "Persista com disciplina no plano traçado, mesmo diante de obstáculos lentos. Fixe sua estrutura com constância ética e respeito ao tempo de maturação.",
+    "Avalie o que foi consolidado e reconheça a solidez construída. Conclua esta etapa preservando a estrutura que agora apoia seus próximos passos."
   ],
   10: [ // Aquário
-    "Liberte o pensamento de padrões que já limitam sua verdade. O convite é cultivar a originalidade e olhar além das aparências com olhos de futuro.",
-    "Inove com espírito cooperativo. O grande trabalho está em alinhar a sua liberdade à construção de um ambiente de colaboração sincera.",
-    "Acolha as diferenças com elegância e maturidade. A verdadeira inovação se consolida na liberdade compartilhada e na tolerância lúcida."
+    "Teste uma abordagem diferente para um problema antigo hoje. Permita-se sair do automático e propor uma solução mais livre e inteligente.",
+    "Fixe a mudança de perspectiva em ações que também beneficiem o coletivo. Una sua independência de pensamento a uma cooperação clara.",
+    "Integre o que funcionou na nova abordagem e descarte o que foi apenas excesso. Encerre o ciclo mantendo a mente aberta e os pés na realidade."
   ],
   11: [ // Peixes
-    "Silencie os ruídos externos e conecte-se com o invisível. A sensibilidade do seu ser convida à união interna com o mistério suave da vida.",
-    "Exerça a compaixão lúcida através de pequenas ações. O trabalho real está em ser um canal de paz e acolhimento em meio às durezas do dia.",
-    "Entregue-se ao fluxo com fé e gratidão genuínas. O fechamento deste ciclo pede para desfazer as amarras do controle e repousar em paz."
+    "Reduza o ritmo diante do excesso de ruído hoje e ouça sua percepção mais fina. Aja com empatia prática onde houver necessidade de acolhimento.",
+    "Sustente a calma interior sem perder a clareza diante das demandas externas. Mantenha a compaixão aliada a limites claros para não se desgastar.",
+    "Solte o controle sobre o que já não depende de você e encerre pendências com serenidade. Assimile a lição do período e prepare-se para recomeçar leve."
   ]
 };
 

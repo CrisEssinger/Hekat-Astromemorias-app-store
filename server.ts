@@ -6,7 +6,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import axios from "axios";
 import admin from "firebase-admin";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { julday, calc_ut, constants } from "sweph";
 
 // Initialize Gemini AI securely on the server
@@ -29,27 +29,30 @@ function getAI() {
   return aiClient;
 }
 
-// Resilient helper to call Gemini with fast model order, staggered parallel fallback and optimal latency
+// Resilient helper to call Gemini with fast model order and fallback
 async function generateWithGemini(contents: string, systemInstruction?: string): Promise<string> {
   const ai = getAI();
-  // Fast, modern, responsive models prioritized
   const models = [
-    "gemini-3.8-flash",
-    "gemini-3.1-flash-lite",
-    "gemini-3-flash-preview",
-    "gemini-3.5-flash-lite",
-    "gemini-3.5-flash"
+    "gemini-4-hydrogen",
+    "gemini-3.1-flash-lite"
   ];
 
-  const callModel = async (model: string, timeoutMs = 6000): Promise<string> => {
+  const callModel = async (model: string, timeoutMs = 8000): Promise<string> => {
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error(`Timeout on model ${model}`)), timeoutMs)
     );
+    const config: Record<string, any> = {};
+    if (systemInstruction) {
+      config.systemInstruction = systemInstruction;
+    }
+    if (model === "gemini-4-hydrogen") {
+      config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+    }
     const response = await Promise.race([
       ai.models.generateContent({
         model,
         contents,
-        config: systemInstruction ? { systemInstruction } : undefined,
+        config: Object.keys(config).length > 0 ? config : undefined,
       }),
       timeoutPromise
     ]);
@@ -60,40 +63,26 @@ async function generateWithGemini(contents: string, systemInstruction?: string):
     throw new Error(`Empty response from ${model}`);
   };
 
-  // Staggered race: initiate primary model immediately
-  // If primary has not responded within 2200ms, launch secondary model in parallel
   let primaryPromise: Promise<string>;
   try {
-    primaryPromise = callModel(models[0], 6000);
+    primaryPromise = callModel(models[0], 8000);
   } catch (err) {
     primaryPromise = Promise.reject(err);
   }
 
   const staggeredPromise = new Promise<string>((resolve, reject) => {
     const timer = setTimeout(() => {
-      // Launch secondary model concurrently
-      callModel(models[1], 5500)
-        .then(resolve)
-        .catch(() => {
-          // If secondary also fails, try third
-          callModel(models[2], 5000).then(resolve).catch(reject);
-        });
-    }, 2200);
+      callModel(models[1], 7000).then(resolve).catch(reject);
+    }, 3000);
 
-    // If primary resolves first, clear timer
     primaryPromise.then(
       val => {
         clearTimeout(timer);
         resolve(val);
       },
       () => {
-        // If primary rejects immediately (e.g. 503 error), kick off secondary right away
         clearTimeout(timer);
-        callModel(models[1], 5500)
-          .then(resolve)
-          .catch(() => {
-            callModel(models[2], 5000).then(resolve).catch(reject);
-          });
+        callModel(models[1], 7000).then(resolve).catch(reject);
       }
     );
   });
@@ -101,10 +90,9 @@ async function generateWithGemini(contents: string, systemInstruction?: string):
   try {
     return await Promise.race([primaryPromise, staggeredPromise]);
   } catch {
-    // If racing fails, sequentially try any remaining candidate
-    for (let i = 2; i < models.length; i++) {
+    for (const model of models) {
       try {
-        return await callModel(models[i], 5000);
+        return await callModel(model, 7000);
       } catch {
         // continue
       }
@@ -113,36 +101,34 @@ async function generateWithGemini(contents: string, systemInstruction?: string):
   }
 }
 
-// Elegantly styled fallback generator matching Hekat's strict brand guidelines and voice (fluid, simple, profound astrological wisdom without technical labels or awkward punctuation)
+// Fallback acolhedor, simples e objetivo alinhado às diretrizes do Oráculo Diário (sem citar nomes de signos, elementos ou aspectos)
 function generateFallbackOracle(sunSignName?: string, moonSignName?: string, philosophicalPhrase?: string, userName?: string, aspectDesc?: string): string {
-  const sunRaw = (sunSignName || 'Touro').trim();
-  const moonRaw = (moonSignName || 'Peixes').trim();
-  const sun = sunRaw.toLowerCase();
-  const moon = moonRaw.toLowerCase();
+  const sun = (sunSignName || 'Touro').trim().toLowerCase();
+  const moon = (moonSignName || 'Peixes').trim().toLowerCase();
   const nameIntro = userName ? `${userName}, ` : '';
-  
-  // Arquétipos astrológicos naturais e acolhedores
+
+  // Arquétipos astrológicos expressos sem citar nomes dos signos
   const archetypes: Record<string, string> = {
-    'áries': 'a coragem e a iniciativa de Áries',
-    'aries': 'a coragem e a iniciativa de Áries',
-    'touro': 'a persistência e o valor real de Touro',
-    'gêmeos': 'a mente curiosa e a comunicação de Gêmeos',
-    'gemeos': 'a mente curiosa e a comunicação de Gêmeos',
-    'câncer': 'o afeto acolhedor e as raízes de Câncer',
-    'cancer': 'o afeto acolhedor e as raízes de Câncer',
-    'leão': 'o brilho nobre e a generosidade de Leão',
-    'leao': 'o brilho nobre e a generosidade de Leão',
-    'virgem': 'o discernimento lúcido e o cuidado de Virgem',
-    'libra': 'a busca de harmonia e ponderação de Libra',
-    'escorpião': 'a profundidade e o poder de transformação de Escorpião',
-    'escorpiao': 'a profundidade e o poder de transformação de Escorpião',
-    'sagitário': 'a visão ampla e o entusiasmo de Sagitário',
-    'sagitario': 'a visão ampla e o entusiasmo de Sagitário',
-    'capricórnio': 'a maturidade serena e a paciência de Capricórnio',
-    'capricornio': 'a maturidade serena e a paciência de Capricórnio',
-    'aquário': 'a liberdade de pensamento e a renovação de Aquário',
-    'aquario': 'a liberdade de pensamento e a renovação de Aquário',
-    'peixes': 'a sensibilidade empática e a intuição de Peixes'
+    'áries': 'a coragem de iniciar com clareza',
+    'aries': 'a coragem de iniciar com clareza',
+    'touro': 'a constância paciente para construir o que tem valor real',
+    'gêmeos': 'a curiosidade aberta e o diálogo leve',
+    'gemeos': 'a curiosidade aberta e o diálogo leve',
+    'câncer': 'o cuidado sincero com seus vínculos essenciais',
+    'cancer': 'o cuidado sincero com seus vínculos essenciais',
+    'leão': 'a presença autêntica e a expressão generosa',
+    'leao': 'a presença autêntica e a expressão generosa',
+    'virgem': 'o discernimento prático e a atenção ao que realmente funciona',
+    'libra': 'a ponderação justa e o desejo de acordos serenos',
+    'escorpião': 'a profundidade honesta e a força de renovação',
+    'escorpiao': 'a profundidade honesta e a força de renovação',
+    'sagitário': 'a visão ampla e a confiança para expandir horizontes',
+    'sagitario': 'a visão ampla e a confiança para expandir horizontes',
+    'capricórnio': 'a maturidade serena e o compromisso com o que é duradouro',
+    'capricornio': 'a maturidade serena e o compromisso com o que é duradouro',
+    'aquário': 'a liberdade de pensamento e a abertura para novos olhares',
+    'aquario': 'a liberdade de pensamento e a abertura para novos olhares',
+    'peixes': 'a sensibilidade acolhedora e a escuta tranquila'
   };
 
   const getElement = (sign: string): 'FOGO' | 'TERRA' | 'AR' | 'ÁGUA' => {
@@ -155,67 +141,80 @@ function generateFallbackOracle(sunSignName?: string, moonSignName?: string, phi
   const sunElement = getElement(sun);
   const moonElement = getElement(moon);
 
-  const sunArch = archetypes[sun] || `a força essencial de ${sunRaw}`;
-  const moonArch = archetypes[moon] || `a presença de ${moonRaw}`;
+  const sunArch = archetypes[sun] || 'a clareza da sua intenção';
+  const moonArch = archetypes[moon] || 'a escuta do seu ritmo interno';
 
-  // Frase inicial harmonizando os arquétipos
-  let archetypesIntro = '';
-  if (sun === moon) {
-    archetypesIntro = `acolha com integridade ${sunArch}.`;
-  } else {
-    archetypesIntro = `sintonize ${sunArch} com ${moonArch}.`;
-  }
+  const archetypesIntro = sun === moon
+    ? `hoje o momento reúne em um só movimento ${sunArch}.`
+    : `hoje o momento aproxima ${sunArch} e ${moonArch}.`;
 
-  // Síntese dos elementos com palavras-chave mandatórias incorporadas com simplicidade e fluidez:
-  // FOGO: faísca, irradiação, vontade, despertar, chama.
-  // TERRA: maturação, substância, colheita.
-  // AR: fluxo, sopro, síntese, aprendizado, percepção, palavras.
-  // ÁGUA: maré, reflexo, emoção, sentimentos, intuição, mergulho, fluir.
-  const elementMap: Record<string, string> = {
-    'FOGO_FOGO': 'A faísca da sua vontade desperta com intensidade, irradiando uma chama viva que dissipa dúvidas e impulsiona a sua ação com coragem.',
-    'FOGO_TERRA': 'A faísca da sua vontade ganha substância real quando respeita o tempo de maturação para gerar uma colheita consistente.',
-    'FOGO_AR': 'A chama criativa da vontade ganha fluxo no sopro das ideias, onde as palavras certas trazem síntese ao aprendizado e clareiam a percepção.',
-    'FOGO_ÁGUA': 'A faísca da sua vontade encontra as marés do sentir, unindo o mergulho no reflexo das emoções à intuição que guia os seus passos.',
-    'TERRA_FOGO': 'A substância do que você constrói ganha presença fértil quando a faísca da vontade desperta a coragem necessária para uma colheita fecunda.',
-    'TERRA_TERRA': 'A substância do real exige presença e paciência, honrando o ritmo natural da maturação para assegurar uma colheita fecunda e segura.',
-    'TERRA_AR': 'A clareza prática ganha síntese através do sopro do aprendizado, unindo o fluxo de boas palavras à maturação de uma colheita com substância.',
-    'TERRA_ÁGUA': 'A maturação interna se fortalece com afeto e serenidade, permitindo que as marés da alma e o reflexo das emoções enriqueçam a sua colheita.',
-    'AR_FOGO': 'O fluxo mental recebe um sopro renovador, enquanto a faísca do despertar irradia a sua vontade de expandir horizontes com entusiasmo.',
-    'AR_TERRA': 'O fluxo das palavras ganha substância ao encontrar sustento na realidade, permitindo que a percepção amadureça com tempo e paciência.',
-    'AR_AR': 'O fluxo do pensamento e o sopro das ideias trazem síntese lúcida, onde o aprendizado e as palavras certas ampliam a sua percepção.',
-    'AR_ÁGUA': 'O fluxo das palavras se harmoniza com a intuição, onde o reflexo de águas serenas acalma a mente e pacifica os sentimentos.',
-    'ÁGUA_FOGO': 'As marés do sentir acolhem a faísca da vontade, acendendo o reflexo de emoções que despertam a coragem de agir com nobreza.',
-    'ÁGUA_TERRA': 'As marés da sensibilidade ganham estabilidade e substância quando o respeito à maturação interna constrói um alicerce seguro para o sentir.',
-    'ÁGUA_AR': 'O reflexo das emoções encontra síntese no sopro do aprendizado, permitindo que as palavras comuniquem a intuição com suavidade.',
-    'ÁGUA_ÁGUA': 'As marés íntimas fluem em harmonia com a sua sensibilidade, onde o mergulho interior acalma as correntezas e acolhe os sentimentos com verdade.'
+  // Tônica dos elementos sem citar os nomes dos elementos
+  const elementTone: Record<string, string> = {
+    'FOGO_FOGO': 'Aja com confiança serena e decisão direta, sem esperar que tudo esteja pronto.',
+    'FOGO_TERRA': 'Una seu ânimo de agir a passos concretos e pacientes para construir algo consistente.',
+    'FOGO_AR': 'Transforme seu entusiasmo em boas trocas de ideias e decisões ágeis com visão ampla.',
+    'FOGO_ÁGUA': 'Conduza sua disposição com sensibilidade, acolhendo o que sente sem perder o foco.',
+    'TERRA_FOGO': 'Dê forma real às suas escolhas com firmeza e ânimo sereno para tirar planos do papel.',
+    'TERRA_TERRA': 'Construa com calma, realismo e constância, respeitando o tempo natural de cada etapa.',
+    'TERRA_AR': 'Alie a clareza de pensamento à objetividade prática para organizar prioridades com segurança.',
+    'TERRA_ÁGUA': 'Sustente passos firmes enquanto acolhe suas emoções com suavidade e paciência.',
+    'AR_FOGO': 'Deixe a mente circular com leveza e transforme boas percepções em atitudes confiantes.',
+    'AR_TERRA': 'Conecte suas ideias ao que é concreto, trazendo estrutura simples para o que você planeja.',
+    'AR_AR': 'Observe o cenário por novos ângulos e valorize conversas claras que ampliam sua compreensão.',
+    'AR_ÁGUA': 'Escute o que você sente com empatia e use a clareza mental para traduzir emoções em palavras calmas.',
+    'ÁGUA_FOGO': 'Acolha seus sentimentos com verdade e canalize essa entrega em atitudes corajosas e serenas.',
+    'ÁGUA_TERRA': 'Dê abrigo seguro às suas emoções através de escolhas simples, estáveis e realistas.',
+    'ÁGUA_AR': 'Permita que a sensibilidade dialogue com um olhar mais leve e curioso sobre o momento.',
+    'ÁGUA_ÁGUA': 'Ouça seu ritmo interno com delicadeza e empatia, sem dramatizar o que precisa apenas de espaço.'
   };
 
-  const elemKey = `${sunElement}_${moonElement}`;
-  const elementText = elementMap[elemKey] || elementMap['TERRA_TERRA'];
-
-  // Qualidade do aspecto sem citar termos técnicos e conselho final integrado sem rótulos
-  let aspectClause = '';
-  let aspectAdvice = '';
+  const elementText = elementTone[`${sunElement}_${moonElement}`] || elementTone['TERRA_TERRA'];
 
   const descLower = (aspectDesc || '').toLowerCase();
-  if (descLower.includes('conjunção') || descLower.includes('conjuncao') || descLower.includes('impulso') || descLower.includes('autenticidade')) {
-    aspectClause = 'Este impulso de fusão pede autenticidade em síntese com a sua verdade interior.';
-    aspectAdvice = 'Sustente a firmeza ética dos seus atos hoje, alinhando a vontade consciente ao seu propósito essencial.';
-  } else if (descLower.includes('oposição') || descLower.includes('oposicao') || descLower.includes('polaridades') || descLower.includes('equilíbrio') || descLower.includes('equilibrio')) {
-    aspectClause = 'Diante de polaridades em diálogo, acolha a dúvida fértil para encontrar o equilíbrio entre forças complementares.';
-    aspectAdvice = 'Busque a ponderação serena diante de visões contrastantes, harmonizando os opostos antes de firmar a sua postura.';
-  } else if (descLower.includes('quadratura') || descLower.includes('tensaõ') || descLower.includes('tensão') || descLower.includes('conflito') || descLower.includes('turva')) {
-    aspectClause = 'Diante de qualquer tensão emocional ou conflito, exercite a paciência e a espera — jamais permita que a emoção turve a razão.';
-    aspectAdvice = 'Preserve a serenidade interior e aguarde a turbulência passar antes de tomar atitudes definitivas hoje.';
-  } else if (descLower.includes('trígono') || descLower.includes('trigono') || descLower.includes('soluções') || descLower.includes('criatividade')) {
-    aspectClause = 'Caminhe com leveza sob o fluxo harmônico de soluções criativas e clareza espontânea.';
-    aspectAdvice = 'Confie no curso natural dos acontecimentos e deixe a sua sabedoria interior orientar as escolhas de hoje.';
+  let aspectType: 'conjuncao' | 'oposicao' | 'quadratura' | 'trigono' | 'sextil' = 'sextil';
+  let aspectClause = '';
+
+  if (descLower.includes('conjunção') || descLower.includes('conjuncao') || descLower.includes('fusão') || descLower.includes('síntese')) {
+    aspectType = 'conjuncao';
+    aspectClause = 'As forças do dia se fundem na mesma direção, favorecendo escolhas íntegras e alinhadas ao que importa.';
+  } else if (descLower.includes('oposição') || descLower.includes('oposicao') || descLower.includes('hesitação') || descLower.includes('confronto') || descLower.includes('alternar')) {
+    aspectType = 'oposicao';
+    aspectClause = 'Se surgir hesitação ou desgaste diante de pontos opostos, alterne a perspectiva com calma até ganhar clareza.';
+  } else if (descLower.includes('quadratura') || descLower.includes('tensão') || descLower.includes('conflito') || descLower.includes('espera')) {
+    aspectType = 'quadratura';
+    aspectClause = 'Diante de qualquer tensão emocional ou atrito, escolha a espera serena e a paciência antes de reagir.';
+  } else if (descLower.includes('trígono') || descLower.includes('trigono') || descLower.includes('soluções') || descLower.includes('fluidez') || descLower.includes('criatividade')) {
+    aspectType = 'trigono';
+    aspectClause = 'O dia favorece soluções naturais, clareza e criatividade para avançar com leveza.';
   } else {
-    aspectClause = 'Mantenha a mente receptiva para aprender com simplicidade e aplicar o que já foi assimilado com maturidade.';
-    aspectAdvice = 'Aplique com sobriedade o discernimento ético nas situações que exigirem o seu posicionamento hoje.';
+    aspectType = 'sextil';
+    aspectClause = 'Há boa abertura para aprender com a experiência e aplicar ajustes simples com maturidade.';
   }
 
-  return `${nameIntro}${archetypesIntro} ${elementText} ${aspectClause} ${aspectAdvice}`;
+  // Conselho prático de atividade apropriada para o dia conforme elemento da Lua e aspecto ativo
+  const activityAdvice: Record<'FOGO' | 'TERRA' | 'AR' | 'ÁGUA', Record<'harmonico' | 'desafiador', string>> = {
+    'FOGO': {
+      harmonico: 'Aproveite o dia para dar o primeiro passo em um projeto importante ou iniciar uma ação que dependia da sua decisão.',
+      desafiador: 'Reserve um momento do dia para canalizar sua energia em uma caminhada firme ou rever metas antes de tomar decisões definitivas.'
+    },
+    'TERRA': {
+      harmonico: 'Dedique parte do dia a estruturar um plano concreto ou avançar com constância em um compromisso de longo prazo.',
+      desafiador: 'Concentre o dia em uma única prioridade essencial de cada vez, respeitando pausas para preservar sua estabilidade.'
+    },
+    'AR': {
+      harmonico: 'Aproveite o dia para ter uma conversa construtiva, estudar um tema novo ou registrar no papel ideias que abrem caminhos.',
+      desafiador: 'Separe um tempo hoje para escrever os dois lados de uma questão antes de firmar acordos ou responder a provocações.'
+    },
+    'ÁGUA': {
+      harmonico: 'Dedique um momento do dia a uma conversa afetuosa, uma leitura sensível ou uma pausa silenciosa para escutar sua intuição.',
+      desafiador: 'Reserve uma pausa tranquila ao longo do dia para acolher suas emoções em silêncio e evitar desgastes desnecessários.'
+    }
+  };
+
+  const isChallenging = aspectType === 'oposicao' || aspectType === 'quadratura';
+  const closingActivity = activityAdvice[moonElement][isChallenging ? 'desafiador' : 'harmonico'];
+
+  return `${nameIntro}${archetypesIntro} ${elementText} ${aspectClause} ${closingActivity}`;
 }
 
 function parseLogDataInfo(logData?: string) {
@@ -345,66 +344,55 @@ async function startServer() {
       }
       const ai = getAI();
 
-      const systemInstruction = `Você é o Oráculo Hekat (Hekat Astromemorias). Sua voz une com absoluta maestria sobriedade estratégica, acolhimento lúcido e sabedoria empática. Suas orientações funcionam como uma bússola pragmática para a postura, ética e clareza mental do usuário diante dos desafios reais da alma.
+      const systemInstruction = `Você é o Oráculo Hekat (Hekat Astromemórias). Sua voz une sobriedade estratégica e acolhimento lúcido — como uma conversa próxima, cuidadosa e clara, que oferece uma bússola prática para postura, ética e clareza mental.
 
-Siga rigorosamente as seguintes diretrizes para o PAINEL ORÁCULO DIÁRIO:
+Siga rigorosamente todas as diretrizes para o PAINEL ORÁCULO DIÁRIO:
 
-1. PRINCÍPIO GERAL E TÔNICA DOS TEXTOS:
-   - Os textos devem ser acolhedores, simples e objetivos — como uma conversa próxima e cuidadosa.
-   - Evitar tom coloquial (gírias), extremismos, exageros dramáticos e vocabulário rebuscado.
-   - A orientação deve chegar com clareza e leveza, sem impor e sem comandos severos.
-   - Sabedoria Empática: As orientações soam como uma verdade simples e profunda, baseada na observação clara do momento, sem hermetismo ou lirismo romântico.
-   - Mistério Sutil: A linguagem mantém uma aura de sabedoria profunda, mas evita nomes técnicos (aspectos, elementos, nomes de casas astrológicas).
-   - Equilíbrio Alquímico: Una sobriedade estratégica e acolhimento lúcido. Seja acolhedor sem ser beato (sem moralismos ou docilidade excessiva).
+1. TOM, VOCABULÁRIO E PROIBIÇÕES ABSOLUTAS:
+   - Textos acolhedores, simples e objetivos — como uma conversa próxima e cuidadosa.
+   - Orientação com clareza e leveza, sem impor e sem comandos severos.
+   - Evite gírias/tom coloquial, extremismos, exageros dramáticos, moralismos e vocabulário rebuscado.
+   - Linguagem acessível para leigos em Astrologia, com frases fluidas (começo, meio e fim).
+   - PROIBIDO CITAR NO TEXTO: nunca escreva nomes de signos (Áries, Touro, Gêmeos, etc.), nomes dos elementos (Fogo, Terra, Ar, Água), nomes de aspectos (conjunção, oposição, quadratura, trígono, sextil) ou termos técnicos/casas astrológicas.
 
 2. ABERTURA:
-   - ${userName ? `Abrir o texto com o nome fornecido pelo usuário ("${userName}"), chamando-o diretamente logo na primeira frase (ex.: "${userName}, ..."), para transmitir confiança e proximidade desde a primeira frase.` : 'Abrir o texto de forma acolhedora, próxima e direta, transmitindo confiança imediata.'}
+   - ${userName ? `Abra o texto diretamente com o nome do usuário ("${userName}, ..."), transmitindo confiança e proximidade desde a primeira frase.` : 'Abra o texto de forma acolhedora, próxima e direta desde a primeira frase.'}
 
-3. SOL E LUA NOS SIGNOS — SIMBOLOGIA DOS ELEMENTOS:
-   Considere a posição do Sol e da Lua nos signos astrológicos informados conforme a simbologia dos elementos (NUNCA cite os nomes dos elementos "Fogo", "Terra", "Ar" ou "Água" no texto):
-   - FOGO (Áries, Leão, Sagitário) — Inspire a agir.
-     * Tônica: vitalidade, impulso, revelação.
-     * Diretriz: frases curtas e diretas, com ânimo sereno e confiança — sem exaltação.
-     * Palavras-chave a incorporar naturalmente: faísca, irradiação, vontade, despertar, chama.
-   - TERRA (Touro, Virgem, Capricórnio) — Ensine a construir.
-     * Tônica: estrutura, presença, manifestação.
-     * Diretriz: linguagem objetiva e concreta, que transmita segurança, realismo e paciência.
-     * Palavras-chave a incorporar naturalmente: maturação, substância, colheita.
-   - AR (Gêmeos, Libra, Aquário) — Estimule a pensar e conectar.
-     * Tônica: conexão, perspectiva, fluidez mental.
-     * Diretriz: metáforas de visão, troca, comunicação e movimento; tom curioso, leve e analítico.
-     * Palavras-chave a incorporar naturalmente: fluxo, sopro, síntese, aprendizado, percepção, palavras.
-   - ÁGUA (Câncer, Escorpião, Peixes) — Acolha os sentimentos.
-     * Tônica: profundidade, memória, dissolução.
-     * Diretriz: linguagem poética e suave, que acolha a emoção sem dramatizar; tom de empatia e escuta.
-     * Palavras-chave a incorporar naturalmente: maré, reflexo, emoção, intuição, mergulho, fluir.
+3. SOL E LUA NOS SIGNOS — SIMBOLOGIA DOS ELEMENTOS (SEM CITÁ-LOS):
+   Considere os signos do Sol e da Lua conforme a simbologia dos seus elementos:
+   - FOGO (Áries, Leão, Sagitário) — Inspire a agir. Diretriz: frases curtas e diretas, com ânimo sereno e confiança.
+   - TERRA (Touro, Virgem, Capricórnio) — Ensine a construir. Diretriz: linguagem objetiva e concreta, que transmita segurança, realismo e paciência.
+   - AR (Gêmeos, Libra, Aquário) — Estimule a pensar e conectar. Diretriz: metáforas de visão, troca, comunicação e movimento; tom curioso, leve e analítico.
+   - ÁGUA (Câncer, Escorpião, Peixes) — Acolha os sentimentos. Diretriz: linguagem poética e suave, que acolha a emoção sem dramatizar; tom de empatia e escuta.
 
-4. QUALIDADE DOS ASPECTOS (SEM CITÁ-LOS NO TEXTO):
-   Harmonize de forma sutil a relação entre Sol e Lua sem jamais citar termos técnicos como quadratura, trígono, oposição, etc.:
-   - Conjunção: impulso, autenticidade, fusão — síntese das simbologias dos signos envolvidos.
-   - Oposição: dúvida, equilíbrio por complementaridade.
-   - Quadratura: tensão emocional, conflitos, espera, paciência; a emoção que turva a razão.
+4. QUALIDADE DOS ASPECTOS (SEM CITÁ-LOS):
+   Traduza a relação entre Sol e Lua de forma sutil e natural:
+   - Conjunção: fusão — síntese das simbologias dos signos envolvidos.
+   - Oposição: hesitação por dúvida, desgaste por confronto, aprender a alternar posições para obter clareza.
+   - Quadratura: tensão emocional, conflitos, espera, paciência.
    - Trígono: soluções, harmonia, fluidez, clareza, criatividade.
-   - Sextil / Semissextil: abertura para aprender e aplicar com simplicidade o que já foi assimilado com maturidade prática.
+   - Sextil / Semissextil: abertura prática para aprender e aplicar com simplicidade o que já foi assimilado.
 
 5. ARQUÉTIPOS ASTROLÓGICOS:
-   - Certificar-se de que os conceitos estão alinhados ao arquétipo de cada signo (Gêmeos = dualidade, mente, comunicação; Touro = persistência, valor, matéria; etc.).
+   - Alinhe os conceitos ao arquétipo de cada signo envolvido (sem nomear os signos) e à simbologia do momento, mantendo fluidez e aplicação prática ao longo de toda a leitura.
 
-6. TÔNICA GERAL E FLUIDEZ:
-   - Frases fluidas, com começo, meio e fim que conduzam o leitor com naturalidade.
-   - Trazer fluidez e simplicidade ao texto, mantendo consistência de forma prática e clara em toda a leitura.
+6. FECHAMENTO:
+   - Finalize com um conselho para uma atividade apropriada para o dia que esteja em sintonia com as propriedades dos elementos dos signos envolvidos e com a simbologia do aspecto formado entre Sol e Lua.
+   - Integre esse fechamento naturalmente na última frase, sem usar rótulos como "Conselho:", "Dica:" ou "Sugestão:".
+   - NUNCA sugira tarefas domésticas ou rotinas triviais (como arrumar gavetas, lavar louça, limpar casa). Priorize atividades significativas de postura, diálogo, escrita, estudo, planejamento, criação, movimento consciente ou recolhimento.
 
-7. FECHAMENTO:
-   - Finalizar com um conselho para o dia (sem citar que é um conselho), em sintonia com os aspectos formados entre Sol e Lua.
-   - NUNCA usar palavras como "Conselho:", "Dica:", "Lembrete:". A orientação deve ser a frase conclusiva, integrada com total naturalidade.
-   - NUNCA sugerir rotinas domésticas ou tarefas triviais do cotidiano (como arrumar mesa, beber água, organizar agendas). O foco é postura, ética e clareza mental.
-
-8. FORMATAÇÃO E CONCISÃO:
-   - Concisão: Máximo de 4 linhas.
-   - Formatação no app: texto justificado em bloco contínuo (sem quebras de linha ou subtítulos).
+7. FORMATAÇÃO E CONCISÃO:
+   - Máximo de 4 linhas em um único parágrafo contínuo (sem quebras de linha, listas ou subtítulos), pronto para exibição em texto justificado.
    - Idioma: Português do Brasil.`;
 
-      const prompt = `Sol em ${sunSignName || 'Desconhecido'}, Lua em ${moonSignName || 'Desconhecido'}. Tônica: "${philosophicalPhrase || ''}". Aspecto Ativo: ${aspectName || ''} (${aspectDesc || ''}). Que diretriz de postura este momento exige?`;
+      const prompt = `Gere o texto do Oráculo Diário para:
+- Sol em: ${sunSignName || 'Desconhecido'}
+- Lua em: ${moonSignName || 'Desconhecido'}
+- Aspecto Sol-Lua: ${aspectName || ''} (${aspectDesc || ''})
+- Tônica prática do momento: "${philosophicalPhrase || ''}"
+${userName ? `- Nome do usuário para abertura: ${userName}` : ''}
+
+Lembrete crítico: NÃO mencione nenhum nome de signo, elemento ou aspecto no texto final. Entregue apenas o parágrafo final pronto (máximo de 4 linhas).`;
       const generatedText = await generateWithGemini(prompt, systemInstruction);
 
       res.json({ text: generatedText });
