@@ -12,6 +12,7 @@
         "name": { "type": "string", "description": "Nome ou apelido personalizado definido pelo usuário." },
         "reminderSettings": { "type": "object", "description": "Configurações de lembretes diários para registro de astromemórias." },
         "firstCycleLunationIndex": { "type": "number", "description": "Índice da lunação astronômica em que o usuário iniciou o Ciclo 1." },
+        "cycleAnchorVersion": { "type": "number", "description": "Versão da calibração do Ciclo 1 do usuário." },
         "createdAt": { "type": "string", "format": "date-time", "description": "Data de criação do perfil." },
         "lastActive": { "type": "string", "format": "date-time", "description": "Última atividade no app." }
       },
@@ -48,7 +49,7 @@
       "type": "object",
       "properties": {
         "userId": { "type": "string", "description": "ID do usuário dono do relatório." },
-        "reportVersion": { "type": "number", "description": "Versão do esquema de isolamento do relatório." },
+        "reportVersion": { "type": "number", "description": "Versão atual (3) do esquema de isolamento e limpeza dos relatórios." },
         "text": { "type": "string", "description": "O texto do relatório astrológico do Oráculo." },
         "logs": { "type": "object", "description": "Logs da mandala no momento do relatório." },
         "meta": { "type": "object", "description": "Metadados (solarOffset, lunarData) no momento da geração." },

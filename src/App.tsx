@@ -555,7 +555,7 @@ const getLunarData = (date: Date = new Date(), firstCycleLunationIndex: number |
   
   const LUNAR_MONTH = 29.53059;
   const lunationIndex = isNaN(diffInDays) ? 0 : Math.floor(diffInDays / LUNAR_MONTH);
-  const cycleId = firstCycleLunationIndex !== null && !isNaN(firstCycleLunationIndex)
+  const cycleId = firstCycleLunationIndex !== null && !isNaN(firstCycleLunationIndex) && firstCycleLunationIndex >= 0
     ? Math.max(1, lunationIndex - firstCycleLunationIndex + 1)
     : 1;
   const cycleStartDate = new Date(referenceDate.getTime() + lunationIndex * LUNAR_MONTH * 24 * 60 * 60 * 1000);
@@ -1014,6 +1014,7 @@ export default function App() {
   // Sincronização e Calibração de Relógio com o Servidor (UTC/2026)
   const serverOffsetRef = useRef<number>(0);
   const clientClockSyncDoneRef = useRef<boolean>(false);
+  const [isClockSynced, setIsClockSynced] = useState(false);
   const [now, setNow] = useState(new Date());
   const [mountError, setMountError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -1105,6 +1106,8 @@ export default function App() {
         }
       } catch (err) {
         console.warn("Could not fetch real-time Swiss Ephemeris data. Using high-precision math anchors.", err);
+      } finally {
+        if (active) setIsClockSynced(true);
       }
     };
     fetchRealData();
@@ -1127,7 +1130,7 @@ export default function App() {
     };
     fetchCycleData();
     return () => { active = false; };
-  }, [baseLunarData.cycleId]);
+  }, [baseLunarData.cycleId, baseLunarData.lunationIndex]);
 
   const lunarData = useMemo(() => {
     const base = { ...baseLunarData };
@@ -1217,6 +1220,7 @@ export default function App() {
     hasSeenGuide?: boolean;
     uid?: string;
     firstCycleLunationIndex?: number;
+    cycleAnchorVersion?: number;
     reminderSettings?: ReminderSettings;
   } | null>(null);
   const userDataRef = useRef<typeof userData>(null);
@@ -1225,28 +1229,36 @@ export default function App() {
   lunarDataRef.current = lunarData;
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
+  const CURRENT_CYCLE_ANCHOR_VERSION = 3;
+  const CURRENT_REPORT_VERSION = 3;
+
   useEffect(() => {
     console.log("Hekat App mounted successfully. Auth state:", { isAuthLoading, currentUserId: currentUser?.uid });
   }, [isAuthLoading, currentUser]);
 
-  // Definir/Sincronizar o Ciclo 1 do usuário no primeiro acesso (mantendo compatibilidade com históricos antigos)
+  // Definir/Sincronizar o Ciclo 1 do usuário somente após a sincronia de relógio do servidor
   useEffect(() => {
-    if (!currentUser || !logsLoaded) return;
+    if (!currentUser || !logsLoaded || !isClockSynced) return;
+
+    const currentLunation = Math.max(0, baseLunarData.lunationIndex);
 
     if (currentUser.uid === 'guest_user') {
       try {
-        const saved = localStorage.getItem('hekat_first_lunation_index');
+        localStorage.removeItem('hekat_first_lunation_index');
+        const saved = localStorage.getItem('hekat_first_lunation_v3');
         if (saved !== null && !isNaN(Number(saved))) {
           const parsed = Number(saved);
-          if (firstCycleLunationIndex !== parsed) {
-            setFirstCycleLunationIndex(parsed);
+          if (parsed >= 0 && parsed <= currentLunation) {
+            if (firstCycleLunationIndex !== parsed) {
+              setFirstCycleLunationIndex(parsed);
+            }
+            return;
           }
-          return;
         }
-        const hasLegacyMultiCycle = allLogs.some(l => Number(l.cycleId) > 1);
-        const resolved = hasLegacyMultiCycle ? -1 : baseLunarData.lunationIndex;
-        localStorage.setItem('hekat_first_lunation_index', String(resolved));
-        setFirstCycleLunationIndex(resolved);
+        localStorage.setItem('hekat_first_lunation_v3', String(currentLunation));
+        setFirstCycleLunationIndex(currentLunation);
+        hasManuallyChangedCycleRef.current = false;
+        setViewingCycleId(1);
       } catch (e) {
         console.warn("Erro ao configurar ciclo inicial do visitante:", e);
       }
@@ -1255,33 +1267,35 @@ export default function App() {
 
     if (isAuthLoading || !userData) return;
 
-    if (typeof userData.firstCycleLunationIndex === 'number' && !isNaN(userData.firstCycleLunationIndex)) {
-      const savedIdx = userData.firstCycleLunationIndex;
+    try {
+      localStorage.removeItem(`hekat_first_lunation_index_${currentUser.uid}`);
+    } catch {}
+
+    const hasValidAnchor =
+      userData.cycleAnchorVersion === CURRENT_CYCLE_ANCHOR_VERSION &&
+      typeof userData.firstCycleLunationIndex === 'number' &&
+      !isNaN(userData.firstCycleLunationIndex) &&
+      userData.firstCycleLunationIndex >= 0 &&
+      userData.firstCycleLunationIndex <= currentLunation;
+
+    if (hasValidAnchor) {
+      const savedIdx = userData.firstCycleLunationIndex as number;
       if (firstCycleLunationIndex !== savedIdx) {
         setFirstCycleLunationIndex(savedIdx);
       }
       try {
-        localStorage.setItem(`hekat_first_lunation_index_${currentUser.uid}`, String(savedIdx));
+        localStorage.setItem(`hekat_first_lunation_v3_${currentUser.uid}`, String(savedIdx));
       } catch {}
       return;
     }
 
-    let resolved: number | null = null;
-    try {
-      const cached = localStorage.getItem(`hekat_first_lunation_index_${currentUser.uid}`);
-      if (cached !== null && !isNaN(Number(cached))) {
-        resolved = Number(cached);
-      }
-    } catch {}
-
-    if (resolved === null) {
-      const hasLegacyMultiCycle = allLogs.some(l => Number(l.cycleId) > 1);
-      resolved = hasLegacyMultiCycle ? -1 : baseLunarData.lunationIndex;
-    }
-
+    // Recalibra contas antigas ou novas para iniciar exatamente no Ciclo 1
+    const resolved = currentLunation;
     setFirstCycleLunationIndex(resolved);
+    hasManuallyChangedCycleRef.current = false;
+    setViewingCycleId(1);
     try {
-      localStorage.setItem(`hekat_first_lunation_index_${currentUser.uid}`, String(resolved));
+      localStorage.setItem(`hekat_first_lunation_v3_${currentUser.uid}`, String(resolved));
     } catch {}
 
     if (db) {
@@ -1293,15 +1307,19 @@ export default function App() {
           displayName: currentUser.displayName || null,
           photoURL: currentUser.photoURL || null,
           firstCycleLunationIndex: resolved,
+          cycleAnchorVersion: CURRENT_CYCLE_ANCHOR_VERSION,
           createdAt: serverTimestamp(),
           lastActive: serverTimestamp()
         }).catch(err => console.warn("Erro ao registrar ciclo inicial no Firestore:", err));
       } else {
-        setDoc(userRef, { firstCycleLunationIndex: resolved, updatedAt: serverTimestamp() }, { merge: true })
-          .catch(err => console.warn("Erro ao atualizar ciclo inicial no Firestore:", err));
+        setDoc(userRef, {
+          firstCycleLunationIndex: resolved,
+          cycleAnchorVersion: CURRENT_CYCLE_ANCHOR_VERSION,
+          updatedAt: serverTimestamp()
+        }, { merge: true }).catch(err => console.warn("Erro ao atualizar ciclo inicial no Firestore:", err));
       }
     }
-  }, [currentUser, isAuthLoading, userData, logsLoaded, allLogs, baseLunarData.lunationIndex, firstCycleLunationIndex]);
+  }, [currentUser, isAuthLoading, userData, logsLoaded, isClockSynced, baseLunarData.lunationIndex, firstCycleLunationIndex]);
 
   // Migração de Dados (Ajuste de Numeração de Ciclos)
   const migrationInProgress = useRef(false);
@@ -1461,7 +1479,7 @@ export default function App() {
       };
       const localStoredPayload = {
         ...reportPayload,
-        reportVersion: 2
+        reportVersion: CURRENT_REPORT_VERSION
       };
 
       setReports(prev => {
@@ -1483,7 +1501,7 @@ export default function App() {
         try {
           await setDoc(reportDocRef, {
             userId: requestUid,
-            reportVersion: 2,
+            reportVersion: CURRENT_REPORT_VERSION,
             text: reportText,
             logs: sanitizedCycleLogs,
             meta: metaPayload,
@@ -2220,7 +2238,7 @@ export default function App() {
         }
         try {
           const parsed = JSON.parse(saved);
-          if (parsed && parsed.reportVersion === 2) {
+          if (parsed && parsed.reportVersion === CURRENT_REPORT_VERSION) {
             updatedReports[p] = {
               text: parsed.text || null,
               logs: parsed.logs || null,
@@ -2255,8 +2273,8 @@ export default function App() {
       };
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        // Apaga automaticamente relatórios legados (sem reportVersion === 2) ou de outro usuário
-        if (data.reportVersion !== 2 || (data.userId && data.userId !== targetUid)) {
+        // Apaga automaticamente relatórios antigos (sem reportVersion === CURRENT_REPORT_VERSION) ou de outro usuário
+        if (data.reportVersion !== CURRENT_REPORT_VERSION || (data.userId && data.userId !== targetUid)) {
           deleteDoc(docSnap.ref).catch(() => {});
           return;
         }
@@ -2514,13 +2532,6 @@ export default function App() {
       toggleWindow('journal', 'close');
       toggleWindow('mandala', 'open');
     }, 1500);
-
-    // Atualizar análise semanal em segundo plano com as anotações atualizadas do próprio usuário
-    setTimeout(() => {
-      if (activeUserUidRef.current === saveUid) {
-        generateReport('weekly', updatedLogs).catch(e => console.warn("Atualização automática semanal:", e));
-      }
-    }, 300);
   };
 
   const handleReset = async () => {
@@ -3102,7 +3113,7 @@ export default function App() {
                       hasSeenGuide: true
                     });
                     setSelectedDay(lunarData.day);
-                    setViewingCycleId(lunarData.cycleId);
+                    setViewingCycleId(1);
                     toggleWindow('mandala', 'open');
                   }}
                   className="w-full group relative flex items-center justify-center gap-3 px-8 py-5 bg-[#BF8A10] hover:bg-[#a6770d] text-[#0d0d0d] text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-[#BF8A10]/20 transition-all active:scale-95 overflow-hidden"
@@ -3743,7 +3754,7 @@ export default function App() {
                                   : item.id === 'monthly' 
                                   ? 'Análise de Dados 28 dias' 
                                   : item.id === 'correlation' 
-                                  ? (correlationSummary.hasLogs ? `Ritmo 3 Ciclos • Predominante: ${correlationSummary.dominant}` : 'Ritmo Ciclos & Fases') 
+                                  ? (reports.correlation.text && correlationSummary.hasLogs ? `Ritmo 3 Ciclos • Predominante: ${correlationSummary.dominant}` : 'Ritmo Ciclos & Fases') 
                                   : 'Análise de Dados 90 dias'}
                               </p>
                             </div>

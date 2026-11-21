@@ -24,7 +24,8 @@ service cloud.firestore {
           && (!('displayName' in data) || data.displayName == null || (data.displayName is string && data.displayName.size() <= 500))
           && (!('photoURL' in data) || data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 5000))
           && (!('name' in data) || data.name == null || (data.name is string && data.name.size() <= 500))
-          && (!('firstCycleLunationIndex' in data) || (data.firstCycleLunationIndex is int && data.firstCycleLunationIndex >= -1 && data.firstCycleLunationIndex <= 10000));
+          && (!('firstCycleLunationIndex' in data) || (data.firstCycleLunationIndex is int && data.firstCycleLunationIndex >= -1 && data.firstCycleLunationIndex <= 10000))
+          && (!('cycleAnchorVersion' in data) || (data.cycleAnchorVersion is int && data.cycleAnchorVersion >= 1 && data.cycleAnchorVersion <= 100));
       }
       allow create: if isOwner(userId)
         && isValidUser(request.resource.data)
@@ -35,7 +36,7 @@ service cloud.firestore {
         && isValidUser(request.resource.data)
         && (request.resource.data.get('uid', request.auth.uid) == resource.data.get('uid', request.auth.uid))
         && (request.resource.data.get('email', request.auth.token.email).lower() == resource.data.get('email', request.auth.token.email).lower())
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'displayName', 'photoURL', 'lastActive', 'hasSeenGuide', 'isPremium', 'uid', 'email', 'createdAt', 'updatedAt', 'reminderSettings', 'firstCycleLunationIndex'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'displayName', 'photoURL', 'lastActive', 'hasSeenGuide', 'isPremium', 'uid', 'email', 'createdAt', 'updatedAt', 'reminderSettings', 'firstCycleLunationIndex', 'cycleAnchorVersion'])
         && (request.resource.data.get('lastActive', request.time) == request.time || request.resource.data.get('lastActive', request.time) == resource.data.get('lastActive', request.time))
         && (request.resource.data.get('updatedAt', request.time) == request.time || request.resource.data.get('updatedAt', request.time) == resource.data.get('updatedAt', request.time));
     }
@@ -67,7 +68,7 @@ service cloud.firestore {
 
       function isValidReport(data) {
         return (data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128)
-          && (data.reportVersion is int && data.reportVersion == 2)
+          && (data.reportVersion is int && data.reportVersion == 3)
           && (data.text is string && data.text.size() <= 200000)
           && (data.logs is map)
           && (data.meta is map)
